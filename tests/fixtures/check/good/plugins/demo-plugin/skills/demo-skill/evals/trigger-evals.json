@@ -1,0 +1,66 @@
+[
+  {
+    "query": "write an ADR for our database choice",
+    "should_trigger": true
+  },
+  {
+    "query": "record an architecture decision",
+    "should_trigger": true
+  },
+  {
+    "query": "create a decision record about caching",
+    "should_trigger": true
+  },
+  {
+    "query": "new ADR: use Kafka",
+    "should_trigger": true
+  },
+  {
+    "query": "document why we picked Go",
+    "should_trigger": true
+  },
+  {
+    "query": "add an MADR for the auth approach",
+    "should_trigger": true
+  },
+  {
+    "query": "log this architecture decision",
+    "should_trigger": true
+  },
+  {
+    "query": "start ADR 0007",
+    "should_trigger": true
+  },
+  {
+    "query": "fix this failing test",
+    "should_trigger": false
+  },
+  {
+    "query": "rename this variable",
+    "should_trigger": false
+  },
+  {
+    "query": "what time is it",
+    "should_trigger": false
+  },
+  {
+    "query": "summarise this PR",
+    "should_trigger": false
+  },
+  {
+    "query": "write a README",
+    "should_trigger": false
+  },
+  {
+    "query": "explain goroutines",
+    "should_trigger": false
+  },
+  {
+    "query": "format this JSON",
+    "should_trigger": false
+  },
+  {
+    "query": "deploy to staging",
+    "should_trigger": false
+  }
+]

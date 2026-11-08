@@ -1,0 +1,12 @@
+{
+  "name": "other-name",
+  "version": "1.0.0",
+  "description": "The name-mismatch plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "documentation"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,264 @@
+# The one required PR workflow. Runs the BASE branch's copy of this file (pull_request_target),
+# so a PR cannot rewrite its own checks. Safety model (docs/security-scanning.md):
+#   - the PR head is checked out to ./pr and treated as DATA only — nothing from ./pr is executed;
+#   - only scripts from ./base and pinned tool releases run;
+#   - read-only token, no secrets, no caches, persist-credentials: false on every checkout;
+#   - PR-controlled strings (title, branch name, labels) reach scripts only through env vars.
+name: pr-gate
+
+on:
+  # zizmor: ignore[dangerous-triggers] reason: required so the base branch's checks judge the PR; PR content is data only — see docs/security-scanning.md
+  pull_request_target:
+    branches: [main, stable]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  CLAUDE_CODE_VERSION: 2.1.319
+  GITLEAKS_VERSION: 8.30.1
+  GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+  ACTIONLINT_VERSION: 1.7.12
+  ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+  ZIZMOR_VERSION: 1.32.0
+  UV_VERSION: 0.13.7
+  SKILLSPECTOR_REF: v2.11.2
+
+jobs:
+  plugins:
+    name: plugins
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out base (trusted scripts)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+      - name: Check out PR head (data only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          path: pr
+          persist-credentials: false
+      - name: Write pr.json
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          jq -n --arg title "$PR_TITLE" --argjson labels "$PR_LABELS" \
+            --arg baseRef "$PR_BASE_REF" --arg headRef "$PR_HEAD_REF" \
+            '{title: $title, labels: $labels, baseRef: $baseRef, headRef: $headRef}' > pr.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install Claude Code CLI (pinned)
+        env:
+          DISABLE_AUTOUPDATER: 1
+        # Exact pinned version (a global CLI has no lockfile); one retry.
+        run: | # zizmor: ignore[adhoc-packages]
+          install() { npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"; }
+          install || { sleep 10; install; }
+          claude --version
+      - name: Repo checks (plugins)
+        run: node base/scripts/check.mjs --root pr --base base --pr pr.json --only plugins
+      - name: Validate catalogues and plugins (--strict)
+        env:
+          DISABLE_AUTOUPDATER: 1
+        run: |
+          set -euo pipefail
+          claude plugin validate pr --strict
+          # The stable catalogue is a sibling file; validate it under the canonical file name.
+          if [ -f pr/.claude-plugin/marketplace-stable.json ]; then
+            mkdir -p "$RUNNER_TEMP/stable/.claude-plugin"
+            cp pr/.claude-plugin/marketplace-stable.json "$RUNNER_TEMP/stable/.claude-plugin/marketplace.json"
+            if [ -d pr/plugins ]; then cp -R pr/plugins "$RUNNER_TEMP/stable/"; fi
+            claude plugin validate "$RUNNER_TEMP/stable" --strict
+          fi
+          for dir in pr/plugins/*/; do
+            [ -d "$dir" ] || continue
+            claude plugin validate "$dir" --strict
+          done
+      - name: Promotion check (stable PRs)
+        if: github.event.pull_request.base.ref == 'stable'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          re='^chore\(stable\): promote main@([0-9a-f]{7,40})$'
+          if [[ ! "$PR_TITLE" =~ $re ]]; then
+            echo "::error title=Promotion check::PRs into stable must be titled 'chore(stable): promote main@<sha>'"
+            exit 1
+          fi
+          sha="${BASH_REMATCH[1]}"
+          git -C base fetch --no-tags --filter=blob:none origin +refs/heads/main:refs/remotes/origin/main
+          if ! promoted=$(git -C base rev-parse --verify --quiet "${sha}^{commit}"); then
+            echo "::error title=Promotion check::main@${sha} not found on main"
+            exit 1
+          fi
+          git -C base merge-base --is-ancestor "$promoted" origin/main || {
+            echo "::error title=Promotion check::${sha} is not on main"; exit 1; }
+          want=$(git -C base rev-parse "${promoted}^{tree}")
+          got=$(git -C pr rev-parse 'HEAD^{tree}')
+          if [ "$want" != "$got" ]; then
+            echo "::error title=Promotion check::PR tree ${got} differs from main@${sha} tree ${want}. A promotion must be an exact copy of main (npm run promote)."
+            exit 1
+          fi
+          echo "Promotion OK: PR tree matches main@${sha} (${want})"
+
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out base (trusted scripts)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+      - name: Check out PR head (data only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          path: pr
+          persist-credentials: false
+      - name: Write pr.json
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          jq -n --arg title "$PR_TITLE" --argjson labels "$PR_LABELS" \
+            --arg baseRef "$PR_BASE_REF" --arg headRef "$PR_HEAD_REF" \
+            '{title: $title, labels: $labels, baseRef: $baseRef, headRef: $headRef}' > pr.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Repo checks (security)
+        run: node base/scripts/check.mjs --root pr --pr pr.json --only security
+      - name: Install gitleaks (pinned release)
+        run: |
+          set -euo pipefail
+          url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL --retry 1 -o "$RUNNER_TEMP/gitleaks.tgz" "$url" \
+            || { sleep 10; curl -fsSL -o "$RUNNER_TEMP/gitleaks.tgz" "$url"; }
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tgz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP/bin" gitleaks
+      - name: gitleaks (PR files, not history)
+        run: |
+          if [ -d pr/plugins ]; then "$RUNNER_TEMP/bin/gitleaks" dir pr/plugins --config base/.gitleaks.toml --no-banner --redact; else echo "no plugins/ in PR"; fi
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: Install SkillSpector (pinned tag)
+        run: |
+          uv tool install "git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_REF}" \
+            || { sleep 10; uv tool install "git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_REF}"; }
+      - name: SkillSpector --no-llm (risk >50 fails; baselines honoured)
+        run: |
+          set -uo pipefail
+          status=0
+          for dir in pr/plugins/*/; do
+            [ -d "$dir" ] || continue
+            name=$(basename "$dir")
+            if [[ ! "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+              echo "::error title=SkillSpector::plugin folder name is not kebab-case"; status=1; continue
+            fi
+            # Flag baseline changes: a baseline silences findings, so reviewers must see edits to it.
+            if ! cmp -s "base/plugins/$name/.skillspector-baseline.yaml" "pr/plugins/$name/.skillspector-baseline.yaml" \
+               && { [ -f "base/plugins/$name/.skillspector-baseline.yaml" ] || [ -f "pr/plugins/$name/.skillspector-baseline.yaml" ]; }; then
+              echo "::warning file=plugins/$name/.skillspector-baseline.yaml,title=SkillSpector baseline changed::plugins/$name/.skillspector-baseline.yaml is added, changed or removed in this PR — review the suppressed findings"
+            fi
+            args=(scan "$dir" --no-llm)
+            # Only the BASE branch's reviewed baseline is honoured: a PR can't suppress its own findings.
+            if [ -f "base/plugins/$name/.skillspector-baseline.yaml" ]; then args+=(--baseline "base/plugins/$name/.skillspector-baseline.yaml"); fi
+            echo "::group::skillspector ${args[*]}"
+            skillspector "${args[@]}" || status=1
+            echo "::endgroup::"
+          done
+          exit "$status"
+
+  workflows:
+    name: workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out base (trusted scripts)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+      - name: Check out PR head (data only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          path: pr
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Every action SHA-pinned
+        run: node base/scripts/check-actions-pinned.mjs pr/.github/workflows
+      - name: Install actionlint (pinned release)
+        run: |
+          set -euo pipefail
+          url="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/actionlint.tgz" "$url" \
+            || { sleep 10; curl -fsSL -o "$RUNNER_TEMP/actionlint.tgz" "$url"; }
+          echo "${ACTIONLINT_SHA256}  $RUNNER_TEMP/actionlint.tgz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xzf "$RUNNER_TEMP/actionlint.tgz" -C "$RUNNER_TEMP/bin" actionlint
+      - name: actionlint
+        run: |
+          shopt -s nullglob
+          files=(pr/.github/workflows/*.yml pr/.github/workflows/*.yaml)
+          if [ ${#files[@]} -eq 0 ]; then echo "no workflows in PR"; exit 0; fi
+          "$RUNNER_TEMP/bin/actionlint" -no-color -config-file base/.github/actionlint.yaml "${files[@]}"
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: zizmor (offline audits)
+        run: |
+          if [ ! -d pr/.github/workflows ]; then echo "no workflows in PR"; exit 0; fi
+          uvx "zizmor@${ZIZMOR_VERSION}" --offline --no-progress --no-config pr/.github/workflows \
+            || { rc=$?; [ "$rc" -ge 10 ] && exit "$rc"; sleep 10; uvx "zizmor@${ZIZMOR_VERSION}" --offline --no-progress --no-config pr/.github/workflows; }
+
+  title:
+    name: title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out base (trusted scripts)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: PR title is a Conventional Commit
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: node base/scripts/check-title.mjs "$PR_TITLE"

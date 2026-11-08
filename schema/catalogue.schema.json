@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "plugins/<name>/catalogue.json",
+  "type": "object",
+  "required": ["category", "owner", "languages"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "category": { "type": "string", "minLength": 1 },
+    "owner": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "replacedBy": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "languages": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+  }
+}

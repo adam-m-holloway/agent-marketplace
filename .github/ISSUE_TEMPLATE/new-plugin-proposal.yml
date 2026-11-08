@@ -1,0 +1,28 @@
+name: New plugin proposal
+description: Propose a plugin you plan to build, so others can point out overlaps first.
+title: "Proposal: "
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Plugin name (kebab-case)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What / when / triggers / not-for
+      description: The skill description rule from CONTRIBUTING.md.
+    validations:
+      required: true
+  - type: textarea
+    id: overlap
+    attributes:
+      label: Similar existing plugins
+      description: Search the catalogue first and list anything close.
+  - type: input
+    id: owner
+    attributes:
+      label: Owner (person or team)
+    validations:
+      required: true

@@ -1,0 +1,12 @@
+{
+  "name": "ok-plugin",
+  "version": "1.0.0",
+  "description": "The ok-plugin plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "documentation"
+  ],
+  "license": "MIT"
+}

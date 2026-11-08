@@ -1,0 +1,12 @@
+{
+  "name": "bad-category",
+  "version": "1.0.0",
+  "description": "The bad-category plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "documentation"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "./schema/taxonomy.schema.json",
+  "categories": [
+    "documentation",
+    "language-conventions",
+    "engineering-practices",
+    "testing",
+    "security",
+    "devops"
+  ],
+  "tags": [
+    "adr",
+    "architecture",
+    "documentation",
+    "madr",
+    "decision-records",
+    "conventions",
+    "code-style",
+    "go",
+    "golang",
+    "typescript",
+    "javascript",
+    "testing",
+    "table-driven-tests",
+    "vitest",
+    "error-handling",
+    "strict-mode",
+    "code-review"
+  ],
+  "languages": ["any", "go", "typescript", "javascript", "python", "java"]
+}

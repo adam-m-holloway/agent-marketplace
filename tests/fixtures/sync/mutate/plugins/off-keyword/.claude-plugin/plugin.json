@@ -1,0 +1,13 @@
+{
+  "name": "off-keyword",
+  "version": "1.0.0",
+  "description": "The off-keyword plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "adr",
+    "blockchain"
+  ],
+  "license": "MIT"
+}

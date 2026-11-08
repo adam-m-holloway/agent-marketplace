@@ -1,0 +1,22 @@
+name: Request a plugin
+description: Ask for a plugin that doesn't exist yet (the catalogue's "Request this plugin" link opens this).
+title: "Plugin request: "
+labels: ["plugin-request"]
+body:
+  - type: input
+    id: query
+    attributes:
+      label: What did you search for?
+      description: Pre-filled from the catalogue search.
+  - type: textarea
+    id: need
+    attributes:
+      label: What should the plugin help with?
+      description: The task, the team, and how you do it today.
+    validations:
+      required: true
+  - type: input
+    id: languages
+    attributes:
+      label: Languages / toolchains
+      placeholder: any, go, typescript…

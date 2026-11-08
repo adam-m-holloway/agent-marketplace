@@ -1,0 +1,17 @@
+{
+  "name": "agent-marketplace",
+  "private": true,
+  "description": "Claude Code plugin marketplace monorepo (POC)",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test \"tests/**/*.test.mjs\"",
+    "new-plugin": "node scripts/new-plugin.mjs",
+    "bump": "node scripts/bump.mjs",
+    "promote": "node scripts/promote.mjs",
+    "build-site": "node scripts/build-site.mjs"
+  }
+}

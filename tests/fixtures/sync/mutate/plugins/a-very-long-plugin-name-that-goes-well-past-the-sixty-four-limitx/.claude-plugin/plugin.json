@@ -1,0 +1,12 @@
+{
+  "name": "a-very-long-plugin-name-that-goes-well-past-the-sixty-four-limitx",
+  "version": "1.0.0",
+  "description": "The a-very-long-plugin-name-that-goes-well-past-the-sixty-four-limitx plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "documentation"
+  ],
+  "license": "MIT"
+}

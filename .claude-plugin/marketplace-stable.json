@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace-manifest.json",
+  "name": "agent-marketplace-stable",
+  "description": "Claude Code plugins for our teams — stable channel (reviewed promotions of main)",
+  "owner": {
+    "name": "Adam Holloway"
+  },
+  "plugins": [
+    {
+      "name": "adr-helper",
+      "source": "./plugins/adr-helper",
+      "description": "Write Architecture Decision Records in MADR format: numbered docs/adr files grounded in your code, with no invented context.",
+      "category": "documentation",
+      "tags": [
+        "adr",
+        "architecture",
+        "documentation",
+        "madr",
+        "decision-records"
+      ]
+    }
+  ]
+}

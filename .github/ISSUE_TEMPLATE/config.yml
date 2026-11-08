@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/adam-m-holloway/agent-marketplace/security/advisories/new
+    about: Please report security issues privately, not as public issues.
+  - name: Browse the plugin catalogue
+    url: https://adam-m-holloway.github.io/agent-marketplace/
+    about: Search existing plugins before proposing a new one.
