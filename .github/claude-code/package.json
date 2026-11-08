@@ -1,0 +1,9 @@
+{
+  "name": "ci-claude-code",
+  "private": true,
+  "description": "Pins the Claude Code CLI that CI runs (pr-gate, release). Installed with `npm ci`, so every package, including the platform binary, is verified against the sha512 in package-lock.json. Not a repo dependency.",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.319"
+  }
+}

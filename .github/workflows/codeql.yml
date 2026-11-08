@@ -1,0 +1,51 @@
+# CodeQL static analysis (SAST) of the marketplace tooling (scripts/, site/) and the workflows.
+# The one exception to "no SARIF upload": CodeQL is GitHub's own scanner, free on public repos,
+# and its results only appear in the Security tab via SARIF. Our own scanners (repo rules,
+# gitleaks, SkillSpector, actionlint, zizmor) still report through pr-gate only (Q14).
+# Informational: not a required check. See docs/security-scanning.md.
+#
+# A plain `pull_request` trigger (not pull_request_target): the PR's own code is analysed with a
+# read-only token and no secrets, and nothing from the PR is executed (javascript-typescript and
+# actions need no build).
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '41 5 * * 1' # weekly, Monday 05:41 UTC
+
+permissions: {}
+
+concurrency:
+  group: codeql-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      security-events: write # upload CodeQL results to code scanning
+      contents: read # read the repo
+      actions: read # read workflow run metadata for the upload
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, actions]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: /language:${{ matrix.language }}

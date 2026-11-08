@@ -20,7 +20,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CLAUDE_CODE_VERSION: 2.1.319
   GITLEAKS_VERSION: 8.30.1
   GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
   ACTIONLINT_VERSION: 1.7.12
@@ -62,14 +61,15 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
-      - name: Install Claude Code CLI (pinned)
+      - name: Install Claude Code CLI (pinned by hash)
         env:
           DISABLE_AUTOUPDATER: 1
-        # Exact pinned version (a global CLI has no lockfile); one retry.
-        run: | # zizmor: ignore[adhoc-packages]
-          install() { npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"; }
+        # `npm ci` from the BASE lockfile (.github/claude-code/package-lock.json) verifies the
+        # sha512 of the CLI and its platform binary; the PR can't change it. One retry.
+        run: |
+          install() { npm ci --prefix base/.github/claude-code --no-audit --no-fund; }
           install || { sleep 10; install; }
-          claude --version
+          base/.github/claude-code/node_modules/.bin/claude --version
       - name: Insights consumers for the stage gate (data only; optional)
         env:
           REPO: ${{ github.repository }}
@@ -98,6 +98,8 @@ jobs:
           DISABLE_AUTOUPDATER: 1
         run: |
           set -euo pipefail
+          # The hash-pinned CLI from the install step (no $GITHUB_PATH write under pull_request_target).
+          PATH="$GITHUB_WORKSPACE/base/.github/claude-code/node_modules/.bin:$PATH"
           claude plugin validate pr --strict
           # The stable catalogue is a sibling file; validate it under the canonical file name.
           if [ -f pr/.claude-plugin/marketplace-stable.json ]; then
