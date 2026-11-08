@@ -7,7 +7,10 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { loadRepo } from '../scripts/lib/plugins.mjs';
-import { buildData, consumersByPlugin, readGitData, skillMeta, CONSUMERS_NOTE } from '../scripts/build-site.mjs';
+import {
+  buildData, consumersByPlugin, readGitData, skillMeta, CONSUMERS_NOTE,
+  changelogDate, lastUpdated, scoreFields, readScoreData,
+} from '../scripts/build-site.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const BUILD = join(ROOT, 'scripts/build-site.mjs');
@@ -136,4 +139,68 @@ test('site staleMessage: banner only when usage data is older than 36 hours', ()
   assert.equal(staleMessage('2026-11-07T00:00:01Z', now), null); // just under 36 h
   assert.equal(staleMessage('2026-11-06T12:00:00Z', now),
     'Usage data is 48 hours old — the nightly insights run may have stopped.');
+});
+
+// --- scores + last updated --------------------------------------------------------------------
+const CHANGELOG = '# Changelog\n\n## [1.1.1] - 2026-11-08\n\n### Fixed\n\n- x\n\n## [1.1.0] - 2026-11-07\n';
+
+test('lastUpdated: tag date wins; falls back to the CHANGELOG date for the current version', () => {
+  assert.deepEqual(lastUpdated('1.1.1', '2026-11-09', CHANGELOG), { date: '2026-11-09', version: '1.1.1', source: 'tag' });
+  assert.deepEqual(lastUpdated('1.1.0', null, CHANGELOG), { date: '2026-11-07', version: '1.1.0', source: 'changelog' });
+  assert.deepEqual(lastUpdated('2.0.0', null, CHANGELOG), { date: null, version: '2.0.0', source: null });
+  assert.equal(changelogDate(CHANGELOG, '1.1.1'), '2026-11-08');
+  assert.equal(changelogDate(CHANGELOG, '1.1'), null);
+  assert.equal(changelogDate(null, '1.0.0'), null);
+});
+
+const H = [
+  { plugin: 'adr-helper', version: '1.0.0', recorded_at: '2026-11-08T10:03:03.000Z', security: 60, quality: 85 },
+  { plugin: 'adr-helper', version: '1.1.0', recorded_at: '2026-11-08T11:24:34.000Z', security: 100, quality: 100, evals: { pass_rate: 100 } },
+  { plugin: 'go-conventions', version: '1.0.0', recorded_at: '2026-11-08T11:13:05.000Z', security: 100, quality: 100 },
+];
+const CUR = { security: { score: 100 }, quality: { score: 90 }, evals: { pass_rate: 100 } };
+
+test('scoreFields: a patch version compares with the previous tracked (major/minor) record', () => {
+  const latestEntry = { version: '1.1.1', recorded_at: '2026-11-08T12:43:26.000Z', tracked: false, reason: 'patch' };
+  const f = scoreFields({ name: 'adr-helper', version: '1.1.1', scores: CUR, history: H, latestEntry, builtAt: 'BUILD' });
+  assert.deepEqual(f.score_history.map((r) => r.version), ['1.0.0', '1.1.0']);
+  assert.deepEqual(f.score_change, { vs_version: '1.1.0', security: 0, security_basis: 'rules + SkillSpector', quality: -10, evals: 0 });
+  assert.deepEqual(f.scored, { at: '2026-11-08T12:43:26.000Z', version: '1.1.1', tracked: false, reason: 'patch', source: 'release' });
+});
+
+test('scoreFields: a tracked version compares with the version before it; no data branch → build time', () => {
+  const f = scoreFields({ name: 'adr-helper', version: '1.1.0', scores: CUR, history: H, builtAt: 'BUILD' });
+  assert.equal(f.score_change.vs_version, '1.0.0');
+  assert.equal(f.score_change.security, 40);
+  assert.equal(f.scored.tracked, true);
+  assert.equal(f.scored.at, '2026-11-08T11:24:34.000Z');
+  const none = scoreFields({ name: 'adr-helper', version: '1.1.1', scores: CUR, history: [], builtAt: 'BUILD' });
+  assert.deepEqual(none, { score_history: [], score_change: null, scored: { at: 'BUILD', version: '1.1.1', tracked: true, reason: null, source: 'build' } });
+  const patch = scoreFields({ name: 'adr-helper', version: '1.1.1', scores: CUR, history: H, builtAt: 'BUILD' });
+  assert.deepEqual([patch.scored.tracked, patch.scored.reason, patch.scored.source], [false, 'patch', 'build']);
+});
+
+test('readScoreData: reads every scores/**.ndjson and latest/scores.json; missing data branch → empty', () => {
+  const files = { 'scores/year=2026/month=11/2026-11-08.ndjson': H.map((r) => JSON.stringify(r)).join('\n') + '\n', 'latest/scores.json': '{"plugins":{}}' };
+  const d = readScoreData((ref, p) => files[p] ?? null, () => Object.keys(files));
+  assert.equal(d.scoreHistory.length, 3);
+  assert.deepEqual(d.scoresLatest, { plugins: {} });
+  assert.deepEqual(readScoreData(() => null, () => []), { scoreHistory: [], scoresLatest: null });
+});
+
+test('buildData: every plugin carries scores, last_updated and the explained rules', () => {
+  const repo = loadRepo(ROOT);
+  const d = buildData(repo, { now: NOW, tagDates: { 'adr-helper': '2026-11-08' }, skillspector: { 'adr-helper': 0 } });
+  const adr = d.plugins.find((p) => p.name === 'adr-helper');
+  assert.equal(adr.scores.security.score, 100);
+  assert.equal(adr.scores.security.inputs, '0 HIGH, 0 MEDIUM; SkillSpector risk 0/100');
+  assert.equal(adr.scores.evals.measured_version, '1.1.0');
+  assert.equal(adr.scores.evals.earlier_version, true);
+  assert.deepEqual(adr.last_updated, { date: '2026-11-08', version: adr.versions.latest, source: 'tag' });
+  assert.equal(d.skillspector_ran, true);
+  assert.ok(d.scores_explained.quality_criteria.length >= 7);
+  assert.ok(d.scores_explained.tracking.some((l) => /major and minor/.test(l)));
+  const go = d.plugins.find((p) => p.name === 'go-conventions');
+  assert.equal(go.scores.security.skillspector_risk, null);
+  assert.equal(go.last_updated.source, 'changelog');
 });

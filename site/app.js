@@ -199,7 +199,124 @@
     return h('details', { class: 'panel more' },
       h('summary', null, h('span', { class: 'summary-title', text: 'Details' }),
         h('span', { class: 'summary-hint', text: plural(p.skills.length, 'skill') + ' · used by ' + plural(teamsOf(p).length, 'team') })),
-      h('div', { class: 'panel-body' }, skills, about, related, consumersBlock(p)));
+      h('div', { class: 'panel-body' }, skills, about, scoreDetail(p), related, consumersBlock(p)));
+  }
+
+  // ---------- scores ----------
+  function bandOf(n) { return n == null ? 'none' : n >= 90 ? 'good' : n >= 70 ? 'fair' : 'poor'; }
+  var BAND_TEXT = { good: 'good', fair: 'fair', poor: 'poor', none: 'no data' };
+  function fmtNum(n) { return Math.round(n * 10) / 10 + ''; }
+  /** ISO datetime → "2026-11-08 12:43 UTC" (date only when there is no time). */
+  function fmtDateTime(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    return d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+  }
+  /** "▲ 5" / "▼ 10" / "no change" vs the previous tracked version; null when unknown. */
+  function changeEl(delta, vs, basis) {
+    if (typeof delta !== 'number') return null;
+    var dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'same';
+    var text = delta > 0 ? '▲ ' + fmtNum(delta) : delta < 0 ? '▼ ' + fmtNum(-delta) : '±0';
+    var spoken = (delta === 0 ? 'no change' : (delta > 0 ? 'up ' : 'down ') + fmtNum(Math.abs(delta)) + ' points') + ' since v' + vs + (basis ? ' (' + basis + ')' : '');
+    return h('span', { class: 'chg chg-' + dir, title: spoken },
+      h('span', { 'aria-hidden': 'true', text: text }), h('span', { class: 'offscreen', text: ', ' + spoken }));
+  }
+  function meter(label, value, valueText, delta, vs, note, basis) {
+    var b = bandOf(value);
+    var bar = h('span', { class: 'bar', 'aria-hidden': 'true' }, h('span', { class: 'fill fill-' + b }));
+    if (typeof value === 'number') bar.firstChild.style.width = Math.max(0, Math.min(100, value)) + '%';
+    return h('li', { class: 'score band-' + b },
+      h('span', { class: 'score-label', text: label }),
+      h('span', { class: 'score-value' }, h('strong', { text: valueText }),
+        typeof value === 'number' ? h('span', { class: 'score-band', text: ' ' + BAND_TEXT[b] }) : null,
+        changeEl(delta, vs, basis)),
+      bar,
+      note ? h('span', { class: 'score-note', text: note }) : null);
+  }
+
+  function scoreRow(p) {
+    var s = p.scores || {};
+    var c = p.score_change || {};
+    var vs = c.vs_version;
+    var sec = s.security || {};
+    var q = s.quality || {};
+    var e = s.evals;
+    var items = [
+      meter('Security', sec.score, sec.score == null ? '—' : sec.score + '/100', c.security, vs,
+        data.skillspector_ran && sec.skillspector_risk != null ? 'SkillSpector risk ' + sec.skillspector_risk + '/100' : 'SkillSpector: not run',
+        c.security_basis === 'rules only' ? 'rules only' : null),
+      meter('Quality', q.score, q.score == null ? '—' : q.score + '/' + (q.max || 100), c.quality, vs,
+        q.criteria ? q.criteria.filter(function (x) { return x.passed; }).length + ' of ' + q.criteria.length + ' criteria' : null),
+      meter('Evals', e ? e.pass_rate : null, e ? fmtNum(e.pass_rate) + '%' : 'not measured', c.evals, vs,
+        e ? (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' pts vs baseline · v' + e.measured_version +
+          (e.earlier_version ? ' (earlier version)' : '') : null),
+    ];
+    var n = s.adoption ? s.adoption.active_consumers : 0;
+    items.push(h('li', { class: 'score score-count' },
+      h('span', { class: 'score-label', text: 'Adoption' }),
+      h('span', { class: 'score-value' }, h('strong', { text: String(n) })),
+      h('span', { class: 'score-note', text: n === 1 ? 'active team repo' : 'active team repos' })));
+    var sc = p.scored || {};
+    var when = 'Scored ' + fmtDateTime(sc.at) + ' · v' + (sc.version || '?') +
+      (sc.tracked === false ? ' (' + (sc.reason || 'patch') + ', not tracked)' : '') +
+      (sc.source === 'build' ? ' (at site build)' : '');
+    return h('section', { class: 'scores', 'aria-label': 'Scores for ' + p.name },
+      h('ul', { class: 'score-list' }, items),
+      h('p', { class: 'scored' }, when,
+        vs ? ' · change vs v' + vs : '', ' · ', h('a', { href: '#how-scores', text: 'How scores are calculated' })));
+  }
+
+  function scoreDetail(p) {
+    var s = p.scores || {};
+    var wrap = h('section', { class: 'detail', 'aria-label': 'Score breakdown' }, h('h4', { text: 'Score breakdown' }));
+    if (s.security) wrap.appendChild(h('p', { class: 'hint' }, h('strong', { text: 'Security: ' }), s.security.inputs + '.'));
+    if (s.quality) {
+      wrap.appendChild(h('ul', { class: 'criteria' }, s.quality.criteria.map(function (c) {
+        return h('li', { class: c.passed ? 'pass' : 'fail' },
+          h('span', { class: 'mark', 'aria-hidden': 'true', text: c.passed ? '✓' : '✗' }),
+          h('span', null, h('span', { class: 'offscreen', text: c.passed ? 'Passed: ' : 'Failed: ' }), c.label + ' (' + c.weight + ')',
+            h('span', { class: 'skill-desc', text: ' — ' + c.detail })));
+      })));
+    }
+    var e = s.evals;
+    wrap.appendChild(h('p', { class: 'hint' }, h('strong', { text: 'Evals: ' }), e
+      ? e.passed + '/' + e.total + ' with the skill vs ' + e.baseline_passed + '/' + e.total + ' baseline; measured on v' + e.measured_version +
+        ' on ' + fmtDateTime(e.measured_at) + (e.earlier_version ? ' (measured on an earlier version)' : '') + (e.method ? '; ' + e.method : '') + '.'
+      : 'no measured benchmark for this version yet.'));
+    var hist = p.score_history || [];
+    wrap.appendChild(h('h4', { class: 'sub', text: 'Score history (major/minor versions)' }));
+    if (!hist.length) {
+      wrap.appendChild(h('p', { class: 'muted', text: 'No recorded versions yet.' }));
+    } else {
+      var cell = function (v, pc) { return v == null ? '—' : fmtNum(v) + (pc ? '%' : ''); };
+      wrap.appendChild(h('div', { class: 'table-scroll' }, h('table', null,
+        h('caption', { class: 'offscreen', text: 'Score history for ' + p.name }),
+        h('thead', null, h('tr', null, ['Version', 'Recorded', 'Security', 'Quality', 'Evals'].map(function (t) { return h('th', { scope: 'col', text: t }); }))),
+        h('tbody', null, hist.slice().reverse().map(function (r) {
+          return h('tr', null, h('th', { scope: 'row', text: 'v' + r.version }), h('td', { text: fmtDateTime(r.recorded_at) }),
+            h('td', { text: cell(r.security) }), h('td', { text: cell(r.quality) }), h('td', { text: cell(r.evals, true) }));
+        })))));
+    }
+    return wrap;
+  }
+
+  function renderExplain() {
+    var x = data.scores_explained;
+    var box = $('how-scores-body');
+    if (!x || !box) return;
+    var list = function (title, lines) {
+      return h('div', { class: 'explain-col' }, h('h3', { text: title }), h('ul', null, (lines || []).map(function (l) { return h('li', { text: l }); })));
+    };
+    box.textContent = '';
+    box.appendChild(h('p', { class: 'muted', text: x.bands }));
+    box.appendChild(h('div', { class: 'explain-grid' },
+      list('Security (0–100)', x.security),
+      list('Quality (0–100)', (x.quality_criteria || []).map(function (c) { return c.label + ' — ' + c.weight + ' points'; })),
+      list('Evals', x.evals),
+      list('Adoption', x.adoption),
+      list('Which versions are tracked', x.tracking),
+      list('When scores are recorded', x.recording)));
   }
 
   function card(p) {
@@ -221,7 +338,11 @@
         h('h3', { id: 'h-' + p.name }, h('a', { href: '#plugin=' + encodeURIComponent(p.name), class: 'card-link', text: p.name })),
         versions),
       facts,
+      p.last_updated && p.last_updated.date
+        ? h('p', { class: 'updated' }, h('span', { class: 'offscreen', text: 'Last release: ' }), 'Updated ' + p.last_updated.date + ' · v' + p.last_updated.version)
+        : null,
       h('p', { class: 'desc', text: p.description }),
+      scoreRow(p),
       h('ul', { class: 'tags', 'aria-label': 'Tags' }, p.tags.map(function (t) { return h('li', { text: t }); })),
       h('div', { class: 'card-foot' }, installPanel(p), detailsPanel(p)));
   }
@@ -359,6 +480,7 @@
     var stale = window.staleMessage ? window.staleMessage(d.consumers_generated_at, Date.now()) : null;
     if (stale) { $('stale').textContent = stale; $('stale').hidden = false; }
     renderStats();
+    renderExplain();
     renderSandbox();
     onHash();
   }

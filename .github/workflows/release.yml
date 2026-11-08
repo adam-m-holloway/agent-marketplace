@@ -6,8 +6,7 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
+permissions: {}
 
 concurrency:
   group: release
@@ -15,12 +14,16 @@ concurrency:
 
 env:
   CLAUDE_CODE_VERSION: 2.1.319
+  UV_VERSION: 0.13.7
+  SKILLSPECTOR_REF: v2.11.2
 
 jobs:
   release:
     name: release
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write # push tags and create GitHub Releases
     steps:
       # Credentials are kept so `claude plugin tag --push` can push tags; no artifacts are uploaded.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 # zizmor: ignore[artipacked]
@@ -48,3 +51,108 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           node scripts/release.mjs
+
+  # Score each plugin's current release tag and record it on the data branch (first and
+  # major/minor versions append to scores/…ndjson; every release refreshes latest/scores.json).
+  # Idempotent: a tag that already has a record is not appended again. Never writes to main.
+  scores:
+    name: scores
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # push to the data branch only
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # release tags
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Does the data branch exist?
+        id: data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          if git -c "http.https://github.com/.extraheader=$auth" ls-remote --exit-code --heads "https://github.com/${REPO}.git" data; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check out data branch
+        if: steps.data.outputs.exists == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: data
+          path: data
+          persist-credentials: false
+      - name: Start an empty data tree (no data branch yet)
+        if: steps.data.outputs.exists != 'true'
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          git init -b data data
+          git -C data remote add origin "https://github.com/${REPO}.git"
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        continue-on-error: true
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: SkillSpector --no-llm (optional; null with a note if it fails)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          uv tool install "git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_REF}" \
+            || { sleep 10; uv tool install "git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_REF}"; } || exit 1
+          out="$RUNNER_TEMP/skillspector"
+          mkdir -p "$out"
+          for dir in plugins/*/; do
+            [ -d "$dir" ] || continue
+            name=$(basename "$dir")
+            args=(scan "$dir" --no-llm --format json --output "$out/$name.json")
+            if [ -f "$dir.skillspector-baseline.yaml" ]; then args+=(--baseline "$dir.skillspector-baseline.yaml"); fi
+            skillspector "${args[@]}" || echo "::notice::skillspector exited non-zero for $name"
+          done
+          node scripts/scores.mjs --collect-skillspector "$out" > skillspector.json
+          cat skillspector.json
+
+      - name: Score release tags
+        run: |
+          args=(--record --data data)
+          if [ -s skillspector.json ]; then args+=(--skillspector skillspector.json); fi
+          node scripts/scores.mjs "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit and push scores to data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "No score changes to record."; exit 0; fi
+          # shellcheck disable=SC2016 # ${...} below is a JavaScript template literal, not shell
+          msg=$(node -e '
+            const fs = require("fs");
+            const d = JSON.parse(fs.readFileSync("latest/scores.json", "utf8")).plugins;
+            const at = Object.values(d).map((r) => r.recorded_at).sort().at(-1);
+            const r = Object.values(d).filter((x) => x.recorded_at === at).map((x) => `${x.plugin} v${x.version}`);
+            console.log(`chore(scores): ${r.join(", ") || "update"}`);')
+          git commit -q -m "$msg"
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          # The insights workflow also writes to data: on a non-fast-forward, rebase and retry.
+          for attempt in 1 2 3; do
+            if git -c "http.https://github.com/.extraheader=$auth" push origin HEAD:data; then exit 0; fi
+            echo "::notice::push rejected (attempt $attempt); rebasing onto origin/data"
+            sleep $((attempt * 5))
+            git -c "http.https://github.com/.extraheader=$auth" fetch origin data
+            git rebase origin/data
+          done
+          echo "::error::could not push scores to data after 3 attempts"; exit 1

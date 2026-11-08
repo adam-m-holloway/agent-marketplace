@@ -14,6 +14,10 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  UV_VERSION: 0.13.7
+  SKILLSPECTOR_REF: v2.11.2
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -37,8 +41,38 @@ jobs:
           package-manager-cache: false
           node-version: 24
 
+      # Optional: SkillSpector risk feeds the security score. Installed exactly like pr-gate (pinned
+      # tag, --no-llm, no cache). If any of this fails, the site still builds and shows
+      # "SkillSpector: not run".
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        continue-on-error: true
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: SkillSpector --no-llm (optional; writes skillspector.json)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          uv tool install "git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_REF}" \
+            || { sleep 10; uv tool install "git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_REF}"; } || exit 1
+          out="$RUNNER_TEMP/skillspector"
+          mkdir -p "$out"
+          for dir in plugins/*/; do
+            [ -d "$dir" ] || continue
+            name=$(basename "$dir")
+            args=(scan "$dir" --no-llm --format json --output "$out/$name.json")
+            if [ -f "$dir.skillspector-baseline.yaml" ]; then args+=(--baseline "$dir.skillspector-baseline.yaml"); fi
+            # A high risk exits non-zero but still writes the report; the score shows it.
+            skillspector "${args[@]}" || echo "::notice::skillspector exited non-zero for $name"
+          done
+          node scripts/scores.mjs --collect-skillspector "$out" > skillspector.json
+          cat skillspector.json
+
       - name: Build site
-        run: node scripts/build-site.mjs --out _site
+        run: |
+          args=(--out _site)
+          if [ -s skillspector.json ] && [ "$(tr -d ' \n' < skillspector.json)" != "{}" ]; then args+=(--skillspector skillspector.json); fi
+          node scripts/build-site.mjs "${args[@]}"
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
