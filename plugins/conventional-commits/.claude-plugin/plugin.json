@@ -1,6 +1,6 @@
 {
   "name": "conventional-commits",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Write Conventional Commits messages and PR titles from your staged diff, with scopes from changed paths and no AI attribution trailers.",
   "author": {
     "name": "Adam Holloway"
