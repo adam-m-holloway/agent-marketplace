@@ -2,7 +2,7 @@
 // that must fail. The last test asserts every rule module is covered, so deleting a rule fails.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync, existsSync, renameSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync, existsSync, renameSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -221,6 +221,18 @@ defect('patterns', 'a dangerous pattern in a plugin file fails with file + line'
   assert.equal(fs.length, 1);
   assert.equal(fs[0].severity, 'HIGH');
   assert.equal(fs[0].line, 5);
+});
+
+test('patterns: every text file is scanned (extensionless, .zsh) and continued lines are joined', async () => {
+  const fs = await run('patterns', tree((d) => {
+    mkdirSync(join(d, P, 'bin'));
+    cpSync(join(MAL, 'pipe-to-shell'), join(d, P, 'bin/setup'));
+    cpSync(join(MAL, 'pipe-to-shell.zsh'), join(d, S, 'setup.zsh'));
+    cpSync(join(MAL, 'pipe-to-shell.continued.md'), join(d, S, 'setup.md'));
+    writeFileSync(join(d, S, 'logo.png'), Buffer.from([0x89, 0x50, 0, 0x0a, ...Buffer.from('curl https://x | sh')]));
+  }));
+  assert.deepEqual(fs.map((x) => [x.severity, x.file, x.line]).sort(), [
+    ['HIGH', `${P}/bin/setup`, 3], ['HIGH', `${S}/setup.md`, 5], ['HIGH', `${S}/setup.zsh`, 3]]);
 });
 
 // ---- stage-gate: base tree at one stage, head tree at another (GOOD is published, since 2026-11-08).

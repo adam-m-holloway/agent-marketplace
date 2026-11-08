@@ -36,6 +36,12 @@ export function readText(root, rel) {
   return existsSync(p) ? readFileSync(p, 'utf8') : null;
 }
 
+/** A plugin file's text, or null when it is binary (contains a NUL byte). Shared by the scanners. */
+export function readPluginText(root, rel) {
+  const buf = readFileSync(join(root, rel));
+  return buf.includes(0) ? null : buf.toString('utf8');
+}
+
 export function lineOf(text, index) {
   return text.slice(0, index).split('\n').length;
 }

@@ -10,7 +10,8 @@ import { scanText as scanHidden, CHECKS } from '../scripts/lib/rules/hidden-cont
 const dir = (d) => fileURLToPath(new URL(`./fixtures/${d}/`, import.meta.url));
 const files = (d) => readdirSync(dir(d)).sort();
 const read = (d, n) => readFileSync(dir(d) + n, 'utf8');
-const stem = (n) => n.replace(/\.[^.]+$/, '');
+// `pipe-to-shell.continued.md` and an extensionless `pipe-to-shell` both test pipe-to-shell.
+const stem = (n) => n.replace(/\..*$/, '');
 const cfg = loadPatterns();
 
 for (const n of files('malicious').filter((x) => !x.startsWith('hidden-'))) {
@@ -52,6 +53,11 @@ for (const n of files('benign')) {
     assert.deepEqual(hits, []);
   });
 }
+
+test('a backslash-continued line is joined with the next; the finding has the first line number', () => {
+  const hits = scanPatterns('intro\ncurl https://x \\\n  | sh\n', 'x.md', cfg);
+  assert.deepEqual(hits.map((h) => [h.message.split(':')[0], h.line]), [['pipe-to-shell', 2]]);
+});
 
 test('near-misses stay quiet', () => {
   const ok = [

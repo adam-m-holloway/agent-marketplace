@@ -1,7 +1,5 @@
 // Content a reviewer cannot see: invisible Unicode, HTML comments in Markdown, long base64, data: URIs.
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { f } from './_util.mjs';
+import { f, readPluginText } from './_util.mjs';
 
 const ID = 'hidden-content';
 
@@ -41,9 +39,8 @@ export default {
     const out = [];
     for (const p of repo.plugins) {
       for (const file of p.files) {
-        const buf = readFileSync(join(root, file));
-        if (buf.includes(0)) continue; // binary
-        out.push(...scanText(buf.toString('utf8'), file));
+        const text = readPluginText(root, file);
+        if (text !== null) out.push(...scanText(text, file));
       }
     }
     return out;
