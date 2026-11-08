@@ -64,6 +64,32 @@ Fill in the CHANGELOG entry. Changing any plugin file **without** a version bump
 Versions are never reused. When the PR merges to `main`, `release.yml` runs the tests, tags
 `my-plugin--v<version>` and publishes a GitHub Release from the CHANGELOG section.
 
+## Evaluate a plugin
+
+`npm run eval` runs a plugin's skill-creator evals through `claude plugin eval` (Claude Code
+2.1.224+), with the plugin and without it. It runs **locally only** and uses your own Claude
+plan; CI never runs it.
+
+```sh
+npm run eval my-plugin -- --dry-run                     # build the suite and print the plan
+npm run eval my-plugin -- --max-cost-usd 3              # run it and print per-case results
+npm run eval my-plugin -- --max-cost-usd 3 --record     # … and append the run to evals/results.json
+npm run eval my-plugin -- --case 'my-skill-2'           # one case (glob)
+```
+
+- Each `evals.json` case becomes a case dir: `prompt.md` (the prompt), one `llm` grader per
+  expectation ("PASS if …"), a `file_exists` grader for each concrete path an expectation names,
+  and the case's `files` copied into `workspace/`, which a scaffold script copies into the run's
+  working directory.
+- The suite is built in `eval-build/<plugin>/suite/` (gitignored). The CLI only accepts an
+  `--eval-dir` inside the plugin, so the suite is copied to `plugins/<plugin>/eval-build/` for the
+  run and removed afterwards. The raw JSON is `eval-build/<plugin>/result.json`.
+- Each arm runs once (`--runs 1 --ablation with-without`), and the cases may use Bash, Edit and
+  Write. `passed/total` counts expectations, the same unit as the skill-creator benchmarks.
+- `--record` appends `{plugin, version, measured_at, with_skill, baseline, method, cost_usd}` to
+  `evals/results.json`. It never edits old runs, and it skips partial runs (for example when the
+  cost ceiling is hit). The **Evals** score uses the latest run at or before the plugin's version.
+
 ## Rules
 
 - **Conventional Commits** for commits and PR titles: `feat(my-plugin): add X`,
