@@ -1,0 +1,10 @@
+{
+  "/repos/adam-m-holloway/team-b/contents/.claude/settings.json": {
+    "status": 403,
+    "body": {
+      "message": "Resource not accessible by integration",
+      "documentation_url": "https://docs.github.com/rest/repos/contents#get-repository-content",
+      "status": "403"
+    }
+  }
+}

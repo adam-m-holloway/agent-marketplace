@@ -1,0 +1,38 @@
+{
+  "/repos/adam-m-holloway/team-b/contents/.claude/settings.json": {
+    "status": 200,
+    "body": {
+      "type": "file",
+      "encoding": "base64",
+      "path": ".claude/settings.json",
+      "content": "ewogICJleHRyYUtub3duTWFya2V0cGxhY2VzIjogewogICAgImFnZW50LW1h\ncmtldHBsYWNlLXN0YWJsZSI6IHsKICAgICAgInNvdXJjZSI6IHsKICAgICAg\nICAic291cmNlIjogImdpdGh1YiIsCiAgICAgICAgInJlcG8iOiAiYWRhbS1t\nLWhvbGxvd2F5L2FnZW50LW1hcmtldHBsYWNlIiwKICAgICAgICAicmVmIjog\nInN0YWJsZSIsCiAgICAgICAgInBhdGgiOiAiLmNsYXVkZS1wbHVnaW4vbWFy\na2V0cGxhY2Utc3RhYmxlLmpzb24iCiAgICAgIH0KICAgIH0KICB9LAogICJl\nbmFibGVkUGx1Z2lucyI6IHsKICAgICJhZHItaGVscGVyQGFnZW50LW1hcmtl\ndHBsYWNlLXN0YWJsZSI6IHRydWUsCiAgICAidHlwZXNjcmlwdC1jb252ZW50\naW9uc0BhZ2VudC1tYXJrZXRwbGFjZS1zdGFibGUiOiB0cnVlCiAgfQp9Cg==\n"
+    }
+  },
+  "/repos/adam-m-holloway/team-b/commits?path=.claude/settings.json&per_page=100": {
+    "status": 200,
+    "body": [
+      {
+        "sha": "0000000000000000000000000000000000000000",
+        "commit": {
+          "author": {
+            "date": "2026-11-09T12:00:00Z"
+          },
+          "committer": {
+            "date": "2026-11-09T12:00:00Z"
+          }
+        }
+      },
+      {
+        "sha": "1111111111111111111111111111111111111111",
+        "commit": {
+          "author": {
+            "date": "2026-11-08T11:30:00Z"
+          },
+          "committer": {
+            "date": "2026-11-08T11:30:00Z"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "/repos/adam-m-holloway/team-a/contents/.claude/settings.json": {
+    "status": 200,
+    "body": {
+      "type": "file",
+      "encoding": "base64",
+      "path": ".claude/settings.json",
+      "content": "ewogICJleHRyYUtub3duTWFya2V0cGxhY2VzIjogewogICAgImFnZW50LW1h\ncmtldHBsYWNlIjogewogICAgICAic291cmNlIjogewogICAgICAgICJzb3Vy\nY2UiOiAiZ2l0aHViIiwKICAgICAgICAicmVwbyI6ICJhZGFtLW0taG9sbG93\nYXkvYWdlbnQtbWFya2V0cGxhY2UiCiAgICAgIH0KICAgIH0sCiAgICAib3Ro\nZXItbWFya2V0cGxhY2UiOiB7CiAgICAgICJzb3VyY2UiOiB7CiAgICAgICAg\nInNvdXJjZSI6ICJnaXRodWIiLAogICAgICAgICJyZXBvIjogInNvbWVvbmUv\nZWxzZSIKICAgICAgfQogICAgfQogIH0sCiAgImVuYWJsZWRQbHVnaW5zIjog\newogICAgImFkci1oZWxwZXJAYWdlbnQtbWFya2V0cGxhY2UiOiB0cnVlLAog\nICAgImdvLWNvbnZlbnRpb25zQGFnZW50LW1hcmtldHBsYWNlIjogdHJ1ZSwK\nICAgICJ0aGluZ0BvdGhlci1tYXJrZXRwbGFjZSI6IHRydWUsCiAgICAiZGlz\nYWJsZWRAYWdlbnQtbWFya2V0cGxhY2UiOiBmYWxzZQogIH0KfQo="
+    }
+  },
+  "/repos/adam-m-holloway/team-a/commits?path=.claude/settings.json&per_page=100": {
+    "status": 200,
+    "body": [
+      {
+        "sha": "0000000000000000000000000000000000000000",
+        "commit": {
+          "author": {
+            "date": "2026-11-08T10:00:00Z"
+          },
+          "committer": {
+            "date": "2026-11-08T10:00:00Z"
+          }
+        }
+      },
+      {
+        "sha": "1111111111111111111111111111111111111111",
+        "commit": {
+          "author": {
+            "date": "2026-11-08T09:00:00Z"
+          },
+          "committer": {
+            "date": "2026-11-08T09:00:00Z"
+          }
+        }
+      }
+    ]
+  }
+}
