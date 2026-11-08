@@ -110,8 +110,9 @@ test('evalsFor: pass rate, delta and version; earlier-version flag; none for old
 
 test('real evals/results.json has the three measured runs', () => {
   const r = JSON.parse(readFileSync(join(ROOT, 'evals/results.json'), 'utf8'));
-  assert.equal(evalsFor(r, 'typescript-conventions', '1.0.1').pass_rate, 68); // npm run eval, 1.0.1
-  assert.equal(evalsFor(r, 'go-conventions', '1.0.0').delta, 13.6);
+  assert.equal(evalsFor(r, 'typescript-conventions', '1.0.1').pass_rate, 76); // npm run eval with offline deps, 1.0.1
+  const go = evalsFor(r, 'go-conventions', '1.0.0');
+  assert.deepEqual([go.passed, go.baseline_passed, go.delta, go.method], [19, 16, 13.7, 'claude plugin eval']);
 });
 
 test('adoption counts distinct active consumer repos', () => {
