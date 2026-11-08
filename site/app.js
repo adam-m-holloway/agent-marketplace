@@ -629,7 +629,13 @@
         h('div', { class: 'card-meta' },
           badge('v' + (p.versions.latest || '?'), 'b-quiet'),
           stableLags(p) ? badge('stable v' + p.versions.stable + ' behind', 'pill-warn') : null,
-          h('span', { text: p.category + ' · ' + langText(p) })),
+          badge(p.category, 'b-quiet'),
+          p.languages.map(function (l) { return badge(l, 'b-quiet'); })),
+        h('p', { class: 'card-used' },
+          h('span', { class: 'card-used-label', text: 'Used by' }),
+          teamsOf(p).length
+            ? teamsOf(p).map(function (t) { return badge(t, 'b-team'); })
+            : h('span', { class: 'muted', text: 'no teams yet' })),
         h('p', { class: 'card-scores' },
           h('span', { class: 'offscreen', text: 'Scores: ' }),
           cardScore('Security', sec.score, sec.score == null ? '—' : String(sec.score)), sep(),

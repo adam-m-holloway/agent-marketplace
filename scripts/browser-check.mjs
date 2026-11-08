@@ -58,9 +58,11 @@ const adrCard = await evalJs(`(() => { const c = document.getElementById('plugin
   return { text: c.innerText, interactive: links.length, href: link?.getAttribute('href'), wholeCard: hit === link || link?.contains(hit) }; })()`);
 check('home card: h3 link to #/plugin/<name> is the only interactive element and covers the card',
   adrCard?.href === '#/plugin/adr-helper' && adrCard.interactive === 1 && adrCard.wholeCard, adrCard && { href: adrCard.href, interactive: adrCard.interactive, wholeCard: adrCard.wholeCard });
-check('home card: version, stage and one score line; no install / used-by',
+check('home card: version, tag pills, stage, the teams using it, one score line; no install',
   /v\d+\.\d+\.\d+/.test(adrCard?.text ?? '') && /published/i.test(adrCard?.text ?? '') && /Security\s+\d+/.test(adrCard?.text ?? '') && /Evals/.test(adrCard?.text ?? '') &&
-  !/claude plugin install|Used by|team-a/.test(adrCard?.text ?? ''), adrCard?.text);
+  /Used by\s*team-a\s*team-b/.test(adrCard?.text ?? '') && /documentation/.test(adrCard?.text ?? '') &&
+  !/claude plugin install/.test(adrCard?.text ?? ''), adrCard?.text);
+check('header: "Agent Marketplace" is the H1 and the largest text', await evalJs(`(() => { const h1 = document.querySelector('h1'); const big = Math.max(...[...document.querySelectorAll('body *')].filter(e => e.offsetParent !== null && e.childElementCount === 0 && e.textContent.trim()).map(e => parseFloat(getComputedStyle(e).fontSize))); return h1?.textContent.trim() === 'Agent Marketplace' && parseFloat(getComputedStyle(h1.querySelector('a') || h1).fontSize) >= big && !/Claude Code plugins for our teams/.test(document.body.innerText); })()`), null);
 check('home: no install content; "How scores are calculated" is a footer link to its own page', await evalJs(`(() => { const main = document.getElementById('catalogue'); const a = [...document.querySelectorAll('footer a')].find(x => /How scores are calculated/.test(x.textContent)); return !document.getElementById('how-scores') && !/claude plugin install|Just me|My team's repo|How consuming works/.test(document.body.innerText.split('Catalogue built')[0]) && !!a && a.getAttribute('href') === '#/scores'; })()`), null);
 await shot('home-1280.png');
 
