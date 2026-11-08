@@ -21,6 +21,7 @@ jobs:
     permissions:
       contents: write # push to the data branch only
       actions: write # dispatch pages.yml
+      issues: write # behind issues + the pinned daily report issue
     steps:
       - name: Check out default branch
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -96,3 +97,9 @@ jobs:
           REPO: ${{ github.repository }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: gh workflow run pages.yml --repo "$REPO" --ref "$DEFAULT_BRANCH"
+
+      - name: Update behind issues and the daily report issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: node scripts/insights/issues.mjs --data data
