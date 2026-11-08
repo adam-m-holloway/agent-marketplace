@@ -74,6 +74,9 @@ In the new ADR:
   the old ADR's real file name;
 - the Context and Problem Statement says what the old decision was and what changed;
 - Consequences includes at least one cost of switching (migration, retraining, rework).
+- Pros and cons of each option come only from the user, the old ADR or the repo. Never
+  invent one to make the record look balanced; when an option has none, write
+  "No pros/cons recorded." under it, or ask the user.
 
 ### 4. Mark the old ADR as superseded
 

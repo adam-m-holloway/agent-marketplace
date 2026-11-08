@@ -73,3 +73,6 @@ documents; when to revisit the decision.]
 - The chosen option in Decision Outcome must appear, word for word, in Considered Options.
 - Do not leave bracketed placeholders in the finished file. If you cannot fill a required
   part from what the user told you or the repo shows, ask the user instead.
+- Every "Good, because" or "Bad, because" line under Pros and Cons of the Options must
+  come from the user or be evident from the repo. Never invent one; if an option has
+  none, write "No pros/cons recorded." under its heading.
