@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.3] - 2026-11-08
+
+### Removed
+- The old skill-creator `evals.json` and `trigger-evals.json` files; the native `claude plugin eval` cases in `evals/` replace them. The skill itself is unchanged.
+
 ## [1.1.2] - 2026-11-08
 
 ### Changed

@@ -61,8 +61,7 @@ export function walk(dir, base = dir) {
  *   dir: string, name: string, path: string,          // folder name, repo-relative path "plugins/<dir>"
  *   manifest: object|null, catalogue: object|null, status: object|null,
  *   loadErrors: {file:string, message:string}[],       // missing/invalid JSON only; rules do the rest
- *   skills: {name:string, path:string, skillMd:string|null, evals:object|null, triggerEvals:any[]|null,
- *            evalsError?:string, triggerEvalsError?:string}[],
+ *   skills: {name:string, path:string, skillMd:string|null}[],     // eval cases: lib/plugin-evals.mjs
  *   files: string[]                                    // repo-relative paths of every file in the plugin
  * }}
  */
@@ -85,16 +84,10 @@ export function loadPlugin(root, dir) {
       const sAbs = join(skillsDir, s);
       if (!isDir(sAbs)) continue;
       const mdFile = join(sAbs, 'SKILL.md');
-      const ev = readJson(join(sAbs, 'evals', 'evals.json'));
-      const tr = readJson(join(sAbs, 'evals', 'trigger-evals.json'));
       skills.push({
         name: s,
         path: `${path}/skills/${s}`,
         skillMd: existsSync(mdFile) ? readFileSync(mdFile, 'utf8') : null,
-        evals: ev.value ?? null,
-        triggerEvals: tr.value ?? null,
-        ...(ev.error ? { evalsError: ev.error } : {}),
-        ...(tr.error ? { triggerEvalsError: tr.error } : {}),
       });
     }
   }
