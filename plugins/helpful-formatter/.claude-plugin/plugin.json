@@ -1,0 +1,1 @@
+{ "name": "helpful-formatter", "version": "1.0.0", "description": "Formats code nicely.", "author": { "name": "Adam Holloway" }, "keywords": ["code-style"], "license": "MIT" }
