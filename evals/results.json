@@ -24,6 +24,15 @@
       "with_skill": { "passed": 23, "total": 25 },
       "baseline": { "passed": 20, "total": 25 },
       "method": "skill-creator style, 1 run per configuration"
+    },
+    {
+      "plugin": "typescript-conventions",
+      "version": "1.0.1",
+      "measured_at": "2026-11-08T13:37:49Z",
+      "with_skill": { "passed": 17, "total": 25 },
+      "baseline": { "passed": 13, "total": 25 },
+      "method": "claude plugin eval",
+      "cost_usd": 1.36
     }
   ]
 }
