@@ -917,7 +917,7 @@ matches.
 
 ### Slice 11: `team-a` (Go, latest channel) (M)
 
-- [ ] **Complete**
+- [x] **Complete** (merged; ruleset on; see Build log)
 
 **Acceptance criteria:**
 1. **Service.** `go.mod` (Go 1.27) with `cmd/server` + `internal/greet`:
@@ -939,7 +939,7 @@ matches.
 
 ### Slice 12: `team-b` (TypeScript, stable channel) (M)
 
-- [ ] **Complete**
+- [x] **Complete** (merged; ruleset on; see Build log)
 
 **Acceptance criteria:**
 1. **Library.** `src/slugify.ts`:
@@ -1170,3 +1170,34 @@ These reuse `similar.mjs`, the gate and the insights data.
 | 3, 5, 8, 11 | Update path, ref move, SkillSpector, eval usage | **deferred** | Recorded opportunistically in later slices (non-blocking per Q34). |
 
 Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are labels, not real numbers.
+
+### Build log (2026-11-08)
+
+| Time | Checkpoint | Result |
+|---|---|---|
+| 09:34 | contracts committed (`plugins.mjs`, schemas, taxonomy, patterns format, semver, changelog) | ✅ (target 10:15) |
+| 09:38 | Wave 1 running (sync, check, workflows, scaffold, adr-helper, team-a, team-b) | ✅ |
+| 09:43 | **team-b merged** (squash `15b9e39`), ruleset `main` (squash, `ci` required) | ✅ Slice 12 |
+| 09:50 | **team-a merged** (squash `965030a`), ruleset `main` | ✅ Slice 11 |
+| 09:55 | PR #1 opened (GitHub #3) with local evidence | ✅ |
+
+### Learnings during Slices 1–12
+
+- **SkillSpector (Slice 0 item 8): proven.** `--no-llm` scores: adr-helper 0/100,
+  go-conventions 0/100, typescript-conventions 18/100 — no baselines needed. Locally on macOS it
+  needs `uv tool install --python 3.12 …` (`yara-python` fails to build on newer Python).
+- **`claude plugin validate` and the sibling stable catalogue.** `validate .` checks only
+  `.claude-plugin/marketplace.json`; passing `marketplace-stable.json` directly is misread as a
+  *plugin* manifest. Workaround (local + CI): copy it to `<tmp>/.claude-plugin/marketplace.json`
+  (+ `plugins/`) and validate that.
+- **GitHub release-asset downloads returned 504** around 09:45 (setup-go's Go download and
+  `curl -L …/releases/download/…`). A rerun passed. The gate's tool downloads retry once.
+- **The concealment rule had a false positive on real skill text** ("Do not tell the user the
+  work is finished … until you have run …"). Reworded the skills ("Only report … after …")
+  rather than weakening the rule.
+- **Commit identity.** Commits must be authored by GitHub account `adam-m-holloway`
+  (`1157794+adam-m-holloway@users.noreply.github.com`), never `adam@beyondevergreen.com`
+  (→ `adam-beyond-evergreen`). Set as repo-local git config in all three repos; early branch
+  commits were rewritten before push.
+- **Eval `files` paths are relative to the skill root** (`evals/files/…`), per skill-creator.
+- **The sandbox blocks `.git` writes and `gh`'s TLS**, so git/gh ran outside it.
