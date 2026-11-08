@@ -33,6 +33,24 @@
       "baseline": { "passed": 13, "total": 25 },
       "method": "claude plugin eval",
       "cost_usd": 1.36
+    },
+    {
+      "plugin": "typescript-conventions",
+      "version": "1.0.1",
+      "measured_at": "2026-11-08T16:41:09Z",
+      "with_skill": { "passed": 19, "total": 25 },
+      "baseline": { "passed": 17, "total": 25 },
+      "method": "claude plugin eval",
+      "cost_usd": 1.12
+    },
+    {
+      "plugin": "go-conventions",
+      "version": "1.0.0",
+      "measured_at": "2026-11-08T16:50:57Z",
+      "with_skill": { "passed": 19, "total": 22 },
+      "baseline": { "passed": 16, "total": 22 },
+      "method": "claude plugin eval",
+      "cost_usd": 1.06
     }
   ]
 }

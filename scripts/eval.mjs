@@ -2,9 +2,13 @@
 // npm run eval <plugin> [--max-cost-usd N] [--dry-run] [--record]
 // Converts each skill's skill-creator evals.json into a `claude plugin eval` suite under
 // eval-build/<plugin>/ (not dot-prefixed: the CLI rejects --eval-dir segments starting with "."), runs it locally (never in CI: it uses your Claude plan), prints a
-// per-case table and, with --record, appends the run to evals/results.json.
+// per-case table and, with --record, appends the run to evals/results.json. The eval sandbox has
+// no network, so Node cases' dependencies are installed beforehand into eval-build/.deps/<hash>/
+// and copied into each run's workspace by its scaffold script.
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, readdirSync, existsSync } from 'node:fs';
-import { join, dirname, relative, posix } from 'node:path';
+import { join, dirname, relative, posix, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -21,6 +25,70 @@ export const BUILD_DIR = 'eval-build';
 
 /** Copies the case's workspace/ fixture into the current directory. */
 export const SCAFFOLD_SH = '#!/bin/sh\nset -e\ncp -R "$(dirname "$0")/' + WORKSPACE_DIR + '/." .\n';
+
+/** Dependency cache (gitignored, kept between runs): eval-build/.deps/<hash>/node_modules. */
+export const DEPS_DIR = '.deps';
+
+/** package.json given to a TypeScript case whose fixture has none (build dir only, never plugins/). */
+export const DEFAULT_PACKAGE_JSON = {
+  name: 'eval-workspace',
+  version: '0.0.0',
+  private: true,
+  type: 'module',
+  scripts: { test: 'vitest run', typecheck: 'tsc --noEmit' },
+  devDependencies: { typescript: '7.0.2', vitest: '5.1.0' },
+};
+
+/** tsconfig.json given alongside it, so `tsc --noEmit` has a project to check. */
+export const DEFAULT_TSCONFIG = {
+  compilerOptions: { target: 'ES2022', module: 'NodeNext', moduleResolution: 'NodeNext', strict: true, noUncheckedIndexedAccess: true, skipLibCheck: true },
+  include: ['src'],
+};
+
+const DEP_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies'];
+const sortObj = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
+
+/**
+ * The install manifest for a fixture package.json: only its dependency fields (sorted), so
+ * fixtures that declare the same dependencies share one cache entry.
+ */
+export function depsManifest(pkg) {
+  const m = { name: 'eval-deps', private: true };
+  for (const k of DEP_FIELDS) if (pkg?.[k] && Object.keys(pkg[k]).length) m[k] = sortObj(pkg[k]);
+  return m;
+}
+
+/** Cache key for a dependency manifest: the first 16 hex chars of its sha256. */
+export function depsHash(manifest) {
+  return createHash('sha256').update(JSON.stringify(manifest)).digest('hex').slice(0, 16);
+}
+
+/** A case runs Node tooling when its skill ships package.json fixtures and the case talks about TS/npm. */
+export function isNodeCase(c, skillHasPackageJson) {
+  if (!skillHasPackageJson) return false;
+  const text = [c.prompt, c.expected_output, ...(c.expectations ?? [])].join('\n');
+  return /\b(typescript|tsc|vitest|npm|npx)\b/i.test(text);
+}
+
+const shq = (s) => `'${String(s).replace(/'/g, "'\\''")}'`;
+
+/**
+ * The scaffold script. It runs as you, outside the agent's sandbox, in the empty run workspace:
+ * it copies the fixture, then (Node cases) copies the pre-installed node_modules from the
+ * dependency cache, and (Go cases) points the Go toolchain at writable dirs in the workspace and
+ * forbids toolchain/module downloads, via `go env -w` (stored in the run's temporary HOME; skipped
+ * if HOME is still `realHome`, so your own Go config is never changed).
+ */
+export function scaffoldScript({ nodeModules = null, go = false, realHome = homedir() } = {}) {
+  let sh = SCAFFOLD_SH;
+  if (nodeModules) sh += `if [ ! -e node_modules ]; then cp -R ${shq(nodeModules)} ./node_modules; fi\n`;
+  if (go) {
+    sh += `if command -v go >/dev/null 2>&1 && [ "$HOME" != ${shq(realHome)} ]; then\n` +
+      '  go env -w GOTOOLCHAIN=local GOFLAGS=-mod=mod GOPROXY=off GOCACHE="$PWD/.cache/go-build" GOPATH="$PWD/.cache/go"\n' +
+      'fi\n';
+  }
+  return sh;
+}
 
 const yamlScalar = (v) => (typeof v === 'number' || typeof v === 'boolean' ? String(v) : JSON.stringify(String(v)));
 
@@ -78,9 +146,10 @@ export function skillsWithEvals(pluginDir) {
 /**
  * Deterministically convert every skill's evals.json under `pluginDir` into a
  * `claude plugin eval` suite in `outDir` (wiped first). Returns the plan:
- * [{ case, skill, id, graders: [names], files: [workspace paths] }].
+ * [{ case, skill, id, graders: [names], files: [workspace paths], deps: {hash, manifest}|null, go }].
+ * Node cases' scaffolds copy `<depsRoot>/<hash>/node_modules` (filled by `prepareDeps`).
  */
-export function buildEvalDir(pluginDir, outDir) {
+export function buildEvalDir(pluginDir, outDir, { depsRoot = resolve(outDir, '../..', DEPS_DIR) } = {}) {
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });
   const plan = [];
@@ -88,6 +157,7 @@ export function buildEvalDir(pluginDir, outDir) {
     const skillDir = join(pluginDir, 'skills', skill);
     const spec = JSON.parse(readFileSync(join(skillDir, 'evals/evals.json'), 'utf8'));
     const cases = [...(spec.evals ?? [])].sort((a, b) => String(a.id).localeCompare(String(b.id), 'en', { numeric: true }));
+    const skillHasPackageJson = cases.some((c) => (c.files ?? []).some((f) => workspacePath(f) === 'package.json'));
     for (const c of cases) {
       const name = `${skill}-${slug(c.id)}`;
       const caseDir = join(outDir, name);
@@ -117,17 +187,65 @@ export function buildEvalDir(pluginDir, outDir) {
         cpSync(join(skillDir, f), join(caseDir, WORKSPACE_DIR, to));
         files.push(to);
       }
+      let deps = null;
+      if (isNodeCase(c, skillHasPackageJson)) {
+        const ws = join(caseDir, WORKSPACE_DIR);
+        mkdirSync(ws, { recursive: true });
+        // A TS case without a project gets a minimal one (build dir only).
+        for (const [f, data] of [['package.json', DEFAULT_PACKAGE_JSON], ['tsconfig.json', DEFAULT_TSCONFIG]]) {
+          if (files.includes(f)) continue;
+          writeFileSync(join(ws, f), JSON.stringify(data, null, 2) + '\n');
+          files.push(f);
+        }
+        files.sort();
+        const manifest = depsManifest(JSON.parse(readFileSync(join(ws, 'package.json'), 'utf8')));
+        deps = { hash: depsHash(manifest), manifest };
+      }
+      const go = files.includes('go.mod');
       if (files.length) {
         // The CLI has no fixture folder of its own: a scaffold script copies workspace/ into the
         // run's working directory (needs --scaffold at run time).
-        writeFileSync(join(caseDir, 'scaffold.sh'), SCAFFOLD_SH, { mode: 0o755 });
+        const nodeModules = deps ? join(depsRoot, deps.hash, 'node_modules') : null;
+        writeFileSync(join(caseDir, 'scaffold.sh'), scaffoldScript({ nodeModules, go }), { mode: 0o755 });
         writeFileSync(join(caseDir, 'case.yaml'),
           `schema_version: "1.1"\nname: ${JSON.stringify(name)}\ncontext:\n  scaffold_script: scaffold.sh\n`);
       }
-      plan.push({ case: name, skill, id: c.id, graders, files });
+      plan.push({ case: name, skill, id: c.id, graders, files, deps, go });
     }
   }
   return plan;
+}
+
+/** Distinct dependency sets in a plan, by hash. */
+export function depsToInstall(plan) {
+  const m = new Map();
+  for (const p of plan) if (p.deps && !m.has(p.deps.hash)) m.set(p.deps.hash, p.deps.manifest);
+  return [...m].map(([hash, manifest]) => ({ hash, manifest }));
+}
+
+/** npm argv for filling a cache entry (no lifecycle scripts, no audit/fund noise). */
+export const NPM_INSTALL_ARGS = ['install', '--no-audit', '--no-fund', '--ignore-scripts', '--loglevel=error'];
+
+/**
+ * Install each dependency set once, with network, outside the eval sandbox, into
+ * `<depsRoot>/<hash>/node_modules`. An entry is reused when its `.ready` marker exists.
+ * Returns [{hash, cached}].
+ */
+export function prepareDeps(depsRoot, sets, { run = spawnSync, log = console.log } = {}) {
+  const out = [];
+  for (const { hash, manifest } of sets) {
+    const dir = join(depsRoot, hash);
+    if (existsSync(join(dir, '.ready')) && existsSync(join(dir, 'node_modules'))) { out.push({ hash, cached: true }); continue; }
+    rmSync(dir, { recursive: true, force: true });
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest, null, 2) + '\n');
+    log(`installing eval dependencies ${hash} (npm ${NPM_INSTALL_ARGS.join(' ')})`);
+    const r = run('npm', NPM_INSTALL_ARGS, { cwd: dir, stdio: ['ignore', 'inherit', 'inherit'] });
+    if (r.error || r.status !== 0) throw new Error(`npm install failed for eval dependencies ${hash} (${r.error?.message ?? `exit ${r.status}`})`);
+    writeFileSync(join(dir, '.ready'), '');
+    out.push({ hash, cached: false });
+  }
+  return out;
 }
 
 // ---------- results ----------
@@ -171,7 +289,9 @@ function armSummary(runs) {
 /**
  * Normalise `claude plugin eval --json` (v1: cases[].arms.with[] / .without[], each run with
  * graders[]) into { cases: [{case, passed, baseline_passed|null, with, baseline}],
- * with: {passed,total}, baseline: {passed,total}|null, cost_usd|null, partial|null }.
+ * with: {passed,total}, baseline: {passed,total}|null, cost_usd|null, partial|null,
+ * errors: ["<case> <arm>: <error>"] } — errors are runs that didn't finish (e.g. "timed out
+ * after 600s"); their graders still ran on whatever was left, so such a run is not recordable.
  * Totals count expectation graders (NN-llm): the same unit as the skill-creator benchmarks.
  */
 export function parseEvalJson(json) {
@@ -200,6 +320,8 @@ export function parseEvalJson(json) {
     baseline: cases.some((c) => c.baseline) ? sum('baseline') : null,
     cost_usd: findCost(json),
     partial: json?.partialReason ?? (json?.partial === true ? 'partial' : null),
+    errors: raw.flatMap((c) => Object.entries(c?.arms ?? {}).flatMap(([arm, runs]) =>
+      (Array.isArray(runs) ? runs : []).filter((r) => r?.error || r?.aborted).map((r) => `${c.name ?? c.case ?? c.id} ${arm}: ${r.error ?? 'aborted'}`))),
   };
 }
 
@@ -229,6 +351,34 @@ export function appendResult(file, record) {
   writeFileSync(file, text + '\n');
 }
 
+/** Bash commands that run the toolchains the cases depend on. */
+export const TOOLCHAIN_RE = /\b(tsc|vitest|npm (test|run)|gofmt|go (vet|test|build))\b/;
+
+const textOf = (c) => (typeof c === 'string' ? c : Array.isArray(c) ? c.map((x) => (typeof x === 'string' ? x : x?.text ?? '')).join('\n') : '');
+
+/**
+ * From a run's trace.jsonl (stream-json: assistant tool_use blocks, user tool_result blocks), the
+ * Bash calls whose command matches `re`, with the first lines of their output — evidence that a
+ * toolchain really ran inside the sandbox. Returns [{command, output, is_error}].
+ */
+export function toolchainCalls(traceText, re = TOOLCHAIN_RE, maxLines = 4) {
+  const calls = new Map();
+  for (const line of String(traceText).split('\n')) {
+    let m;
+    try { m = JSON.parse(line); } catch { continue; }
+    for (const b of Array.isArray(m?.message?.content) ? m.message.content : []) {
+      if (b?.type === 'tool_use' && b.name === 'Bash' && re.test(String(b.input?.command ?? ''))) {
+        calls.set(b.id, { command: String(b.input.command), output: null, is_error: null });
+      } else if (b?.type === 'tool_result' && calls.has(b.tool_use_id)) {
+        const c = calls.get(b.tool_use_id);
+        c.output = textOf(b.content).split('\n').filter((l) => l.trim()).slice(0, maxLines).join('\n');
+        c.is_error = b.is_error === true;
+      }
+    }
+  }
+  return [...calls.values()];
+}
+
 export function formatTable(summary) {
   const cell = (ok, e) => `${ok ? 'PASS' : 'FAIL'} ${e.passed}/${e.total}`;
   const rows = [['case', 'with plugin', 'baseline']];
@@ -240,25 +390,27 @@ export function formatTable(summary) {
   lines.push('', `expectations with plugin: ${summary.with.passed}/${summary.with.total}` +
     (b ? `   baseline: ${b.passed}/${b.total}   delta: ${summary.with.passed - b.passed >= 0 ? '+' : ''}${summary.with.passed - b.passed}` : '   baseline: not reported') +
     (summary.cost_usd != null ? `   cost: $${summary.cost_usd}` : '') +
-    (summary.partial ? `   PARTIAL: ${summary.partial}` : ''));
+    (summary.partial ? `   PARTIAL: ${summary.partial}` : '') +
+    (summary.errors?.length ? `\nruns that did not finish (${summary.errors.length}): ${summary.errors.join('; ')}` : ''));
   return lines.join('\n');
 }
 
 // ---------- CLI ----------
 
 export function parseArgs(argv) {
-  const opt = { plugin: null, maxCost: null, dryRun: false, record: false, caseGlob: null };
+  const opt = { plugin: null, maxCost: null, dryRun: false, record: false, caseGlob: null, keepTemp: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--dry-run') opt.dryRun = true;
     else if (a === '--case') opt.caseGlob = argv[++i];
+    else if (a === '--keep-temp') opt.keepTemp = true;
     else if (a === '--record') opt.record = true;
     else if (a === '--max-cost-usd') opt.maxCost = argv[++i];
     else if (a.startsWith('--max-cost-usd=')) opt.maxCost = a.slice(15);
     else if (!a.startsWith('-') && !opt.plugin) opt.plugin = a;
     else throw new Error(`unknown argument: ${a}`);
   }
-  if (!opt.plugin) throw new Error('usage: npm run eval <plugin> [-- --max-cost-usd N] [--dry-run] [--record]');
+  if (!opt.plugin) throw new Error('usage: npm run eval <plugin> [-- --max-cost-usd N] [--dry-run] [--record] [--case GLOB] [--keep-temp]');
   if (opt.maxCost != null && !(Number(opt.maxCost) > 0)) throw new Error('--max-cost-usd needs a positive number');
   return opt;
 }
@@ -270,11 +422,12 @@ export const ALLOW_TOOLS = ['Bash', 'Edit', 'Write'];
  * The `claude` argv for a plugin run (target first, as the CLI requires): one run per arm, with
  * and without the plugin, scaffolds on, JSON written to a file, no report publishing.
  */
-export function cliArgs({ plugin, evalDir, jsonFile, maxCost = null, caseGlob = null }) {
+export function cliArgs({ plugin, evalDir, jsonFile, maxCost = null, caseGlob = null, keepTemp = false }) {
   const a = ['plugin', 'eval', `plugins/${plugin}`, '--allow-tools', ...ALLOW_TOOLS,
     '--eval-dir', evalDir, '--json', jsonFile, '--no-publish', '--runs', '1',
     '--ablation', 'with-without', '--scaffold', '--trust-plugin'];
   if (caseGlob != null) a.push('--case', caseGlob);
+  if (keepTemp) a.push('--keep-temp');
   if (maxCost != null) a.push('--max-cost-usd', String(maxCost));
   return a;
 }
@@ -287,14 +440,19 @@ export function main(argv = process.argv.slice(2), { root = ROOT, log = console.
   const outDir = join(root, BUILD_DIR, opt.plugin);
   const suiteDir = join(outDir, 'suite');
   rmSync(outDir, { recursive: true, force: true });
-  const plan = buildEvalDir(pluginDir, suiteDir);
+  const depsRoot = join(root, BUILD_DIR, DEPS_DIR);
+  const plan = buildEvalDir(pluginDir, suiteDir, { depsRoot });
+  const sets = depsToInstall(plan);
   const jsonFile = join(outDir, 'result.json');
   const stageDir = join(pluginDir, BUILD_DIR);
-  const args = cliArgs({ plugin: opt.plugin, evalDir: BUILD_DIR, jsonFile, maxCost: opt.maxCost, caseGlob: opt.caseGlob });
+  const args = cliArgs({ plugin: opt.plugin, evalDir: BUILD_DIR, jsonFile, maxCost: opt.maxCost, caseGlob: opt.caseGlob, keepTemp: opt.keepTemp });
   log(`${opt.plugin} ${version}: ${plan.length} cases in ${relative(root, suiteDir)}/`);
-  for (const p of plan) log(`  ${p.case}: ${p.graders.length} graders${p.files.length ? `, ${p.files.length} files` : ''}`);
+  for (const p of plan) log(`  ${p.case}: ${p.graders.length} graders${p.files.length ? `, ${p.files.length} files` : ''}${p.deps ? `, deps ${p.deps.hash}` : ''}${p.go ? ', go' : ''}`);
+  for (const s of sets) log(`dependency cache ${relative(root, join(depsRoot, s.hash))}/: ${JSON.stringify(s.manifest)}`);
   log(`run (suite staged at ${relative(root, stageDir)}/ for the run, then removed): claude ${args.join(' ')}`);
   if (opt.dryRun) return 0;
+  // The eval sandbox has no network: install dependencies now; the scaffolds copy them in.
+  prepareDeps(depsRoot, sets, { run, log });
 
   // The CLI only accepts an --eval-dir that is relative and inside the plugin, with no
   // dot-prefixed segment: stage the suite there (gitignored) just for the run.
@@ -312,9 +470,23 @@ export function main(argv = process.argv.slice(2), { root = ROOT, log = console.
   const json = JSON.parse(readFileSync(jsonFile, 'utf8'));
   const summary = parseEvalJson(json);
   log(formatTable(summary));
+  if (opt.keepTemp) {
+    // Evidence that the toolchains ran offline in the sandbox (traces only survive --keep-temp).
+    for (const c of json.cases ?? []) {
+      for (const [arm, runs] of Object.entries(c.arms ?? {})) {
+        for (const r of runs ?? []) {
+          if (!r?.tracePath || !existsSync(r.tracePath)) continue;
+          for (const t of toolchainCalls(readFileSync(r.tracePath, 'utf8'))) {
+            log(`  [${c.name} ${arm}] $ ${t.command.split('\n')[0]}${t.is_error ? '  (exit != 0)' : ''}\n      ${(t.output ?? '').split('\n').join('\n      ')}`);
+          }
+        }
+      }
+    }
+  }
   if (opt.record) {
     if (summary.with.total === 0) throw new Error('no expectation results parsed; not recording');
     if (summary.partial) throw new Error(`partial run (${summary.partial}); not recording`);
+    if (summary.errors.length) throw new Error(`${summary.errors.length} run(s) did not finish (${summary.errors.join('; ')}); not recording`);
     const rec = resultRecord({ plugin: opt.plugin, version, summary });
     appendResult(join(root, 'evals/results.json'), rec);
     log(`recorded in evals/results.json: ${JSON.stringify(rec)}`);
