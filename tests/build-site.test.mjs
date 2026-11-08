@@ -168,7 +168,7 @@ test('scoreFields: a patch version compares with the previous tracked (major/min
   const latestEntry = { version: '1.1.1', recorded_at: '2026-11-08T12:43:26.000Z', tracked: false, reason: 'patch' };
   const f = scoreFields({ name: 'adr-helper', version: '1.1.1', scores: CUR, history: H, latestEntry, builtAt: 'BUILD' });
   assert.deepEqual(f.score_history.map((r) => r.version), ['1.0.0', '1.1.0']);
-  assert.deepEqual(f.score_change, { vs_version: '1.1.0', security: 0, security_basis: 'rules + SkillSpector', quality: -10, evals: 0 });
+  assert.deepEqual(f.score_change, { vs_version: '1.1.0', security: 0, security_basis: 'rules + SkillSpector', quality: -10, evals: null });
   assert.deepEqual(f.scored, { at: '2026-11-08T12:43:26.000Z', version: '1.1.1', tracked: false, reason: 'patch', source: 'release' });
 });
 
@@ -208,4 +208,12 @@ test('buildData: every plugin carries scores, last_updated and the explained rul
   const go = d.plugins.find((p) => p.name === 'go-conventions');
   assert.equal(go.scores.security.skillspector_risk, null);
   assert.equal(go.last_updated.source, 'changelog');
+});
+
+test('dropSection removes one section (fenced headings ignored) and keeps the rest', async () => {
+  const { dropSection } = await import('../scripts/build-site.mjs');
+  const md = '# T\n\n## Skills\n\na\n\n## Install\n\n```sh\n# not a heading\n```\n\n### Sub\n\nx\n\n## Changes\n\nb\n';
+  const out = dropSection(md, 'Install');
+  assert.ok(!out.includes('## Install') && !out.includes('not a heading') && !out.includes('### Sub'), out);
+  assert.ok(out.includes('## Skills') && out.includes('## Changes'), out);
 });

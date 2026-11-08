@@ -450,7 +450,10 @@ export function scoreChange(current, previous) {
     security_basis: rulesOnly ? 'rules only' : 'rules + SkillSpector',
     // Only like for like: a record scored with another quality method (or none) gives no change.
     quality: (previous.quality_method ?? null) === (current.quality?.method ?? null) ? d(current.quality?.score, previous.quality) : null,
-    evals: d(current.evals?.pass_rate, previous.evals?.pass_rate),
+    // Only a new measurement on a later version is a change; the same run compared with an older record is not.
+    evals: current.evals?.measured_version && parse(current.evals.measured_version) && parse(previous.version)
+      && compare(current.evals.measured_version, previous.version) > 0
+      ? d(current.evals.pass_rate, previous.evals?.pass_rate) : null,
   };
 }
 

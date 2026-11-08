@@ -19,7 +19,7 @@ import { MIN_CASES, MIN_TRIGGER_EACH } from './lib/rules/evals.mjs';
 import { NEXT, MIN_DAYS, MIN_CONSUMERS, RETIRE_LABEL } from './lib/rules/stage-gate.mjs';
 
 export const PAGES_URL = 'https://adam-m-holloway.github.io/agent-marketplace/';
-export const CONSUMERS_NOTE = 'Committed intent per repo, not what each laptop has installed';
+export const CONSUMERS_NOTE = 'Based on each team repo\'s committed settings, not on individual laptops';
 
 /** Minimal SKILL.md frontmatter read: name, description, compatibility (plain, quoted, or >/| blocks). */
 export function skillMeta(md, fallbackName) {
@@ -61,6 +61,23 @@ export function consumersByPlugin(doc) {
   return out;
 }
 
+/** Markdown without the "## <title>" section (up to the next heading of the same or higher level). */
+export function dropSection(md, title) {
+  if (typeof md !== 'string') return md;
+  const lines = md.split('\n');
+  const out = [];
+  let skipping = 0;
+  let fence = false;
+  for (const line of lines) {
+    if (/^```/.test(line)) fence = !fence;
+    const m = !fence && line.match(/^(#{1,6})\s+(.*?)\s*$/);
+    if (m && skipping && m[1].length <= skipping) skipping = 0;
+    if (m && !skipping && m[2].toLowerCase() === title.toLowerCase()) { skipping = m[1].length; continue; }
+    if (!skipping) out.push(line);
+  }
+  return out.join('\n');
+}
+
 /** Date of the CHANGELOG heading for `version` ("## [1.1.1] - 2026-11-08"), or null. */
 export function changelogDate(text, version) {
   if (typeof text !== 'string' || !version) return null;
@@ -94,7 +111,12 @@ export function scoreFields({ name, version, scores, history = [], latestEntry =
   else if (valid) ({ tracked, reason } = isTracked(version, prevVersion));
   else tracked = false;
   return {
-    score_history: own.map((r) => ({ version: r.version, recorded_at: r.recorded_at ?? null, security: r.security ?? null, quality: r.quality ?? null, evals: r.evals?.pass_rate ?? null })),
+    score_history: own.map((r) => ({
+      version: r.version, recorded_at: r.recorded_at ?? null, security: r.security ?? null, quality: r.quality ?? null,
+      // Quality scored another way (before the static tools) is shown but marked as not comparable.
+      quality_comparable: (r.quality_method ?? null) === (scores.quality?.method ?? null),
+      evals: r.evals?.pass_rate ?? null,
+    })),
     score_change: scoreChange(scores, previous),
     scored: { at: recorded?.recorded_at ?? builtAt, version, tracked, reason: tracked ? null : reason, source: recorded ? 'release' : 'build' },
   };
@@ -306,7 +328,8 @@ export function buildData(repo, {
         last_updated: lastUpdated(p.manifest.version ?? null, tagDates[p.dir] ?? null, changelog),
         releases: releaseTimeline(changelog, releaseTags[p.dir]),
         // Rendered at build time to escaped HTML (no raw HTML passes through); the page inserts it as-is.
-        readme_html: renderMarkdown(readText(repo.root, `${p.path}/README.md`), { base, headingOffset: 2, dropTitle: true }),
+        // The plugin page has its own Install panel, so the README's "## Install" section is left out there.
+        readme_html: renderMarkdown(dropSection(readText(repo.root, `${p.path}/README.md`), 'Install'), { base, headingOffset: 2, dropTitle: true }),
         changelog_html: renderMarkdown(changelog, { base, headingOffset: 2, dropTitle: true }),
       };
     });

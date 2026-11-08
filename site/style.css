@@ -519,3 +519,12 @@ tbody tr:last-child > * { border-bottom: 0; }
 .overview th, .overview td { white-space: normal; vertical-align: top; }
 .overview td:last-child { min-width: 9rem; }
 .tldr-item dd > p:first-child, .tldr-item dd > ul:first-child, .tldr-item dd > ol:first-child { margin-top: 0; }
+
+/* Header menu: its own bar, clear of the title above and the intro below */
+.masthead { row-gap: 16px; margin-bottom: 20px; }
+.masthead h1 { margin: 0; }
+.site-nav { gap: 2px; padding: 4px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: var(--shadow-sm); max-width: 100%; }
+.site-nav a { color: var(--text); padding: 8px 14px; border-radius: 8px; line-height: 1.2; }
+.site-nav a:hover { color: var(--accent); background: var(--accent-bg); }
+.site-nav a[aria-current="page"], .site-nav a[aria-current="page"]:hover { color: var(--surface); background: var(--accent); }
+.site-nav a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

@@ -218,8 +218,13 @@ test('historyRecord has the data-branch shape; SkillSpector null carries a note'
 test('scoreChange: points vs the previous tracked record', () => {
   const cur = { security: { score: 100 }, quality: { score: 85 }, evals: { pass_rate: 92 } };
   assert.deepEqual(scoreChange(cur, { version: '1.0.0', security: 60, quality: 100, evals: { pass_rate: 92 }, skillspector_risk: 0 }),
-    { vs_version: '1.0.0', security: 40, security_basis: 'rules + SkillSpector', quality: -15, evals: 0 });
+    { vs_version: '1.0.0', security: 40, security_basis: 'rules + SkillSpector', quality: -15, evals: null });
   assert.equal(scoreChange(cur, null), null);
+  // Evals: only a new measurement on a later version counts as a change.
+  const remeasured = { ...cur, evals: { pass_rate: 92, measured_version: '1.1.0' } };
+  assert.equal(scoreChange(remeasured, { version: '1.0.0', security: 60, quality: 100, evals: { pass_rate: 80 } }).evals, 12);
+  const sameRun = { ...cur, evals: { pass_rate: 86.4, measured_version: '1.0.0' } };
+  assert.equal(scoreChange(sameRun, { version: '1.0.0', security: 60, quality: 100, evals: { pass_rate: 100 } }).evals, null);
   // Previous record had no SkillSpector risk: compare the current rules-only score (like for like).
   const capped = { security: { score: 82, rules_score: 100 }, quality: { score: 85 } };
   assert.deepEqual([scoreChange(capped, { version: '1.0.0', security: 100, quality: 85, skillspector_risk: null }).security,
