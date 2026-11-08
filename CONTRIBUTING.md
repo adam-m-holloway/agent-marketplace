@@ -75,6 +75,7 @@ npm run eval my-plugin -- --dry-run                     # build the suite and pr
 npm run eval my-plugin -- --max-cost-usd 3              # run it and print per-case results
 npm run eval my-plugin -- --max-cost-usd 3 --record     # … and append the run to evals/results.json
 npm run eval my-plugin -- --case 'my-skill-2'           # one case (glob)
+npm run eval my-plugin -- --keep-temp                   # keep run dirs; print each tsc/vitest/go call and its output
 ```
 
 - Each `evals.json` case becomes a case dir: `prompt.md` (the prompt), one `llm` grader per
@@ -87,16 +88,40 @@ npm run eval my-plugin -- --case 'my-skill-2'           # one case (glob)
 - Each arm runs once (`--runs 1 --ablation with-without`), and the cases may use Bash, Edit and
   Write. `passed/total` counts expectations, the same unit as the skill-creator benchmarks.
 - `--record` appends `{plugin, version, measured_at, with_skill, baseline, method, cost_usd}` to
-  `evals/results.json`. It never edits old runs, and it skips partial runs (for example when the
-  cost ceiling is hit). The **Evals** score uses the latest run at or before the plugin's version.
+  `evals/results.json`. It never edits old runs. It skips partial runs (for example when the cost
+  ceiling is hit) and runs where any arm didn't finish (for example `timed out after 600s`): the
+  graders still score whatever that arm left behind, so the total would be wrong. The **Evals**
+  score uses the latest run at or before the plugin's version.
 
-**Known limitation (measured 2026-11-08, CLI 2.1.319):** the `claude plugin eval` sandbox has no
-network access, so a case can't `npm install`, and expectations that need `tsc` or `vitest` output
-can't pass. typescript-conventions 1.0.1 scored 17/25 with the skill vs 13/25 without under this
-method, against 23/25 vs 20/25 under the earlier hand-run skill-creator method (which had
-dependencies installed). The two methods' numbers are not comparable; each record in
-`evals/results.json` names its `method`. Give dependency-heavy cases pre-installed fixtures
-(commit a minimal `node_modules`-free setup that doesn't need the network) before relying on them.
+**Offline dependencies.** The `claude plugin eval` sandbox has no network, so a case can't
+`npm install`. `npm run eval` installs dependencies **before** the run instead, outside the
+sandbox:
+
+- A case is a Node case when its skill ships a `package.json` fixture and the case mentions
+  TypeScript, `tsc`, `vitest`, `npm` or `npx`. A Node case without a `package.json` gets a minimal
+  one (`typescript` 7.0.2, `vitest` 5.1.0, `type: module`, `test`/`typecheck` scripts) and a
+  `tsconfig.json`, in the build dir only. Nothing under `plugins/` changes.
+- Each distinct set of dependencies (the `dependencies`/`devDependencies` fields, hashed) is
+  installed once with `npm install --ignore-scripts` into `eval-build/.deps/<hash>/node_modules`
+  (gitignored, reused across runs; delete it to refresh).
+- The scaffold script runs as you, outside the sandbox, so it copies that `node_modules` into the
+  run's workspace. `npx tsc` and `npx vitest run` then work offline. (`context.add_dirs` is no
+  use here: it only exposes read-only dirs inside the case dir.)
+- Go cases need only the standard library and the local toolchain. Their scaffold runs
+  `go env -w GOTOOLCHAIN=local GOFLAGS=-mod=mod GOPROXY=off GOCACHE=… GOPATH=…` (writable dirs
+  under the workspace's `.cache/`), which lands in the run's temporary HOME. It skips this if HOME
+  is your real home, so your own Go config is never changed.
+
+The no-network limitation is resolved for these cases (measured 2026-11-08, CLI 2.1.319). The
+`--keep-temp` evidence shows `npx tsc --noEmit` reporting the real TS2322 error, `vitest run`
+v5.1.0/v2.1.9 running the tests, and `go vet`/`go test` passing, all while the sandbox denied
+`registry.npmjs.org`. typescript-conventions 1.0.1 went from 17/25 vs 13/25 (no dependencies) to
+19/25 vs 17/25 (with them).
+
+What remains: under `claude plugin eval` a single run sometimes stalls on API retries and hits
+the 600 s case timeout. A run with a stalled arm isn't recorded, so rerun it. Hand-run
+skill-creator benchmarks and `claude plugin eval` runs aren't directly comparable, so each record
+in `evals/results.json` names its `method`.
 
 ## Rules
 
