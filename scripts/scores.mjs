@@ -47,7 +47,7 @@ export const SCORES_EXPLAINED = {
   adoption: ['Active consumers: team repos that commit the plugin in .claude/settings.json (insights data). Committed intent per repo, not installs.'],
   tracking: [
     'History is kept for major and minor versions only: a release is recorded when it is the plugin\'s first version, or its major.minor is higher than the last recorded one. Patch releases (x.y.z with z > 0) are not recorded; they still refresh the current scores (shown as "patch, not tracked").',
-    '"▲/▼ n" on a card compares the current scores with the previous recorded (major/minor) version.',
+    '"▲/▼ n" on a card compares the current scores with the previous recorded (major/minor) version. If that record has no SkillSpector risk, the security change uses our rules only, so like is compared with like.',
   ],
   recording: [
     'Pull requests: the pr-gate plugins job prints a "Score changes" table (base → PR) in the job summary. Informational only; it never fails the PR.',
@@ -334,13 +334,19 @@ export function writeRecords(dataDir, plan) {
 
 // ---------------------------------------------------------------- deltas + PR preview
 
-/** Change of current scores vs a previous history record: {security, quality, evals} in points, null if unknown. */
+/**
+ * Change of current scores vs a previous history record: {security, quality, evals} in points,
+ * null if unknown. Like for like: when the previous record had no SkillSpector risk, the current
+ * rules-only security score is compared (security_basis "rules only").
+ */
 export function scoreChange(current, previous) {
   if (!previous) return null;
   const d = (a, b) => (typeof a === 'number' && typeof b === 'number' ? Math.round((a - b) * 10) / 10 : null);
+  const rulesOnly = previous.skillspector_risk == null && typeof current.security?.rules_score === 'number';
   return {
     vs_version: previous.version,
-    security: d(current.security?.score, previous.security),
+    security: d(rulesOnly ? current.security.rules_score : current.security?.score, previous.security),
+    security_basis: rulesOnly ? 'rules only' : 'rules + SkillSpector',
     quality: d(current.quality?.score, previous.quality),
     evals: d(current.evals?.pass_rate, previous.evals?.pass_rate),
   };
