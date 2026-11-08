@@ -49,7 +49,7 @@ function walkTree(dir, rel = '') {
     const r = rel ? `${rel}/${e.name}` : e.name;
     if (e.isDirectory()) {
       if (!SKIP_DIRS.has(e.name) && r !== '.claude/worktrees') out.push(...walkTree(dir, r));
-    } else out.push(r);
+    } else if (!SKIP_DIRS.has(e.name)) out.push(r); // a worktree's .git is a file
   }
   return out;
 }
