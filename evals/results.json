@@ -1,0 +1,29 @@
+{
+  "$comment": "Measured skill-creator style benchmarks: each case run with the skill and without it (baseline), 1 run per configuration. Append a new run object for each re-measurement; never edit old runs. measured_at is UTC.",
+  "runs": [
+    {
+      "plugin": "adr-helper",
+      "version": "1.1.0",
+      "measured_at": "2026-11-08T11:46:00Z",
+      "with_skill": { "passed": 22, "total": 22 },
+      "baseline": { "passed": 17, "total": 22 },
+      "method": "skill-creator style, 1 run per configuration"
+    },
+    {
+      "plugin": "go-conventions",
+      "version": "1.0.0",
+      "measured_at": "2026-11-08T11:52:00Z",
+      "with_skill": { "passed": 22, "total": 22 },
+      "baseline": { "passed": 19, "total": 22 },
+      "method": "skill-creator style, 1 run per configuration"
+    },
+    {
+      "plugin": "typescript-conventions",
+      "version": "1.0.0",
+      "measured_at": "2026-11-08T11:52:00Z",
+      "with_skill": { "passed": 23, "total": 25 },
+      "baseline": { "passed": 20, "total": 25 },
+      "method": "skill-creator style, 1 run per configuration"
+    }
+  ]
+}
