@@ -23,7 +23,9 @@ Never edit the catalogue files by hand — run `npm run sync`.
 - Changing a plugin's files **requires a version bump** (`npm run bump <name> <level>`) and a
   `CHANGELOG.md` entry for the new version.
 - Zero npm dependencies. Node ≥24. Tests use `node --test`.
-- Run `npm run check` before pushing; `npm run check -- --full` for everything CI runs.
+- Run `npm run check` before pushing; `npm run check -- --full` is the local equivalent of most CI
+  checks (CI also validates the stable catalogue copy, the PR title, SHA pins and promotion tree
+  equality — see `docs/security-scanning.md`).
 - Skills: `SKILL.md` ≤500 lines; frontmatter `name` = folder; description says
   **what / when / triggers / not-for**; ≥3 evals in `evals/evals.json` and a trigger set in
   `evals/trigger-evals.json`.
