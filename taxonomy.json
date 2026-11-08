@@ -25,7 +25,10 @@
     "vitest",
     "error-handling",
     "strict-mode",
-    "code-review"
+    "code-review",
+    "git",
+    "commits",
+    "conventional-commits"
   ],
   "languages": ["any", "go", "typescript", "javascript", "python", "java"]
 }
