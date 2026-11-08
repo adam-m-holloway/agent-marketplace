@@ -1,20 +1,6 @@
 {
   "version": 1,
-  "description": "Dangerous-pattern and prompt-injection rules for files under plugins/. Each pattern is a JavaScript RegExp source, matched per line. HIGH fails the security job; MEDIUM is reported only.",
-  "extensions": [
-    ".md",
-    ".json",
-    ".yml",
-    ".yaml",
-    ".sh",
-    ".bash",
-    ".js",
-    ".mjs",
-    ".cjs",
-    ".ts",
-    ".py",
-    ".txt"
-  ],
+  "description": "Dangerous-pattern and prompt-injection rules for every non-binary file under plugins/. Each pattern is a JavaScript RegExp source, matched per line (a line ending in a backslash is joined with the next). HIGH fails the security job; MEDIUM is reported only.",
   "rules": [
     {
       "id": "pipe-to-shell",

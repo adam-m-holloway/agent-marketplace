@@ -1,10 +1,8 @@
 // Staged approval (Q28): PRs that change a plugin's status.json stage are gated on evidence.
 // The gate functions are shared with `npm run stage`, which prints them as a readiness checklist.
-import { readFileSync } from 'node:fs';
-import { join, extname } from 'node:path';
 import { CHANNELS } from '../plugins.mjs';
 import { hasEntry } from '../changelog.mjs';
-import { f, diffFiles, readText } from './_util.mjs';
+import { f, diffFiles, readText, readPluginText } from './_util.mjs';
 import { loadPatterns, scanText as scanPatterns } from './patterns.mjs';
 import { scanText as scanHidden } from './hidden-content.mjs';
 
@@ -36,11 +34,9 @@ function securityFindings(root, plugin) {
   const cfg = loadPatterns();
   const out = [];
   for (const file of plugin.files) {
-    const buf = readFileSync(join(root, file));
-    if (buf.includes(0)) continue;
-    const text = buf.toString('utf8');
-    out.push(...scanHidden(text, file));
-    if (cfg.extensions.includes(extname(file).toLowerCase())) out.push(...scanPatterns(text, file, cfg));
+    const text = readPluginText(root, file);
+    if (text === null) continue;
+    out.push(...scanHidden(text, file), ...scanPatterns(text, file, cfg));
   }
   return out.filter((x) => x.severity !== 'MEDIUM');
 }

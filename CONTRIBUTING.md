@@ -17,7 +17,8 @@ Every change goes through a **feature branch and a pull request**. Nobody commit
    (with scores) and asks `continue anyway? [y/N]` — extending one of those may be better than
    a new plugin. Add `--yes` to skip the question (scripts, CI). The description also fills
    `plugin.json`. The PR's `plugins` job prints the same similarity list, plus a capability
-   diff (hooks, MCP servers, `allowed-tools`, `bin/`, URLs, pipe-to-shell), in its log.
+   diff (hooks, MCP servers, `allowed-tools`, `bin/`, URLs, pipe-to-shell), in its log and as
+   a warning annotation per added capability.
    This creates `plugin.json`, `catalogue.json`, `status.json` (stage `sandbox`), a stub
    `SKILL.md` and stub evals. The stubs contain `TODO`s and **fail `npm run check` until
    filled in**.
@@ -33,6 +34,8 @@ Every change goes through a **feature branch and a pull request**. Nobody commit
                     # (version bump, stage gate), so run with --base for that locally
    npm run check -- --full   # + tests, claude plugin validate, and any installed scanners
    ```
+   - No placeholders (`TODO`, `TBD`, `FIXME`, `<slot>`) in `SKILL.md` or the plugin `README.md`.
+   - Every `references/`, `scripts/` or `assets/` path a `SKILL.md` mentions must exist in that skill's folder.
 5. Open the PR with the plugin at `sandbox` (a new plugin must start there). Listing it is a
    separate, reviewed stage move — see [Move a plugin between stages](#move-a-plugin-between-stages).
 

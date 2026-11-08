@@ -2,7 +2,8 @@
 // Submission triage (Q29 items 1–2), data only: for each plugin a PR touches, the most similar
 // existing plugins and a capability diff (hooks, .mcp.json servers, allowed-tools, bin/, URLs,
 // pipe-to-shell lines) against the base branch.
-//   node scripts/triage.mjs --root <pr tree> --base <base tree>
+//   node scripts/triage.mjs --root <pr tree> --base <base tree> [--annotate]
+// --annotate also prints one GitHub `::warning` annotation per added capability.
 // Informational: prints to the log (and the step summary in CI) and ALWAYS exits 0. It reads the
 // PR tree as data and never runs anything from it. The PR commenter is a later step.
 import { appendFileSync, readFileSync, statSync } from 'node:fs';
@@ -125,19 +126,51 @@ export function renderTriage(results) {
   return out.join('\n');
 }
 
+// GitHub workflow-command escaping (values come from the PR, so a newline must not start a new command).
+const escData = (s) => String(s).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+const escProp = (s) => escData(s).replace(/:/g, '%3A').replace(/,/g, '%2C');
+
+/**
+ * One `::warning` line per added capability. The file is repo-relative as the PR sees it: the exact
+ * file (and line) for bin/ and pipe-to-shell, the plugin folder for the rest.
+ */
+export function annotations(results) {
+  const out = [];
+  for (const r of results) {
+    if (r.removed) continue;
+    const dir = `plugins/${r.plugin}`;
+    for (const [k, label] of Object.entries(CAPABILITIES)) {
+      for (const item of r.diff[k]?.added ?? []) {
+        let loc = `file=${escProp(dir)}`;
+        if (k === 'bin') loc = `file=${escProp(`${dir}/${item}`)}`;
+        if (k === 'pipeToShell') {
+          const [, file, line] = /^(.*):(\d+)$/.exec(item) ?? [null, item, null];
+          loc = `file=${escProp(`${dir}/${file}`)}${line ? `,line=${line}` : ''}`;
+        }
+        out.push(`::warning ${loc},title=New capability::${escData(`${r.plugin} adds ${label}: ${item}`)}`);
+      }
+    }
+  }
+  return out;
+}
+
 export function main(argv) {
   let root = '.';
   let base = null;
+  let annotate = false;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--root') root = argv[++i];
     else if (argv[i] === '--base') base = argv[++i];
-    else throw new Error(`unknown argument: ${argv[i]} (usage: --root <pr> --base <base>)`);
+    else if (argv[i] === '--annotate') annotate = true;
+    else throw new Error(`unknown argument: ${argv[i]} (usage: --root <pr> --base <base> [--annotate])`);
   }
   if (!base) throw new Error('--base is required');
   root = resolve(root);
   base = resolve(base);
-  const text = renderTriage(triage(changedPluginDirs(base, root), loadRepo(root), { baseRepo: loadRepo(base) }));
+  const results = triage(changedPluginDirs(base, root), loadRepo(root), { baseRepo: loadRepo(base) });
+  const text = renderTriage(results);
   process.stdout.write(text);
+  if (annotate) for (const line of annotations(results)) console.log(line);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, text + '\n');
 }
 

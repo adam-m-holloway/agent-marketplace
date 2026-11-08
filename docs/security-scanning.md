@@ -51,8 +51,8 @@ Headings follow the OWASP Agentic Skills Top 10 where they fit.
 | Threat | Check | Blocking? | Blind spots |
 |---|---|---|---|
 | **Hidden instructions** (prompt injection via invisible text) | `hidden-content` rule: Unicode tag characters U+E0000–E007F; zero-width U+200B–200D, U+2060, U+FEFF; bidi controls U+202A–202E, U+2066–2069; HTML comments in Markdown; base64 runs ≥200 chars; `data:` URIs | yes (ERROR) | instructions hidden in plain sight (ordinary words) |
-| **Instruction override / concealment** | `patterns`: `ignore-previous-instructions`, `do-not-tell-user` | yes (HIGH) | paraphrases, other languages, split across lines |
-| **Remote code execution** | `patterns`: `pipe-to-shell`, `decode-and-execute`, `remote-eval` | yes (HIGH) | obfuscated or multi-step downloads |
+| **Instruction override / concealment** | `patterns`: `ignore-previous-instructions`, `do-not-tell-user` | yes (HIGH) | paraphrases, other languages, split across lines without a trailing `\` |
+| **Remote code execution** | `patterns`: `pipe-to-shell`, `decode-and-execute`, `remote-eval`. `patterns` scans **every non-binary file** under `plugins/` whatever its extension (`bin/setup`, `.zsh`, …), and joins a line ending in `\` with the next (reported at the first line) | yes (HIGH) | obfuscated or multi-step downloads; binary files |
 | **Destructive commands** | `patterns`: `destructive-rm` (`rm -rf` on `/`, `~`, `$HOME`) | yes (HIGH) | other destructive commands, relative paths |
 | **Credential theft / exfiltration** | `patterns`: `credential-file-read`, `secret-over-network`, `env-dump-to-network` | yes (HIGH) | indirect exfiltration (e.g. via git, DNS, an MCP tool) |
 | **Supply chain (MCP launchers)** | `patterns`: `unpinned-mcp-launcher` (`npx -y pkg` without `@version`) | yes (HIGH) | a pinned but malicious version |
@@ -60,6 +60,8 @@ Headings follow the OWASP Agentic Skills Top 10 where they fit.
 | **Committed secrets** | gitleaks `dir` on all of the PR's files | yes | secrets in formats gitleaks doesn't know |
 | **Risky skill behaviour** (broad scoring) | SkillSpector `--no-llm`, risk >50 fails; reviewed baselines honoured | yes | anything its static rules don't model |
 | **Malformed / misleading plugins** | `structure`, `name-consistency`, `skill-frontmatter`, `schemas-taxonomy`, `claude plugin validate --strict` | yes | — |
+| **Stub or broken skills** | `structure`: placeholders (`TODO`/`TBD`/`FIXME`/`<slot>`, outside code) in `SKILL.md` or `README.md`; a `references/`, `scripts/` or `assets/` path a `SKILL.md` mentions (backticks or link) that doesn't exist in the skill folder | yes (ERROR, file:line) | prose that is vague but not a placeholder |
+| **New capabilities slipping by** | triage step (`triage.mjs --annotate`): one `New capability` warning annotation per added hook, MCP server, `allowed-tools` entry, `bin/` file, URL or pipe-to-shell line | no (informational) | only what it models; a reviewer still has to read the diff |
 | **Silent changes** | `version-bump` + `changelog-entry`: changed plugin files need a version increase and a CHANGELOG entry | yes | — |
 | **Unreviewed bulk changes** | `one-plugin-per-pr` (needs `multi-plugin` label) | yes | — |
 | **Stable channel tampering** | `promotion`: head `promote/*`, title `chore(stable): promote main@<sha>`, tree **equals** that `main` commit; any plugin version going backwards needs the `rollback` label | yes | — |

@@ -84,7 +84,7 @@ jobs:
       - name: Triage (similar plugins + capability diff; informational)
         if: ${{ !cancelled() }}
         continue-on-error: true
-        run: node base/scripts/triage.mjs --root pr --base base
+        run: node base/scripts/triage.mjs --root pr --base base --annotate
       # Base scripts score both trees (./pr is read as data); writes a "Score changes" table to the
       # job summary. Informational: never fails the job (and base may not have scores.mjs yet).
       - name: Score changes (informational)

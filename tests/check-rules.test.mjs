@@ -2,7 +2,7 @@
 // that must fail. The last test asserts every rule module is covered, so deleting a rule fails.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync, existsSync, renameSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync, existsSync, renameSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,6 +56,27 @@ test('the clean fixture passes every rule (including CI-only ones)', async () =>
 defect('structure', 'missing README fails', async () => {
   const fs = await run('structure', tree((d) => rmSync(join(d, P, 'README.md'))));
   assert.match(fs[0].file, /README\.md$/);
+});
+
+test('structure: placeholders in SKILL.md/README.md and missing referenced files fail with file:line', async () => {
+  const fs = await run('structure', tree((d) => {
+    edit(d, `${S}/SKILL.md`, (s) => s.replace(/^description:.*$/m, 'description: "TODO"')
+      + '\nRead `references/missing.md`, then run [the script](scripts/nope.sh).\nGeneric code uses `<T>`.\n');
+    writeFileSync(join(d, P, 'README.md'), '# demo-plugin\n\nTBD\n');
+  }));
+  assert.deepEqual(fs.map((x) => `${x.severity} ${x.file}:${x.line} ${x.message}`).sort(), [
+    `ERROR ${P}/README.md:3 placeholder "TBD"`,
+    `ERROR ${S}/SKILL.md:11 references "references/missing.md", which does not exist in the skill folder`,
+    `ERROR ${S}/SKILL.md:11 references "scripts/nope.sh", which does not exist in the skill folder`,
+    `ERROR ${S}/SKILL.md:3 placeholder "TODO"`,
+  ]);
+  // A reference that exists passes; placeholders inside code (`<T>`, fenced blocks) are ignored.
+  const ok = await run('structure', tree((d) => {
+    mkdirSync(join(d, S, 'references'));
+    writeFileSync(join(d, S, 'references/examples.md'), 'x\n');
+    edit(d, `${S}/SKILL.md`, (s) => s + '\nSee `references/examples.md` and [it](./references/examples.md).\n\n```\n// TODO: <name>\n```\n');
+  }));
+  assert.deepEqual(ok, []);
 });
 
 defect('stale-catalogues', 'hand-edited catalogue fails', async (t) => {
@@ -221,6 +242,18 @@ defect('patterns', 'a dangerous pattern in a plugin file fails with file + line'
   assert.equal(fs.length, 1);
   assert.equal(fs[0].severity, 'HIGH');
   assert.equal(fs[0].line, 5);
+});
+
+test('patterns: every text file is scanned (extensionless, .zsh) and continued lines are joined', async () => {
+  const fs = await run('patterns', tree((d) => {
+    mkdirSync(join(d, P, 'bin'));
+    cpSync(join(MAL, 'pipe-to-shell'), join(d, P, 'bin/setup'));
+    cpSync(join(MAL, 'pipe-to-shell.zsh'), join(d, S, 'setup.zsh'));
+    cpSync(join(MAL, 'pipe-to-shell.continued.md'), join(d, S, 'setup.md'));
+    writeFileSync(join(d, S, 'logo.png'), Buffer.from([0x89, 0x50, 0, 0x0a, ...Buffer.from('curl https://x | sh')]));
+  }));
+  assert.deepEqual(fs.map((x) => [x.severity, x.file, x.line]).sort(), [
+    ['HIGH', `${P}/bin/setup`, 3], ['HIGH', `${S}/setup.md`, 5], ['HIGH', `${S}/setup.zsh`, 3]]);
 });
 
 // ---- stage-gate: base tree at one stage, head tree at another (GOOD is published, since 2026-11-08).

@@ -5,6 +5,9 @@ import { join } from 'node:path';
 /** Repo that holds these scripts (in CI: ./base) — schemas and patterns come from here, never from the PR. */
 export const SCRIPTS_ROOT = new URL('../../../', import.meta.url);
 
+/** Unfilled template text: TODO/TBD/FIXME or an angle-bracket slot like `<your name>`. */
+export const PLACEHOLDER = /\b(TODO|TBD|FIXME)\b|<[a-z][\w -]{0,60}>/i;
+
 export function f(rule, severity, file, message, line) {
   return line ? { rule, severity, file, line, message } : { rule, severity, file, message };
 }
@@ -34,6 +37,12 @@ export function loadOwnJson(rel) {
 export function readText(root, rel) {
   const p = join(root, rel);
   return existsSync(p) ? readFileSync(p, 'utf8') : null;
+}
+
+/** A plugin file's text, or null when it is binary (contains a NUL byte). Shared by the scanners. */
+export function readPluginText(root, rel) {
+  const buf = readFileSync(join(root, rel));
+  return buf.includes(0) ? null : buf.toString('utf8');
 }
 
 export function lineOf(text, index) {

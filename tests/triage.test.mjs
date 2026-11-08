@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { loadRepo } from '../scripts/lib/plugins.mjs';
-import { triage, capabilities, renderTriage } from '../scripts/triage.mjs';
+import { triage, capabilities, renderTriage, annotations } from '../scripts/triage.mjs';
 
 const SCRIPT = fileURLToPath(new URL('../scripts/triage.mjs', import.meta.url));
 
@@ -87,6 +87,36 @@ test('renderTriage lists similar plugins and only non-empty capability changes',
   assert.match(text, /## Triage: go-conventions \(changed\)/);
   assert.match(text, /URLs: \+https:\/\/go\.dev\/doc\/effective_go/);
   assert.equal(renderTriage([]), 'Triage: no plugin changes in this PR.\n');
+});
+
+test('annotations: one ::warning per added capability, repo-relative file, escaped', () => {
+  const none = { added: [], removed: [] };
+  const results = [
+    { plugin: 'gone', removed: true },
+    { plugin: 'adr-linter', isNew: true, similar: [], diff: {
+      hooks: { added: ['PreToolUse'], removed: ['Stop'] }, mcpServers: none, allowedTools: none,
+      bin: { added: ['bin/adr-lint'], removed: [] }, urls: { added: ['https://x.example/a,b%'], removed: [] },
+      pipeToShell: { added: ['skills/adr-linter/SKILL.md:8'], removed: [] } } },
+  ];
+  assert.deepEqual(annotations(results), [
+    '::warning file=plugins/adr-linter,title=New capability::adr-linter adds Hooks: PreToolUse',
+    '::warning file=plugins/adr-linter/bin/adr-lint,title=New capability::adr-linter adds bin/: bin/adr-lint',
+    '::warning file=plugins/adr-linter,title=New capability::adr-linter adds URLs: https://x.example/a,b%25',
+    '::warning file=plugins/adr-linter/skills/adr-linter/SKILL.md,line=8,title=New capability::adr-linter adds Pipe-to-shell: skills/adr-linter/SKILL.md:8',
+  ]);
+  assert.equal(annotations([{ plugin: 'p', isNew: false, similar: [], diff: { bin: { added: ['bin/a,b:c\nd'], removed: [] } } }])[0],
+    '::warning file=plugins/p/bin/a%2Cb%3Ac%0Ad,title=New capability::p adds bin/: bin/a,b:c%0Ad');
+});
+
+test('CLI --annotate also prints ::warning lines; without it there are none', () => {
+  const { base, pr } = trees();
+  const plain = spawnSync('node', [SCRIPT, '--root', pr, '--base', base], { encoding: 'utf8' });
+  assert.doesNotMatch(plain.stdout, /::warning/);
+  const ann = spawnSync('node', [SCRIPT, '--root', pr, '--base', base, '--annotate'], { encoding: 'utf8' });
+  assert.equal(ann.status, 0, ann.stderr);
+  assert.match(ann.stdout, /Triage: adr-linter/);
+  assert.match(ann.stdout, /^::warning file=plugins\/adr-linter,title=New capability::adr-linter adds MCP servers: adrdb$/m);
+  assert.match(ann.stdout, /^::warning file=plugins\/go-conventions,title=New capability::go-conventions adds URLs: https:\/\/go\.dev\/doc\/effective_go$/m);
 });
 
 test('CLI prints triage and exits 0, even on a broken tree', () => {
