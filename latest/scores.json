@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-08T13:24:32.378Z",
+  "updated_at": "2026-11-08T14:13:59.925Z",
   "plugins": {
     "adr-helper": {
       "recorded_at": "2026-11-08T13:24:32.378Z",
@@ -63,6 +63,62 @@
       "skillspector_risk": 0,
       "tracked": false,
       "reason": "patch"
+    },
+    "conventional-commits": {
+      "recorded_at": "2026-11-08T14:13:59.925Z",
+      "plugin": "conventional-commits",
+      "version": "1.0.0",
+      "tag": "conventional-commits--v1.0.0",
+      "commit_sha": "ed66a49ddd6ce749ec0d0c67987796a043eceb02",
+      "security": 100,
+      "security_inputs": "0 HIGH, 0 MEDIUM; SkillSpector risk 0/100",
+      "quality": 100,
+      "quality_criteria": [
+        {
+          "id": "evals",
+          "weight": 20,
+          "passed": true,
+          "detail": "all skills pass"
+        },
+        {
+          "id": "triggers",
+          "weight": 15,
+          "passed": true,
+          "detail": "write-commit-message 10/10"
+        },
+        {
+          "id": "description",
+          "weight": 20,
+          "passed": true,
+          "detail": "all skills pass"
+        },
+        {
+          "id": "skill-length",
+          "weight": 10,
+          "passed": true,
+          "detail": "write-commit-message 146 lines"
+        },
+        {
+          "id": "compatibility",
+          "weight": 10,
+          "passed": true,
+          "detail": "languages: any (not required)"
+        },
+        {
+          "id": "docs",
+          "weight": 15,
+          "passed": true,
+          "detail": "both present"
+        },
+        {
+          "id": "keywords",
+          "weight": 10,
+          "passed": true,
+          "detail": "4 keywords, all on-taxonomy"
+        }
+      ],
+      "skillspector_risk": 0,
+      "tracked": true
     },
     "go-conventions": {
       "recorded_at": "2026-11-08T13:24:32.378Z",
