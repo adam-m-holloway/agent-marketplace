@@ -68,6 +68,8 @@ claude plugin install adr-helper --marketplace adam-m-holloway/agent-marketplace
 | Plugin | What | Languages |
 |---|---|---|
 | [`adr-helper`](plugins/adr-helper) | Architecture Decision Records (MADR) | any |
+| [`go-conventions`](plugins/go-conventions) | Go conventions + toolchain checks | Go |
+| [`typescript-conventions`](plugins/typescript-conventions) | Strict TypeScript + Vitest conventions | TypeScript |
 
 ## Contributing
 
