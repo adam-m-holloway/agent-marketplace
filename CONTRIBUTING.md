@@ -10,8 +10,14 @@ Every change goes through a **feature branch and a pull request**. Nobody commit
 2. **Scaffold:**
    ```sh
    git switch -c feat/my-plugin
-   npm run new-plugin my-plugin -- --skill my-skill --languages any
+   npm run new-plugin my-plugin -- --skill my-skill --languages any \
+     --description "One sentence on what it helps with"
    ```
+   With `--description`, the scaffold first lists the **3 most similar existing plugins**
+   (with scores) and asks `continue anyway? [y/N]` — extending one of those may be better than
+   a new plugin. Add `--yes` to skip the question (scripts, CI). The description also fills
+   `plugin.json`. The PR's `plugins` job prints the same similarity list, plus a capability
+   diff (hooks, MCP servers, `allowed-tools`, `bin/`, URLs, pipe-to-shell), in its log.
    This creates `plugin.json`, `catalogue.json`, `status.json` (stage `sandbox`), a stub
    `SKILL.md` and stub evals. The stubs contain `TODO`s and **fail `npm run check` until
    filled in**.

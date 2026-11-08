@@ -11,7 +11,12 @@ gh label create multi-plugin   --color 5319e7 --description "PR changes more tha
 gh label create rollback       --color b60205 --description "Promotion of an older main commit to stable"
 gh label create plugin-request --color 0e8a16 --description "Request for a plugin that doesn't exist"
 gh label create bug            --color d73a4a --description "Something isn't working" --force
+gh label create insights       --color 245bf3 --description "Opened by the nightly insights run" --force
+gh label create behind         --color e7b56a --description "A consumer is behind the latest plugin version" --force
 ```
+
+`insights.yml` also creates `insights` and `behind` itself (`gh label create --force`) before it
+files issues, so these two are optional here.
 
 Click path: **Issues → Labels → New label**.
 
@@ -96,6 +101,15 @@ Check: `gh api repos/adam-m-holloway/<repo>/rulesets`.
 Slice 0 proved that the default `GITHUB_TOKEN` can read the consumer repos' Contents and
 Commits APIs (public repos, 5,000 requests/hour). **No PAT is needed**, so there is no expiry to
 track. On Enterprise, use a GitHub App instead (see `migration-to-enterprise.md`).
+
+## Insights issues
+
+`insights.yml` needs **`issues: write`** (set in the workflow's job permissions) to keep the
+pinned "Plugin usage report" issue and the "Behind: …" issues. The workflow declares it, so
+there is nothing to configure in **Settings → Actions**. If pinning is refused, the run logs a warning and carries on;
+pin the issue by hand once. Issues are found by hidden marker comments
+(`<!-- insights:daily-report -->`, `<!-- insights:behind:<plugin>:<consumer> -->`), so don't
+edit those out.
 
 ## The `data` branch
 

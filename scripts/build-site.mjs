@@ -104,6 +104,8 @@ export function buildData(repo, { stableVersions = null, consumersDoc = null, no
     plugins,
     sandbox,
     consumers_note: CONSUMERS_NOTE,
+    // When the insights run last wrote usage data; the site warns when it is over 36 hours old.
+    consumers_generated_at: typeof consumersDoc?.generated_at === 'string' ? consumersDoc.generated_at : null,
   };
 }
 

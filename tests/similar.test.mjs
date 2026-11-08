@@ -57,3 +57,26 @@ test('related: pairs below minScore are dropped, so unrelated plugins are not sh
   assert.deepEqual(out['go-conventions'], ['typescript-conventions']);
   assert.deepEqual(out['typescript-conventions'], ['go-conventions']);
 });
+
+test('similarTo ranks existing plugins against a new name + description, filtered by RELATED_MIN_SCORE', async () => {
+  const { similarTo, RELATED_MIN_SCORE } = await import('../scripts/similar.mjs');
+  const r = similarTo({ name: 'adr-linter', description: 'Lint architecture decision records' }, plugins);
+  assert.ok(r.length >= 1 && r.length <= 3);
+  assert.ok(['adr-index', 'adr-helper'].includes(r[0].name));
+  assert.ok(r.every((x) => typeof x.score === 'number' && x.score >= RELATED_MIN_SCORE));
+  assert.ok(!r.some((x) => x.name === 'adr-linter'));
+  assert.deepEqual(similarTo({ name: 'zz', description: 'quantum knitting patterns' }, plugins), []);
+  assert.deepEqual(similarTo({ name: 'zz', description: 'anything' }, []), []);
+});
+
+test('docsFromRepo maps loadRepo plugins to similarity docs with skill descriptions', async () => {
+  const { docsFromRepo } = await import('../scripts/similar.mjs');
+  const repo = { plugins: [{
+    dir: 'x', manifest: { description: 'd', keywords: ['k'] }, catalogue: { category: 'c' },
+    skills: [{ name: 's', skillMd: '---\nname: s\ndescription: skill desc\n---\nbody' }],
+  }, { dir: 'broken', manifest: null, catalogue: null, skills: [] }] };
+  assert.deepEqual(docsFromRepo(repo), [
+    { name: 'x', description: 'd', tags: ['k'], category: 'c', skills: [{ name: 's', description: 'skill desc' }] },
+    { name: 'broken', description: '', tags: [], category: '', skills: [] },
+  ]);
+});

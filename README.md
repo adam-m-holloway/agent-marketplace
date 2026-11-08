@@ -8,6 +8,10 @@ who uses what.
   install commands, versions per channel, and who consumes each plugin.
 - **Usage report:** [`CATALOGUE.md` on the `data` branch](https://github.com/adam-m-holloway/agent-marketplace/blob/data/CATALOGUE.md)
   (written nightly by `insights.yml`).
+- **Usage issues:** the same nightly run keeps a pinned **"Plugin usage report"** issue
+  (commented only on days something changed) and opens one **"Behind: …"** issue per plugin a
+  consumer is behind on, closing it when they catch up. Both carry the `insights` label;
+  behind issues also carry `behind`. The site warns when usage data is over 36 hours old.
 
 ## Channels
 

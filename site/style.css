@@ -159,6 +159,11 @@ input[type="search"]::placeholder { color: var(--muted); opacity: 1; }
   border-radius: 8px; padding: 10px 14px; margin: 8px 0 12px;
 }
 .request { border-left-color: var(--purple); }
+.stale {
+  color: var(--warn); background: var(--warn-bg); border: 1px solid var(--warn-border);
+  border-left-width: 4px; border-radius: 8px; padding: 10px 14px; margin: 16px 0 0; font-weight: 600;
+}
+.stale[hidden] { display: none; }
 .request p { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .button {
   display: inline-block; background: var(--blue); color: #ffffff;
