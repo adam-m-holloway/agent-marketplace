@@ -1,57 +1,37 @@
 {
-  "updated_at": "2026-11-08T14:13:59.925Z",
+  "updated_at": "2026-11-08T21:38:49.132Z",
   "plugins": {
     "adr-helper": {
-      "recorded_at": "2026-11-08T13:24:32.378Z",
+      "recorded_at": "2026-11-08T21:38:49.132Z",
       "plugin": "adr-helper",
-      "version": "1.1.1",
-      "tag": "adr-helper--v1.1.1",
-      "commit_sha": "19f7a80f2e22aa0aaf2a8d5e1187fce19e5e1097",
+      "version": "1.1.2",
+      "tag": "adr-helper--v1.1.2",
+      "commit_sha": "ffc12866afb4c1fe9bd17158869e491a5b1d4226",
       "security": 100,
       "security_inputs": "0 HIGH, 0 MEDIUM; SkillSpector risk 0/100",
-      "quality": 100,
+      "quality": 85,
+      "quality_method": "static-tools-v1",
       "quality_criteria": [
         {
-          "id": "evals",
-          "weight": 20,
-          "passed": true,
-          "detail": "all skills pass"
+          "id": "linters",
+          "weight": 55,
+          "score": 78,
+          "ran": true,
+          "detail": "skill-check 80 (create-adr 85, supersede-adr 75); skillscore 75 (create-adr 82, supersede-adr 68)"
         },
         {
-          "id": "triggers",
-          "weight": 15,
-          "passed": true,
-          "detail": "create-adr 10/10; supersede-adr 9/11"
-        },
-        {
-          "id": "description",
-          "weight": 20,
-          "passed": true,
-          "detail": "all skills pass"
-        },
-        {
-          "id": "skill-length",
-          "weight": 10,
-          "passed": true,
-          "detail": "create-adr 117 lines; supersede-adr 106 lines"
-        },
-        {
-          "id": "compatibility",
-          "weight": 10,
-          "passed": true,
-          "detail": "languages: any (not required)"
+          "id": "best-practice",
+          "weight": 25,
+          "score": 100,
+          "ran": true,
+          "detail": "16/16 checks passed"
         },
         {
           "id": "docs",
-          "weight": 15,
-          "passed": true,
-          "detail": "both present"
-        },
-        {
-          "id": "keywords",
-          "weight": 10,
-          "passed": true,
-          "detail": "5 keywords, all on-taxonomy"
+          "weight": 20,
+          "score": 86,
+          "ran": true,
+          "detail": "markdownlint 8, lychee 0, cspell 1: 9 findings in 576 lines (1.6 per 100 lines)"
         }
       ],
       "evals": {
@@ -65,183 +45,125 @@
       "reason": "patch"
     },
     "conventional-commits": {
-      "recorded_at": "2026-11-08T14:13:59.925Z",
+      "recorded_at": "2026-11-08T21:38:49.132Z",
       "plugin": "conventional-commits",
-      "version": "1.0.0",
-      "tag": "conventional-commits--v1.0.0",
-      "commit_sha": "ed66a49ddd6ce749ec0d0c67987796a043eceb02",
+      "version": "1.0.1",
+      "tag": "conventional-commits--v1.0.1",
+      "commit_sha": "ffc12866afb4c1fe9bd17158869e491a5b1d4226",
       "security": 100,
       "security_inputs": "0 HIGH, 0 MEDIUM; SkillSpector risk 0/100",
-      "quality": 100,
+      "quality": 86,
+      "quality_method": "static-tools-v1",
       "quality_criteria": [
         {
-          "id": "evals",
-          "weight": 20,
-          "passed": true,
-          "detail": "all skills pass"
+          "id": "linters",
+          "weight": 55,
+          "score": 87,
+          "ran": true,
+          "detail": "skill-check 85 (write-commit-message 85); skillscore 89 (write-commit-message 89)"
         },
         {
-          "id": "triggers",
-          "weight": 15,
-          "passed": true,
-          "detail": "write-commit-message 10/10"
-        },
-        {
-          "id": "description",
-          "weight": 20,
-          "passed": true,
-          "detail": "all skills pass"
-        },
-        {
-          "id": "skill-length",
-          "weight": 10,
-          "passed": true,
-          "detail": "write-commit-message 146 lines"
-        },
-        {
-          "id": "compatibility",
-          "weight": 10,
-          "passed": true,
-          "detail": "languages: any (not required)"
+          "id": "best-practice",
+          "weight": 25,
+          "score": 100,
+          "ran": true,
+          "detail": "8/8 checks passed"
         },
         {
           "id": "docs",
-          "weight": 15,
-          "passed": true,
-          "detail": "both present"
-        },
-        {
-          "id": "keywords",
-          "weight": 10,
-          "passed": true,
-          "detail": "4 keywords, all on-taxonomy"
+          "weight": 20,
+          "score": 64,
+          "ran": true,
+          "detail": "markdownlint 10, lychee 0, cspell 1: 11 findings in 245 lines (4.5 per 100 lines)"
         }
       ],
       "skillspector_risk": 0,
-      "tracked": true
+      "tracked": false,
+      "reason": "patch"
     },
     "go-conventions": {
-      "recorded_at": "2026-11-08T13:24:32.378Z",
+      "recorded_at": "2026-11-08T21:38:49.132Z",
       "plugin": "go-conventions",
-      "version": "1.0.0",
-      "tag": "go-conventions--v1.0.0",
-      "commit_sha": "e3c2ad8f47865109467a8a390c5324794b3d5e93",
+      "version": "1.0.1",
+      "tag": "go-conventions--v1.0.1",
+      "commit_sha": "ffc12866afb4c1fe9bd17158869e491a5b1d4226",
       "security": 100,
       "security_inputs": "0 HIGH, 0 MEDIUM; SkillSpector risk 0/100",
-      "quality": 100,
+      "quality": 83,
+      "quality_method": "static-tools-v1",
       "quality_criteria": [
         {
-          "id": "evals",
-          "weight": 20,
-          "passed": true,
-          "detail": "all skills pass"
+          "id": "linters",
+          "weight": 55,
+          "score": 81,
+          "ran": true,
+          "detail": "skill-check 85 (go-conventions 85); skillscore 77 (go-conventions 77)"
         },
         {
-          "id": "triggers",
-          "weight": 15,
-          "passed": true,
-          "detail": "go-conventions 10/10"
-        },
-        {
-          "id": "description",
-          "weight": 20,
-          "passed": true,
-          "detail": "all skills pass"
-        },
-        {
-          "id": "skill-length",
-          "weight": 10,
-          "passed": true,
-          "detail": "go-conventions 166 lines"
-        },
-        {
-          "id": "compatibility",
-          "weight": 10,
-          "passed": true,
-          "detail": "stated in SKILL.md"
+          "id": "best-practice",
+          "weight": 25,
+          "score": 88,
+          "ran": true,
+          "detail": "7/8 checks passed; go-conventions: toc-long-refs (no table of contents: references/examples.md)"
         },
         {
           "id": "docs",
-          "weight": 15,
-          "passed": true,
-          "detail": "both present"
-        },
-        {
-          "id": "keywords",
-          "weight": 10,
-          "passed": true,
-          "detail": "6 keywords, all on-taxonomy"
+          "weight": 20,
+          "score": 82,
+          "ran": true,
+          "detail": "markdownlint 4, lychee 0, cspell 4: 8 findings in 396 lines (2 per 100 lines)"
         }
       ],
       "evals": {
-        "pass_rate": 100,
-        "baseline_pass_rate": 86.4,
-        "measured_at": "2026-11-08T11:52:00Z",
+        "pass_rate": 86.4,
+        "baseline_pass_rate": 72.7,
+        "measured_at": "2026-11-08T16:50:57Z",
         "measured_version": "1.0.0"
       },
       "skillspector_risk": 0,
-      "tracked": true
+      "tracked": false,
+      "reason": "patch"
     },
     "typescript-conventions": {
-      "recorded_at": "2026-11-08T13:24:32.378Z",
+      "recorded_at": "2026-11-08T21:38:49.132Z",
       "plugin": "typescript-conventions",
-      "version": "1.0.1",
-      "tag": "typescript-conventions--v1.0.1",
-      "commit_sha": "f0df9c5c0d51f0f116ea0dba59676576cd7d8488",
-      "security": 82,
-      "security_inputs": "0 HIGH, 0 MEDIUM; SkillSpector risk 18/100",
-      "quality": 100,
+      "version": "1.0.2",
+      "tag": "typescript-conventions--v1.0.2",
+      "commit_sha": "ffc12866afb4c1fe9bd17158869e491a5b1d4226",
+      "security": 81,
+      "security_inputs": "0 HIGH, 0 MEDIUM; SkillSpector risk 19/100",
+      "quality": 83,
+      "quality_method": "static-tools-v1",
       "quality_criteria": [
         {
-          "id": "evals",
-          "weight": 20,
-          "passed": true,
-          "detail": "all skills pass"
+          "id": "linters",
+          "weight": 55,
+          "score": 80,
+          "ran": true,
+          "detail": "skill-check 85 (typescript-conventions 85); skillscore 75 (typescript-conventions 75)"
         },
         {
-          "id": "triggers",
-          "weight": 15,
-          "passed": true,
-          "detail": "typescript-conventions 10/10"
-        },
-        {
-          "id": "description",
-          "weight": 20,
-          "passed": true,
-          "detail": "all skills pass"
-        },
-        {
-          "id": "skill-length",
-          "weight": 10,
-          "passed": true,
-          "detail": "typescript-conventions 186 lines"
-        },
-        {
-          "id": "compatibility",
-          "weight": 10,
-          "passed": true,
-          "detail": "stated in SKILL.md"
+          "id": "best-practice",
+          "weight": 25,
+          "score": 88,
+          "ran": true,
+          "detail": "7/8 checks passed; typescript-conventions: toc-long-refs (no table of contents: references/examples.md)"
         },
         {
           "id": "docs",
-          "weight": 15,
-          "passed": true,
-          "detail": "both present"
-        },
-        {
-          "id": "keywords",
-          "weight": 10,
-          "passed": true,
-          "detail": "6 keywords, all on-taxonomy"
+          "weight": 20,
+          "score": 86,
+          "ran": true,
+          "detail": "markdownlint 4, lychee 0, cspell 2: 6 findings in 412 lines (1.5 per 100 lines)"
         }
       ],
       "evals": {
-        "pass_rate": 92,
-        "baseline_pass_rate": 80,
-        "measured_at": "2026-11-08T11:52:00Z",
-        "measured_version": "1.0.0"
+        "pass_rate": 76,
+        "baseline_pass_rate": 68,
+        "measured_at": "2026-11-08T16:41:09Z",
+        "measured_version": "1.0.1"
       },
-      "skillspector_risk": 18,
+      "skillspector_risk": 19,
       "tracked": false,
       "reason": "patch"
     }
