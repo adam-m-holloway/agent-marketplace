@@ -32,6 +32,8 @@ The repo's `tsconfig.json` should have at least:
   do not flip it unasked: it can surface many errors across the codebase.
 - With `noUncheckedIndexedAccess`, `arr[i]` and `record[key]` are `T | undefined`. Handle
   the `undefined` (a guard, a default, or `.at()` with a check). Do not silence it with `!`.
+  When you meet an existing `arr[0]!` in code you are changing, replace it with an
+  explicit check (throw a clear error, or return a union or `undefined`).
 - Never add `// @ts-ignore`. If a suppression is truly unavoidable, use
   `// @ts-expect-error` with a reason on the same line.
 
@@ -97,6 +99,19 @@ function assertNever(x: never): never {
 - Prefer a union of string literals over `enum` unless the repo already uses enums.
 - The same applies to function results: return `{ ok: true; value } | { ok: false; error }`
   instead of `{ success: boolean; value?: T; error?: string }`.
+
+## Changing exported types
+
+"Keep the exports working" or "don't break callers" means callers still compile and
+behave the same. It does not forbid tightening types. When you are asked to remove
+unsafe typing, do it rather than asking first:
+
+- Replace a boolean plus optional fields with a discriminated union, keeping the same
+  discriminant name (for example `success`), so existing `if (r.success)` checks still
+  work and narrow properly. Update the call sites in the same change.
+- Replace `!` on indexed access with an explicit check, even in exported functions.
+- Keep exported names and parameters as they are, and say in your reply which exported
+  types got stricter.
 
 ## 5. Everyday style
 
