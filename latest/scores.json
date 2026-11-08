@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-11-08T21:38:49.132Z",
+  "updated_at": "2026-11-08T21:42:32.658Z",
   "plugins": {
     "adr-helper": {
-      "recorded_at": "2026-11-08T21:38:49.132Z",
+      "recorded_at": "2026-11-08T21:42:32.658Z",
       "plugin": "adr-helper",
-      "version": "1.1.2",
-      "tag": "adr-helper--v1.1.2",
-      "commit_sha": "ffc12866afb4c1fe9bd17158869e491a5b1d4226",
+      "version": "1.1.3",
+      "tag": "adr-helper--v1.1.3",
+      "commit_sha": "cc69f51ac2e6deb1cf3ad432c1da6563596cbc9b",
       "security": 100,
       "security_inputs": "0 HIGH, 0 MEDIUM; SkillSpector risk 0/100",
-      "quality": 85,
+      "quality": 84,
       "quality_method": "static-tools-v1",
       "quality_criteria": [
         {
@@ -29,9 +29,9 @@
         {
           "id": "docs",
           "weight": 20,
-          "score": 86,
+          "score": 79,
           "ran": true,
-          "detail": "markdownlint 8, lychee 0, cspell 1: 9 findings in 576 lines (1.6 per 100 lines)"
+          "detail": "markdownlint 10, lychee 0, cspell 4: 14 findings in 581 lines (2.4 per 100 lines)"
         }
       ],
       "evals": {
@@ -45,14 +45,14 @@
       "reason": "patch"
     },
     "conventional-commits": {
-      "recorded_at": "2026-11-08T21:38:49.132Z",
+      "recorded_at": "2026-11-08T21:42:32.658Z",
       "plugin": "conventional-commits",
-      "version": "1.0.1",
-      "tag": "conventional-commits--v1.0.1",
-      "commit_sha": "ffc12866afb4c1fe9bd17158869e491a5b1d4226",
+      "version": "1.0.2",
+      "tag": "conventional-commits--v1.0.2",
+      "commit_sha": "cc69f51ac2e6deb1cf3ad432c1da6563596cbc9b",
       "security": 100,
       "security_inputs": "0 HIGH, 0 MEDIUM; SkillSpector risk 0/100",
-      "quality": 86,
+      "quality": 83,
       "quality_method": "static-tools-v1",
       "quality_criteria": [
         {
@@ -72,9 +72,9 @@
         {
           "id": "docs",
           "weight": 20,
-          "score": 64,
+          "score": 53,
           "ran": true,
-          "detail": "markdownlint 10, lychee 0, cspell 1: 11 findings in 245 lines (4.5 per 100 lines)"
+          "detail": "markdownlint 12, lychee 0, cspell 4: 16 findings in 250 lines (6.4 per 100 lines)"
         }
       ],
       "skillspector_risk": 0,
@@ -82,14 +82,14 @@
       "reason": "patch"
     },
     "go-conventions": {
-      "recorded_at": "2026-11-08T21:38:49.132Z",
+      "recorded_at": "2026-11-08T21:42:32.658Z",
       "plugin": "go-conventions",
-      "version": "1.0.1",
-      "tag": "go-conventions--v1.0.1",
-      "commit_sha": "ffc12866afb4c1fe9bd17158869e491a5b1d4226",
+      "version": "1.0.2",
+      "tag": "go-conventions--v1.0.2",
+      "commit_sha": "cc69f51ac2e6deb1cf3ad432c1da6563596cbc9b",
       "security": 100,
       "security_inputs": "0 HIGH, 0 MEDIUM; SkillSpector risk 0/100",
-      "quality": 83,
+      "quality": 81,
       "quality_method": "static-tools-v1",
       "quality_criteria": [
         {
@@ -109,9 +109,9 @@
         {
           "id": "docs",
           "weight": 20,
-          "score": 82,
+          "score": 72,
           "ran": true,
-          "detail": "markdownlint 4, lychee 0, cspell 4: 8 findings in 396 lines (2 per 100 lines)"
+          "detail": "markdownlint 6, lychee 0, cspell 7: 13 findings in 401 lines (3.2 per 100 lines)"
         }
       ],
       "evals": {
@@ -125,14 +125,14 @@
       "reason": "patch"
     },
     "typescript-conventions": {
-      "recorded_at": "2026-11-08T21:38:49.132Z",
+      "recorded_at": "2026-11-08T21:42:32.658Z",
       "plugin": "typescript-conventions",
-      "version": "1.0.2",
-      "tag": "typescript-conventions--v1.0.2",
-      "commit_sha": "ffc12866afb4c1fe9bd17158869e491a5b1d4226",
+      "version": "1.0.3",
+      "tag": "typescript-conventions--v1.0.3",
+      "commit_sha": "cc69f51ac2e6deb1cf3ad432c1da6563596cbc9b",
       "security": 81,
       "security_inputs": "0 HIGH, 0 MEDIUM; SkillSpector risk 19/100",
-      "quality": 83,
+      "quality": 81,
       "quality_method": "static-tools-v1",
       "quality_criteria": [
         {
@@ -152,9 +152,9 @@
         {
           "id": "docs",
           "weight": 20,
-          "score": 86,
+          "score": 77,
           "ran": true,
-          "detail": "markdownlint 4, lychee 0, cspell 2: 6 findings in 412 lines (1.5 per 100 lines)"
+          "detail": "markdownlint 6, lychee 0, cspell 5: 11 findings in 417 lines (2.6 per 100 lines)"
         }
       ],
       "evals": {
