@@ -1205,8 +1205,11 @@ minor versions, not patch").
 - **Site:** score panel per card, ▲/▼ vs the previous tracked version, "Updated <date> · v<version>",
   per-version history table, "How scores are calculated" section; cream/beige palette with blue
   accents (warm charcoal in dark mode).
-- **Today's values:** adr-helper 100 / 100 / 100% (+23); go-conventions 100 / 100 / 100% (+14);
-  typescript-conventions **82** (SkillSpector risk 18) / 100 / 92% (+12).
+- **Values at end of day (security / quality / evals):** adr-helper 100 / 100 / 100% (+22.7,
+  skill-creator method on 1.1.0 — the `claude plugin eval` re-run stalled twice); go-conventions
+  100 / 100 / 86.4% (+13.7, plugin eval, offline); typescript-conventions **82** (SkillSpector risk
+  18) / 100 / 76% (+8, plugin eval, offline deps); conventional-commits 100 / 100 / no eval yet.
+  Quality is 100 for all four — see the ranked review: its criteria overlap the gate's hard checks.
 - **Deferred:** no aggregate score (deliberate — separate scores with visible inputs); evals
   aren't re-measured automatically on each release (no model calls in CI, Q32).
 

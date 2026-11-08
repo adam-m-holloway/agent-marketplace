@@ -30,7 +30,7 @@ export function stage(root, name, to, { reason, consumers = null, today = todayI
   log(`plugins/${name}: ${from} → ${to} (since ${today}); catalogues synced`);
   for (const x of items) log(`${x.ok ? 'PASS' : 'FAIL'} ${x.gate}: ${x.message}`);
   log(ready
-    ? 'READY — commit status.json + catalogues and open the PR (a code owner approves the move)'
+    ? 'READY — commit status.json + catalogues and open the PR for review'
     : 'NOT READY — the stage-gate PR check will fail until every FAIL above passes');
   return { from, to, items, ready };
 }

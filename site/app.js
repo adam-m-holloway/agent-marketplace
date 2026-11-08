@@ -113,7 +113,7 @@
       var team = h('div', { class: 'install-col' }, h('h3', { text: "My team's repo" }));
       team.appendChild(h('p', null, 'Add to ', h('code', { text: '.claude/settings.json' }), ' in the repo:'));
       team.appendChild(codeBlock(settingsSnippet(p.name, channel, true), 'team settings snippet'));
-      team.appendChild(h('p', { class: 'hint', text: 'Commit it; teammates are prompted after trusting the folder; this is what insights counts.' }));
+      team.appendChild(h('p', { class: 'hint', text: 'Commit it; teammates are prompted after trusting the folder. Insights counts repos listed in insights/consumers.json — open a PR to add yours.' }));
       team.appendChild(h('p', { class: 'hint' }, 'Note: ', h('code', { text: '--marketplace' }), ' writes user settings only, so it is not a substitute for this.'));
 
       body.appendChild(just);
