@@ -5,11 +5,12 @@ our teams: publish a plugin once, version it, let each team choose a release cha
 who uses what.
 
 - **Catalogue site:** <https://adam-m-holloway.github.io/agent-marketplace/> — fuzzy search over
-  a grid of compact plugin cards (versions per channel, stage, scores, who consumes it, install).
-  Each card links to a detail page (`#/plugin/<name>`) with the score breakdown and history,
-  score and adoption trend charts, the rendered README and full CHANGELOG, the release timeline,
-  skills, the used-by table and related plugins. `#plugin=<name>` still filters the grid to one
-  plugin. README/CHANGELOG are rendered at build time by `scripts/build-site.mjs` (a small
+  a minimal grid of plugin cards (name, short description, latest version, stage, one score
+  line). Each whole card opens a detail page (`#/plugin/<name>`) that puts the key facts, an
+  Install button (latest/stable commands for you or your team's repo) and a score summary first,
+  then collapsible sections, each with a one-line preview: score breakdown and history, used-by
+  table, release timeline and full CHANGELOG, trend charts, rendered README, skills, related
+  plugins and how scores are calculated. `#plugin=<name>` still filters the grid to one plugin. README/CHANGELOG are rendered at build time by `scripts/build-site.mjs` (a small
   Markdown subset; raw HTML is escaped); adoption comes from the `data` branch's daily
   `consumers/` snapshots.
 - **Usage report:** [`CATALOGUE.md` on the `data` branch](https://github.com/adam-m-holloway/agent-marketplace/blob/data/CATALOGUE.md)

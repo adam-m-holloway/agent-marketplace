@@ -86,15 +86,16 @@
     return JSON.stringify(s, null, 2);
   }
 
-  function installPanel(p, ctx, open) {
+  /** Install panel: channel toggle + "Just me" and "My team's repo" columns. */
+  function installPanel(p, id) {
     var channel = channelFor[p.name] || 'latest';
     var body = h('div', { class: 'install-body' });
-    var group = 'ch-' + (ctx || 'card') + '-' + p.name;
+    var group = 'ch-' + p.name;
 
     function render() {
       body.textContent = '';
       var mkt = marketplaceName(channel);
-      var just = h('div', { class: 'install-col' }, h('h4', { text: 'Just me' }));
+      var just = h('div', { class: 'install-col' }, h('h3', { text: 'Just me' }));
       if (channel === 'latest') {
         just.appendChild(h('p', { text: 'From a terminal (Claude Code 2.1.292+):' }));
         just.appendChild(codeBlock('claude plugin install ' + p.name + ' --marketplace ' + data.repo, 'terminal install command', true));
@@ -109,7 +110,7 @@
       }
       just.appendChild(h('p', { class: 'hint', text: 'Writes user settings only: not committed, and not counted by insights.' }));
 
-      var team = h('div', { class: 'install-col' }, h('h4', { text: "My team's repo" }));
+      var team = h('div', { class: 'install-col' }, h('h3', { text: "My team's repo" }));
       team.appendChild(h('p', null, 'Add to ', h('code', { text: '.claude/settings.json' }), ' in the repo:'));
       team.appendChild(codeBlock(settingsSnippet(p.name, channel, true), 'team settings snippet'));
       team.appendChild(h('p', { class: 'hint', text: 'Commit it; teammates are prompted after trusting the folder; this is what insights counts.' }));
@@ -120,23 +121,21 @@
     }
 
     var toggle = h('fieldset', { class: 'toggle' }, h('legend', { text: 'Channel' }),
-      ['latest', 'stable'].map(function (id) {
-        var inputId = group + '-' + id;
+      h('div', { class: 'segs' }, ['latest', 'stable'].map(function (cid) {
+        var inputId = group + '-' + cid;
         var input = h('input', {
-          type: 'radio', name: group, id: inputId, value: id, checked: id === channel,
-          onchange: function () { channel = id; channelFor[p.name] = id; render(); },
+          type: 'radio', name: group, id: inputId, value: cid, checked: cid === channel,
+          onchange: function () { channel = cid; channelFor[p.name] = cid; render(); },
         });
-        var v = p.versions[id];
-        return h('label', { for: inputId, class: 'seg' }, input, h('span', { text: id + (v ? ' v' + v : id === 'stable' ? ' (not yet)' : '') }));
-      }));
+        var v = p.versions[cid];
+        return h('label', { for: inputId, class: 'seg' }, input, h('span', { text: cid + (v ? ' v' + v : cid === 'stable' ? ' (not yet)' : '') }));
+      })));
 
     render();
-    return h('details', { class: 'panel install', open: !!open },
-      h('summary', null, h('span', { class: 'summary-title', text: 'Install' }), h('span', { class: 'summary-hint', text: 'commands for you or your team' })),
-      h('div', { class: 'panel-body' }, toggle, body));
+    return h('section', { id: id, class: 'install', 'aria-label': 'Install ' + p.name }, toggle, body);
   }
 
-  // ---------- cards ----------
+  // ---------- shared bits ----------
   function badge(text, cls) { return h('span', { class: 'badge ' + (cls || ''), text: text }); }
 
   /** -1 / 0 / 1 for dotted numeric versions (x.y.z). Missing counts as lowest. */
@@ -146,14 +145,16 @@
     for (var i = 0; i < 3; i++) { var d = (pa[i] || 0) - (pb[i] || 0); if (d) return d < 0 ? -1 : 1; }
     return 0;
   }
-  function stableLags(p) { return cmpVersion(p.versions.latest, p.versions.stable) > 0; }
+  function stableLags(p) { return !!p.versions.stable && cmpVersion(p.versions.latest, p.versions.stable) > 0; }
   function teamsOf(p) { return uniq(p.consumers.map(function (c) { return c.team || c.consumer; }).filter(Boolean)); }
   function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+  function stageBadge(p) { return badge(p.stage, 'stage stage-' + p.stage); }
+  function langText(p) { return p.languages.join(', ') || 'any'; }
 
   function consumersBlock(p) {
-    var wrap = h('section', { class: 'detail-sec consumers', 'aria-labelledby': 'd-used' }, h('h3', { id: 'd-used', text: 'Used by' }));
+    var wrap = h('div', { class: 'consumers' });
     if (!p.consumers.length) {
-      wrap.appendChild(h('p', { class: 'muted', text: 'No team repos have committed this plugin yet.' }));
+      wrap.appendChild(h('p', { class: 'empty-note', text: 'No team repos have committed this plugin yet.' }));
     } else {
       var rows = p.consumers.map(function (c) {
         var behind = typeof c.versions_behind === 'number'
@@ -180,48 +181,41 @@
   function detailHref(name) { return '#/plugin/' + encodeURIComponent(name); }
   function detailLink(name) { return h('a', { href: detailHref(name), text: name }); }
 
-  /** A titled section of the detail page (h3 + body). */
-  function section(id, title, children, cls) {
-    return h('section', { class: 'detail-sec' + (cls ? ' ' + cls : ''), 'aria-labelledby': 'd-' + id },
-      h('h3', { id: 'd-' + id, text: title }), children);
-  }
-
   /** Build-time rendered Markdown (escaped server-side; see renderMarkdown in build-site.mjs). */
   function prose(html, empty) {
-    if (!html) return h('p', { class: 'muted', text: empty });
+    if (!html) return h('p', { class: 'empty-note', text: empty });
     var div = h('div', { class: 'prose' });
     div.innerHTML = html;
     return div;
   }
 
-  function versionPills(p) {
-    var lag = stableLags(p);
-    return h('div', { class: 'versions' },
-      badge('latest v' + (p.versions.latest || '?'), 'b-latest'),
-      p.versions.stable
-        ? badge('stable v' + p.versions.stable, lag ? 'pill-warn' : 'b-stable')
-        : badge('not on stable', 'b-none'));
+  /** First sentence of the rendered README (parsed inertly via <template>), for a summary preview. */
+  function readmePreview(p) {
+    if (!p.readme_html) return 'no README';
+    var t = document.createElement('template');
+    t.innerHTML = p.readme_html;
+    var para = t.content.querySelector('p');
+    var txt = para ? para.textContent.replace(/\s+/g, ' ').trim() : '';
+    if (!txt) return 'rendered from the plugin';
+    var m = txt.match(/^.*?[.!?](?=\s|$)/);
+    txt = m ? m[0] : txt;
+    return txt.length > 120 ? txt.slice(0, 117).replace(/\s+\S*$/, '') + '…' : txt;
   }
 
-  function factsLine(p, linkFor) {
-    var lag = stableLags(p);
-    return h('p', { class: 'facts' },
-      badge(p.stage, 'stage stage-' + p.stage),
-      p.replaced_by ? h('span', { class: 'fact' }, 'use ', linkFor(p.replaced_by)) : null,
-      h('span', { class: 'fact' }, h('span', { class: 'offscreen', text: 'Category: ' }), p.category),
-      h('span', { class: 'fact' }, h('span', { class: 'offscreen', text: 'Languages: ' }), p.languages.join(', ') || '—'),
-      lag ? h('span', { class: 'fact' }, badge('stable behind latest', 'pill-warn')) : null);
-  }
-
-  function updatedLine(p) {
-    return p.last_updated && p.last_updated.date
-      ? h('p', { class: 'updated' }, h('span', { class: 'offscreen', text: 'Last release: ' }), 'Updated ' + p.last_updated.date + ' · v' + p.last_updated.version)
-      : null;
+  /** An expandable detail section: summary = title + a one-line preview. */
+  function sec(id, title, preview, children, open) {
+    var d = h('details', { class: 'sec', id: id, open: !!open },
+      h('summary', null,
+        h('span', { class: 'sec-title', text: title }),
+        preview ? h('span', { class: 'sec-preview' }, h('span', { class: 'offscreen', text: ' — ' }), preview) : null),
+      h('div', { class: 'sec-body' }, children));
+    d.addEventListener('toggle', function () { if (d.open) drawCharts(); });
+    return d;
   }
 
   function timeline(p) {
     var rel = p.releases || [];
-    if (!rel.length) return h('p', { class: 'muted', text: 'No releases recorded yet.' });
+    if (!rel.length) return h('p', { class: 'empty-note', text: 'No releases recorded yet.' });
     return h('ol', { class: 'timeline' }, rel.map(function (r) {
       return h('li', null,
         h('span', { class: 'tl-version', text: 'v' + r.version }),
@@ -231,48 +225,91 @@
     }));
   }
 
+  function keyFacts(p) {
+    var lag = stableLags(p);
+    var item = function (label, value) { return h('div', { class: 'fact' }, h('dt', { text: label }), h('dd', null, value)); };
+    var lu = p.last_updated && p.last_updated.date ? p.last_updated.date + ' · v' + p.last_updated.version : 'Not released yet';
+    return h('dl', { class: 'facts' },
+      item('Latest', h('span', { class: 'ver' }, 'v' + (p.versions.latest || '?'))),
+      item('Stable', p.versions.stable
+        ? h('span', { class: 'ver' }, 'v' + p.versions.stable, lag ? ' ' : null, lag ? badge('behind latest', 'pill-warn') : null)
+        : h('span', { class: 'muted', text: 'not on stable yet' })),
+      item('Category', p.category + ' · ' + langText(p)),
+      item('Updated', lu),
+      item('Owner', p.owner || '—'));
+  }
+
   function detailView(p) {
-    var facts = h('dl', { class: 'meta' },
-      h('dt', { text: 'Owner' }), h('dd', { text: p.owner || '—' }),
-      h('dt', { text: 'Compatibility' }), h('dd', { text: p.compatibility || 'Not stated' }),
-      h('dt', { text: 'Listed since' }), h('dd', { text: p.since || '—' }),
-      h('dt', { text: 'Source' }), h('dd', null, h('a', { href: p.readme_url, text: 'README on GitHub' })));
-    var skills = p.skills.length ? h('ul', { class: 'skills' }, p.skills.map(function (s) {
-      return h('li', null, h('code', { text: s.name }), s.description ? h('span', { class: 'skill-desc', text: s.description }) : null);
-    })) : h('p', { class: 'muted', text: 'No skills.' });
+    var lag = stableLags(p);
+    var s = p.scores || {};
+    var e = s.evals;
+    var installId = 'install-panel';
+    // Install opens in place under the key facts; closed by default so facts and scores stay on screen.
+    var panel = installPanel(p, installId);
+    panel.hidden = true;
+    var btn = h('button', {
+      type: 'button', class: 'btn btn-primary', 'aria-expanded': 'false', 'aria-controls': installId,
+      onclick: function () {
+        panel.hidden = !panel.hidden;
+        btn.setAttribute('aria-expanded', String(!panel.hidden));
+      },
+    }, 'Install', h('span', { class: 'chev', 'aria-hidden': 'true' }));
+
+    var skills = p.skills.length ? h('ul', { class: 'skills' }, p.skills.map(function (x) {
+      return h('li', null, h('code', { text: x.name }), x.description ? h('span', { class: 'skill-desc', text: x.description }) : null);
+    })) : h('p', { class: 'empty-note', text: 'No skills.' });
     var related = p.related.length
       ? h('ul', { class: 'inline' }, p.related.map(function (r) { return h('li', null, detailLink(r)); }))
-      : h('p', { class: 'muted', text: 'No closely related plugins yet.' });
+      : h('p', { class: 'empty-note', text: 'No closely related plugins yet.' });
+    var about = h('dl', { class: 'meta' },
+      h('dt', { text: 'Compatibility' }), h('dd', { text: p.compatibility || 'Not stated' }),
+      h('dt', { text: 'Listed since' }), h('dd', { text: p.since || '—' }),
+      h('dt', { text: 'Tags' }), h('dd', { text: (p.tags || []).join(', ') || '—' }),
+      h('dt', { text: 'Source' }), h('dd', null, h('a', { href: p.readme_url, text: 'README on GitHub' })));
 
-    var main = h('div', { class: 'detail-main' },
-      section('scores', 'Scores', [scoreRow(p), scoreDetail(p)]),
-      section('trends', 'Trends', [scoreChart(p), adoptionChart(p)], 'trends'),
-      section('readme', 'README', prose(p.readme_html, 'No README.')),
-      section('changelog', 'Changelog', prose(p.changelog_html, 'No CHANGELOG.')));
-    // Install is its own grid item so it comes first on phones and tops the side column on wide screens.
-    var install = h('section', { class: 'detail-sec detail-install', 'aria-label': 'Install' }, installPanel(p, 'detail', window.matchMedia('(min-width: 960px)').matches)); // collapsed on phones
-    var aside = h('div', { class: 'detail-aside' },
-      section('about', 'About', facts),
-      section('skills', 'Skills', skills),
-      section('versions', 'Versions', timeline(p)),
-      consumersBlock(p),
-      section('related', 'Related', related));
+    var rel = p.releases || [];
+    var hist = p.score_history || [];
+    var adopt = p.adoption_history || [];
+    var sec_ = s.security || {}, q = s.quality || {};
+    var scorePreview = 'security ' + (sec_.score == null ? '—' : sec_.score) + ' · quality ' + (q.score == null ? '—' : q.score) +
+      ' · evals ' + (e ? fmtNum(e.pass_rate) + '% (' + (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' vs baseline)' : 'not measured');
+    var usedPreview = p.consumers.length
+      ? plural(teamsOf(p).length, 'team') + ' (' + p.consumers.map(function (c) { return (c.team || c.consumer) + ' ' + (c.channel || ''); }).join(', ') + ')'
+      : 'no team repos yet';
+    var relPreview = rel.length ? plural(rel.length, 'release') + ', latest ' + rel[0].version + (rel[0].date ? ' on ' + rel[0].date : '') : 'no releases yet';
+    var trendPreview = 'score history over ' + plural(hist.length, 'tracked version') + ' · adoption over ' + plural(adopt.length, 'day');
 
     return h('div', { class: 'detail-page' },
-      h('p', { class: 'back' }, h('a', { href: '#', text: '← All plugins' })),
+      h('p', { class: 'back' }, h('a', { href: '#' }, h('span', { 'aria-hidden': 'true', text: '← ' }), 'All plugins')),
       h('header', { class: 'detail-head' },
-        h('div', { class: 'card-head' }, h('h2', { id: 'detail-title', tabindex: '-1', text: p.name }), versionPills(p)),
-        factsLine(p, detailLink),
-        updatedLine(p),
-        h('p', { class: 'detail-desc', text: p.description })),
-      h('div', { class: 'detail-grid' }, install, main, aside));
+        h('div', { class: 'title-row' },
+          h('div', { class: 'title-block' },
+            h('h2', { id: 'detail-title', tabindex: '-1', text: p.name }),
+            h('div', { class: 'title-badges' }, stageBadge(p), lag ? badge('stable behind latest', 'pill-warn') : null)),
+          btn),
+        h('p', { class: 'detail-desc', text: p.description }),
+        p.replaced_by ? h('p', { class: 'replaced' }, 'Deprecated: use ', detailLink(p.replaced_by), ' instead.') : null,
+        keyFacts(p),
+        panel),
+      scoreRow(p),
+      h('div', { class: 'sections' },
+        sec('sec-scores', 'Scores', scorePreview, scoreDetail(p)),
+        sec('sec-used', 'Used by', usedPreview, consumersBlock(p)),
+        sec('sec-releases', 'Release history', relPreview, [timeline(p), h('h3', { class: 'sub', text: 'Changelog' }), prose(p.changelog_html, 'No CHANGELOG.')]),
+        sec('sec-trends', 'Trends', trendPreview, h('div', { class: 'trends' }, scoreChart(p), adoptionChart(p))),
+        sec('sec-readme', 'README', readmePreview(p), prose(p.readme_html, 'No README.')),
+        sec('sec-skills', 'Skills', p.skills.map(function (x) { return x.name; }).join(', ') || 'none', skills),
+        sec('sec-related', 'Related', p.related.join(', ') || 'none yet', related),
+        sec('sec-about', 'About', 'compatibility, listing date, tags and source', about),
+        sec('how-scores-detail', 'How scores are calculated', 'bands, criteria and when scores are recorded', explainBody())));
   }
 
   function notFound(name) {
     return h('div', { class: 'detail-page' },
-      h('p', { class: 'back' }, h('a', { href: '#', text: '← All plugins' })),
-      h('h2', { id: 'detail-title', tabindex: '-1', text: 'Plugin not found' }),
-      h('p', null, 'There is no listed plugin called "' + name + '". ', h('a', { href: REQUEST_BASE + encodeURIComponent(name), text: 'Request it' }), '.'));
+      h('p', { class: 'back' }, h('a', { href: '#' }, h('span', { 'aria-hidden': 'true', text: '← ' }), 'All plugins')),
+      h('div', { class: 'empty' },
+        h('h2', { id: 'detail-title', tabindex: '-1', text: 'Plugin not found' }),
+        h('p', null, 'There is no listed plugin called "' + name + '". ', h('a', { href: REQUEST_BASE + encodeURIComponent(name), text: 'Request it' }), '.')));
   }
 
   // ---------- charts (inline SVG, zero deps) ----------
@@ -435,6 +472,7 @@
     });
   }
 
+
   // ---------- scores ----------
   function bandOf(n) { return n == null ? 'none' : n >= 90 ? 'good' : n >= 70 ? 'fair' : 'poor'; }
   var BAND_TEXT = { good: 'good', fair: 'fair', poor: 'poor', none: 'no data' };
@@ -446,7 +484,7 @@
     if (isNaN(d.getTime())) return String(iso);
     return d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
   }
-  /** "▲ 5" / "▼ 10" / "no change" vs the previous tracked version; null when unknown. */
+  /** "▲ 5" / "▼ 10" / "±0" vs the previous tracked version; null when unknown. */
   function changeEl(delta, vs, basis) {
     if (typeof delta !== 'number') return null;
     var dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'same';
@@ -455,19 +493,19 @@
     return h('span', { class: 'chg chg-' + dir, title: spoken },
       h('span', { 'aria-hidden': 'true', text: text }), h('span', { class: 'offscreen', text: ', ' + spoken }));
   }
-  function meter(label, value, valueText, delta, vs, note, basis) {
+  function meter(label, value, valueText, delta, vs, basis) {
     var b = bandOf(value);
     var bar = h('span', { class: 'bar', 'aria-hidden': 'true' }, h('span', { class: 'fill fill-' + b }));
     if (typeof value === 'number') bar.firstChild.style.width = Math.max(0, Math.min(100, value)) + '%';
     return h('li', { class: 'score band-' + b },
       h('span', { class: 'score-label', text: label }),
       h('span', { class: 'score-value' }, h('strong', { text: valueText }),
-        typeof value === 'number' ? h('span', { class: 'score-band', text: ' ' + BAND_TEXT[b] }) : null,
+        typeof value === 'number' ? h('span', { class: 'score-band', text: BAND_TEXT[b] }) : null,
         changeEl(delta, vs, basis)),
-      bar,
-      note ? h('span', { class: 'score-note', text: note }) : null);
+      bar);
   }
 
+  /** Compact score summary row for the top of the detail page. */
   function scoreRow(p) {
     var s = p.scores || {};
     var c = p.score_change || {};
@@ -475,58 +513,49 @@
     var sec = s.security || {};
     var q = s.quality || {};
     var e = s.evals;
-    var items = [
-      meter('Security', sec.score, sec.score == null ? '—' : sec.score + '/100', c.security, vs,
-        data.skillspector_ran && sec.skillspector_risk != null ? 'SkillSpector risk ' + sec.skillspector_risk + '/100' : 'SkillSpector: not run',
-        c.security_basis === 'rules only' ? 'rules only' : null),
-      meter('Quality', q.score, q.score == null ? '—' : q.score + '/' + (q.max || 100), c.quality, vs,
-        q.criteria ? q.criteria.filter(function (x) { return x.passed; }).length + ' of ' + q.criteria.length + ' criteria' : null),
-      meter('Evals', e ? e.pass_rate : null, e ? fmtNum(e.pass_rate) + '%' : 'not measured', c.evals, vs,
-        e ? (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' pts vs baseline · v' + e.measured_version +
-          (e.earlier_version ? ' (earlier version)' : '') : null),
-    ];
     var n = s.adoption ? s.adoption.active_consumers : 0;
-    items.push(h('li', { class: 'score score-count' },
-      h('span', { class: 'score-label', text: 'Adoption' }),
-      h('span', { class: 'score-value' }, h('strong', { text: String(n) })),
-      h('span', { class: 'score-note', text: n === 1 ? 'active team repo' : 'active team repos' })));
+    var items = [
+      meter('Security', sec.score, sec.score == null ? '—' : String(sec.score), c.security, vs, c.security_basis === 'rules only' ? 'rules only' : null),
+      meter('Quality', q.score, q.score == null ? '—' : String(q.score), c.quality, vs),
+      meter('Evals', e ? e.pass_rate : null, e ? fmtNum(e.pass_rate) + '%' : 'not measured', c.evals, vs),
+      h('li', { class: 'score score-count' },
+        h('span', { class: 'score-label', text: 'Adoption' }),
+        h('span', { class: 'score-value' }, h('strong', { text: String(n) }), h('span', { class: 'score-band', text: n === 1 ? 'team repo' : 'team repos' }))),
+    ];
     var sc = p.scored || {};
     var when = 'Scored ' + fmtDateTime(sc.at) + ' · v' + (sc.version || '?') +
       (sc.tracked === false ? ' (' + (sc.reason || 'patch') + ', not tracked)' : '') +
       (sc.source === 'build' ? ' (at site build)' : '');
     return h('section', { class: 'scores', 'aria-label': 'Scores for ' + p.name },
       h('ul', { class: 'score-list' }, items),
-      h('p', { class: 'scored' }, when,
-        vs ? ' · change vs v' + vs : '', ' · ', howScoresLink()));
+      h('p', { class: 'scored' }, when, vs ? ' · change vs v' + vs : '', ' · ', howScoresLink()));
   }
 
-  /** Scrolls to the explainer without changing the hash, so the detail view stays open. */
+  /** Opens and scrolls to the explainer section without changing the hash. */
   function howScoresLink() {
     return h('a', {
       href: '#how-scores', text: 'How scores are calculated',
-      onclick: function (e) {
-        var target = $('how-scores');
+      onclick: function (ev) {
+        var target = $('how-scores-detail');
         if (!target) return;
-        e.preventDefault();
+        ev.preventDefault();
+        target.open = true;
         target.scrollIntoView();
-        target.focus({ preventScroll: true });
+        target.querySelector('summary').focus({ preventScroll: true });
       },
     });
   }
 
-  /** Compact score: label, value and a text band (never colour alone). */
-  function miniScore(label, value, text) {
-    var b = bandOf(value);
-    return h('div', { class: 'mini band-' + b },
-      h('dt', { text: label }),
-      h('dd', null, h('strong', { text: text }), value == null ? null : h('span', { class: 'score-band', text: ' ' + BAND_TEXT[b] })));
-  }
-
   function scoreDetail(p) {
     var s = p.scores || {};
-    var wrap = h('section', { class: 'detail', 'aria-label': 'Score breakdown' }, h('h4', { text: 'Score breakdown' }));
-    if (s.security) wrap.appendChild(h('p', { class: 'hint' }, h('strong', { text: 'Security: ' }), s.security.inputs + '.'));
+    var wrap = h('div', { class: 'score-detail' });
+    var sec = s.security || {};
+    wrap.appendChild(h('h3', { class: 'sub', text: 'Security' }));
+    wrap.appendChild(h('p', { class: 'hint' }, sec.inputs ? sec.inputs + '. ' : '',
+      data.skillspector_ran && sec.skillspector_risk != null ? 'SkillSpector risk ' + sec.skillspector_risk + '/100.' : 'SkillSpector: not run.'));
     if (s.quality) {
+      var passed = s.quality.criteria.filter(function (x) { return x.passed; }).length;
+      wrap.appendChild(h('h3', { class: 'sub', text: 'Quality · ' + passed + ' of ' + s.quality.criteria.length + ' criteria' }));
       wrap.appendChild(h('ul', { class: 'criteria' }, s.quality.criteria.map(function (c) {
         return h('li', { class: c.passed ? 'pass' : 'fail' },
           h('span', { class: 'mark', 'aria-hidden': 'true', text: c.passed ? '✓' : '✗' }),
@@ -535,14 +564,15 @@
       })));
     }
     var e = s.evals;
-    wrap.appendChild(h('p', { class: 'hint' }, h('strong', { text: 'Evals: ' }), e
-      ? e.passed + '/' + e.total + ' with the skill vs ' + e.baseline_passed + '/' + e.total + ' baseline; measured on v' + e.measured_version +
+    wrap.appendChild(h('h3', { class: 'sub', text: 'Evals' }));
+    wrap.appendChild(h('p', { class: 'hint' }, e
+      ? e.passed + '/' + e.total + ' with the skill vs ' + e.baseline_passed + '/' + e.total + ' baseline (' + (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' pts); measured on v' + e.measured_version +
         ' on ' + fmtDateTime(e.measured_at) + (e.earlier_version ? ' (measured on an earlier version)' : '') + (e.method ? '; ' + e.method : '') + '.'
-      : 'no measured benchmark for this version yet.'));
+      : 'No measured benchmark for this version yet.'));
     var hist = p.score_history || [];
-    wrap.appendChild(h('h4', { class: 'sub', text: 'Score history (major/minor versions)' }));
+    wrap.appendChild(h('h3', { class: 'sub', text: 'Score history (major/minor versions)' }));
     if (!hist.length) {
-      wrap.appendChild(h('p', { class: 'muted', text: 'No recorded versions yet.' }));
+      wrap.appendChild(h('p', { class: 'empty-note', text: 'No recorded versions yet.' }));
     } else {
       var cell = function (v, pc) { return v == null ? '—' : fmtNum(v) + (pc ? '%' : ''); };
       wrap.appendChild(h('div', { class: 'table-scroll' }, h('table', null,
@@ -556,48 +586,56 @@
     return wrap;
   }
 
-  function renderExplain() {
+  /** "How scores are calculated" body, used on home (collapsed) and on every detail page. */
+  function explainBody() {
     var x = data.scores_explained;
-    var box = $('how-scores-body');
-    if (!x || !box) return;
+    if (!x) return h('p', { class: 'empty-note', text: 'No explanation in this build.' });
     var list = function (title, lines) {
       return h('div', { class: 'explain-col' }, h('h3', { text: title }), h('ul', null, (lines || []).map(function (l) { return h('li', { text: l }); })));
     };
-    box.textContent = '';
-    box.appendChild(h('p', { class: 'muted', text: x.bands }));
-    box.appendChild(h('div', { class: 'explain-grid' },
-      list('Security (0–100)', x.security),
-      list('Quality (0–100)', (x.quality_criteria || []).map(function (c) { return c.label + ' — ' + c.weight + ' points'; })),
-      list('Evals', x.evals),
-      list('Adoption', x.adoption),
-      list('Which versions are tracked', x.tracking),
-      list('When scores are recorded', x.recording)));
+    return h('div', { class: 'explain' },
+      h('p', { class: 'muted', text: 'Current scores are computed when this catalogue is built, from each plugin\'s own files and this repo\'s rules; the history comes from records written at each release. ' + (x.bands || '') }),
+      h('div', { class: 'explain-grid' },
+        list('Security (0–100)', x.security),
+        list('Quality (0–100)', (x.quality_criteria || []).map(function (c) { return c.label + ' — ' + c.weight + ' points'; })),
+        list('Evals', x.evals),
+        list('Adoption', x.adoption),
+        list('Which versions are tracked', x.tracking),
+        list('When scores are recorded', x.recording)));
   }
 
-  /** Home-grid card: key facts only; everything else is on the detail page. */
+  // ---------- home cards ----------
+  /** One labelled number in the card's score line; the band is spoken, colour is only an accent. */
+  function cardScore(label, value, text) {
+    var b = bandOf(value);
+    return h('span', { class: 'cs band-' + b },
+      h('span', { class: 'cs-label', text: label }), ' ',
+      h('strong', { text: text }),
+      value == null ? null : h('span', { class: 'offscreen', text: ' (' + BAND_TEXT[b] + ')' }));
+  }
+
+  /** Home-grid card: name, short description, version + stage, one score line. The h3 link covers the card. */
   function card(p) {
     var s = p.scores || {};
     var sec = s.security || {};
     var q = s.quality || {};
     var e = s.evals;
-    var n = s.adoption ? s.adoption.active_consumers : 0;
-    var teams = teamsOf(p);
+    var sep = function () { return h('span', { class: 'cs-sep', 'aria-hidden': 'true', text: '·' }); };
     return h('article', { class: 'card', id: 'plugin-' + p.name, 'aria-labelledby': 'h-' + p.name },
-      h('header', { class: 'card-head' },
+      h('div', { class: 'card-top' },
         h('h3', { id: 'h-' + p.name }, h('a', { href: detailHref(p.name), class: 'card-link', text: p.name })),
-        versionPills(p)),
-      factsLine(p, focusLink),
-      h('p', { class: 'desc clamp', title: p.description, text: p.description }),
-      h('dl', { class: 'mini-scores', 'aria-label': 'Scores' },
-        miniScore('Security', sec.score, sec.score == null ? '—' : String(sec.score)),
-        miniScore('Quality', q.score, q.score == null ? '—' : String(q.score)),
-        miniScore('Evals', e ? e.pass_rate : null, e ? fmtNum(e.pass_rate) + '%' : '—'),
-        h('div', { class: 'mini band-none' }, h('dt', { text: 'Adoption' }), h('dd', null, h('strong', { text: String(n) }), h('span', { class: 'score-band', text: n === 1 ? ' repo' : ' repos' })))),
-      updatedLine(p),
-      h('p', { class: 'used-by' }, 'Used by: ', teams.length ? teams.join(', ') : 'no team repos yet', ' · ', h('span', { class: 'muted', text: data.consumers_note })),
+        stageBadge(p)),
+      h('p', { class: 'desc clamp', text: p.description }),
       h('div', { class: 'card-foot' },
-        installPanel(p, 'card'),
-        h('a', { class: 'view-details', href: detailHref(p.name), 'aria-label': 'View details for ' + p.name }, 'View details ', h('span', { 'aria-hidden': 'true', text: '→' }))));
+        h('div', { class: 'card-meta' },
+          badge('v' + (p.versions.latest || '?'), 'b-quiet'),
+          stableLags(p) ? badge('stable v' + p.versions.stable + ' behind', 'pill-warn') : null,
+          h('span', { text: p.category + ' · ' + langText(p) })),
+        h('p', { class: 'card-scores' },
+          h('span', { class: 'offscreen', text: 'Scores: ' }),
+          cardScore('Security', sec.score, sec.score == null ? '—' : String(sec.score)), sep(),
+          cardScore('Quality', q.score, q.score == null ? '—' : String(q.score)), sep(),
+          cardScore('Evals', e ? e.pass_rate : null, e ? fmtNum(e.pass_rate) + '%' : '—'))));
   }
 
   function renderStats() {
@@ -615,10 +653,6 @@
     items.forEach(function (it) {
       dl.appendChild(h('div', { class: 'stat' + it[2] }, h('dt', { text: it[1] }), h('dd', { text: it[0] })));
     });
-  }
-
-  function focusLink(name) {
-    return h('a', { href: '#plugin=' + encodeURIComponent(name), text: name });
   }
 
   // ---------- search + filter ----------
@@ -657,9 +691,11 @@
     results.textContent = '';
     r.list.forEach(function (p) { results.appendChild(card(p)); });
     var n = r.list.length;
-    $('count').textContent = 'Showing ' + n + ' of ' + data.plugins.length + ' plugin' + (data.plugins.length === 1 ? '' : 's') + '.';
+    $('count').textContent = n === data.plugins.length
+      ? plural(n, 'plugin')
+      : 'Showing ' + n + ' of ' + plural(data.plugins.length, 'plugin');
     $('clear').hidden = !(state.q || state.category || state.stage || state.language || state.only);
-    if (!n && !r.weak) results.appendChild(h('p', { class: 'empty', text: 'No plugins match these filters.' }));
+    if (!n && !r.weak) results.appendChild(h('div', { class: 'empty' }, h('p', { class: 'empty-title', text: 'No plugins match these filters' }), h('p', { class: 'muted', text: 'Try a different category, stage or language, or clear the filters.' })));
 
     var fb = $('focus-bar');
     fb.textContent = '';
@@ -674,8 +710,8 @@
     req.hidden = !r.weak;
     if (r.weak) {
       req.appendChild(h('p', null,
-        n ? 'Not quite what you need? ' : 'Nothing matches "' + state.q.trim() + '". ',
-        h('a', { href: REQUEST_BASE + encodeURIComponent(state.q.trim()), class: 'button', text: 'Request this plugin' })));
+        h('span', null, n ? 'Not quite what you need?' : 'Nothing matches "' + state.q.trim() + '".'),
+        h('a', { href: REQUEST_BASE + encodeURIComponent(state.q.trim()), class: 'btn btn-primary btn-sm', text: 'Request this plugin' })));
     }
   }
 
@@ -689,12 +725,13 @@
     var list = $('sandbox-list');
     if (!data.sandbox.length) return;
     $('sandbox').hidden = false;
+    $('sandbox-count').textContent = plural(data.sandbox.length, 'plugin') + ' in the repo but not in either catalogue';
     data.sandbox.forEach(function (s) {
-      list.appendChild(h('article', { class: 'card sandbox-card', 'aria-labelledby': 'sb-' + s.name },
+      list.appendChild(h('article', { class: 'sandbox-card', 'aria-labelledby': 'sb-' + s.name },
         h('h3', { id: 'sb-' + s.name, text: s.name }),
-        h('h4', { text: 'Why it is not listed' }),
+        h('p', { class: 'muted', text: 'Why it is not listed:' }),
         h('ul', null, s.reasons.map(function (x) { return h('li', { text: x }); })),
-        h('p', { text: 'From the repo root:' }),
+        h('p', { class: 'muted', text: 'Try it from the repo root:' }),
         codeBlock('claude --plugin-dir ./' + s.path, 'plugin-dir command', true)));
     });
   }
@@ -702,7 +739,7 @@
   function safeDecode(s) { try { return decodeURIComponent(s); } catch (e) { return s; } }
 
   // Routes: #/plugin/<name> = detail page; #plugin=<name> = catalogue filtered to one plugin;
-  // anything else = the catalogue (an in-page id such as #how-scores is scrolled to).
+  // anything else = the catalogue (an in-page id such as #how-scores is opened and scrolled to).
   var catalogueScroll = 0;
   var inDetail = false;
   function onHash() {
@@ -717,7 +754,6 @@
       view.textContent = '';
       view.appendChild(p ? detailView(p) : notFound(name));
       $('catalogue').hidden = true;
-      $('sandbox').hidden = true;
       view.hidden = false;
       document.title = (p ? p.name : 'Not found') + ' · Agent Marketplace';
       drawCharts();
@@ -730,12 +766,12 @@
     $('detail').hidden = true;
     $('detail').textContent = '';
     $('catalogue').hidden = false;
-    $('sandbox').hidden = !data.sandbox.length;
     document.title = 'Agent Marketplace';
     var m = location.hash.match(/^#plugin=(.+)$/);
     state.only = m ? safeDecode(m[1]) : '';
     render();
     var target = !m && location.hash.length > 1 ? document.getElementById(safeDecode(location.hash.slice(1))) : null;
+    if (target && target.tagName === 'DETAILS') target.open = true;
     if (state.only) $('results').focus();
     else if (target) target.scrollIntoView();
     else if (wasDetail) window.scrollTo(0, catalogueScroll);
@@ -770,11 +806,11 @@
       $('q').focus();
     });
     window.addEventListener('hashchange', onHash);
-    $('generated').textContent = 'Catalogue built ' + d.generated_at + '.';
+    $('generated').textContent = 'Catalogue built ' + fmtDateTime(d.generated_at) + '.';
     var stale = window.staleMessage ? window.staleMessage(d.consumers_generated_at, Date.now()) : null;
     if (stale) { $('stale').textContent = stale; $('stale').hidden = false; }
     renderStats();
-    renderExplain();
+    $('how-scores-body').appendChild(explainBody());
     renderSandbox();
     onHash();
   }
