@@ -6,6 +6,7 @@ who uses what.
 
 - **Catalogue site:** <https://adam-m-holloway.github.io/agent-marketplace/> — search the plugins,
   see their scores and who uses them, and copy install commands from each plugin's page.
+  TL;DR pages: [Create & use plugins](https://adam-m-holloway.github.io/agent-marketplace/#/guide) · [About](https://adam-m-holloway.github.io/agent-marketplace/#/about).
 - **Usage report:** [`CATALOGUE.md` on the `data` branch](https://github.com/adam-m-holloway/agent-marketplace/blob/data/CATALOGUE.md)
   (written nightly by `insights.yml`).
 - **OpenSSF Scorecard:** [scorecard.dev viewer](https://scorecard.dev/viewer/?uri=github.com/adam-m-holloway/agent-marketplace)
