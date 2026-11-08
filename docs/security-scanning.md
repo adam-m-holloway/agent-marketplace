@@ -13,7 +13,9 @@ It is only safe if PR content is treated as **data**, which the gate enforces:
 
 - the base is checked out to `./base` and the PR head to `./pr`, both with
   `persist-credentials: false`;
-- only `node base/scripts/…` and pinned, checksum-verified tool binaries run; they read `./pr`;
+- only `node base/scripts/…` and pinned tools run (gitleaks and actionlint release binaries are
+  sha256-verified, their `go install` fallback is verified by the Go checksum database, and
+  SkillSpector, zizmor and Claude Code are pinned by version); they read `./pr`;
   **no PR code is executed** (no `npm install`, no PR scripts);
 - `permissions: contents: read`, **no secrets**, **no caches**;
 - the PR title, labels and head ref reach scripts only through `env:` (no `${{ }}` in `run:`).
@@ -59,7 +61,7 @@ Headings follow the OWASP Agentic Skills Top 10 where they fit.
 | **Malformed / misleading plugins** | `structure`, `name-consistency`, `skill-frontmatter`, `schemas-taxonomy`, `claude plugin validate --strict` | yes | — |
 | **Silent changes** | `version-bump` + `changelog-entry`: changed plugin files need a version increase and a CHANGELOG entry | yes | — |
 | **Unreviewed bulk changes** | `one-plugin-per-pr` (needs `multi-plugin` label) | yes | — |
-| **Stable channel tampering** | `promotion`: head `promote/*`, title `chore(stable): promote main@<sha>`, tree **equals** that `main` commit; older commit needs `rollback` label | yes | — |
+| **Stable channel tampering** | `promotion`: head `promote/*`, title `chore(stable): promote main@<sha>`, tree **equals** that `main` commit; any plugin version going backwards needs the `rollback` label | yes | — |
 | **Workflow weaknesses** | actionlint, zizmor (offline), every `uses:` pinned to a 40-hex SHA | yes | — |
 
 ### Demo results (Slice 8, 2026-11-08)

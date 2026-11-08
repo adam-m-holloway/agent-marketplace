@@ -53,7 +53,8 @@ Stable:
 ```
 
 Commit it as `.claude/settings.json`. Teammates are prompted to install after they trust the
-folder.
+folder. If a plugin doesn't load, run the one-off `--scope project` install in
+[`docs/consuming-plugins.md`](docs/consuming-plugins.md#2-commit-it-to-your-repo-recommended).
 
 ### Just me
 
