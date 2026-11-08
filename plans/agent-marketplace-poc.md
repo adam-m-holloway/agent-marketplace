@@ -152,8 +152,8 @@ redesigning.
   `SKILL.md`.
 - **Staged approval (Q28).** It is designed, and deferred to straight after the POC; see
   its Post-POC section. It includes the retire check.
-- **Discovery & reporting extras (Q29).** Also deferred; see that Post-POC section. They
-  include the "stale data" banner.
+- **Discovery & reporting extras (Q29).** Built after the POC except the PR triage
+  commenter and issue similarity; see that Post-POC section's status table.
 - **Other governance from the guide:** quality and impact scores, a sandbox channel branch,
   and a GitHub App.
 - **Insights beyond phase 1:**
@@ -492,6 +492,9 @@ the site. `stable` is added to the `github-pages` environment's allowed branches
   `id-token: write`.
 - **Runs:** under a concurrency group, from the default branch.
 - **Writes:** the last successful run's date to the summary.
+- **Post-POC (Q29):** `issues: write` too, for the behind issues and the pinned daily report
+  issue (`scripts/insights/issues.mjs`). `pr-gate`'s `plugins` job also logs
+  `base/scripts/triage.mjs` output (data only, never fails).
 
 ### Branch & PR sequence
 
@@ -1146,6 +1149,17 @@ These reuse `similar.mjs`, the gate and the insights data.
 6. **A "stale data" banner** on the site after 36 hours without an insights run.
 
 **Effort:** about 1–2 slices.
+
+**Status (2026-11-08, `feat/discovery-reporting`):**
+
+| # | Item | Status |
+|---|---|---|
+| 1 | Submission triage | **Partly built.** `scripts/triage.mjs` (pure `triage()` + `capabilities()`, tests in `tests/triage.test.mjs`): top-3 similar plugins and a base→PR capability diff (hooks, `.mcp.json` servers, `allowed-tools`, `bin/`, URLs, pipe-to-shell via `rules/patterns.json`). The `plugins` job runs `node base/scripts/triage.mjs --root pr --base base` and prints it to the log and step summary; it is data-only and never fails the job. **Deferred:** the `workflow_run` commenter and the `new-plugin` label (it needs a write token, so it gets its own security review) |
+| 2 | Issue similarity | **Deferred.** `similarTo()` in `similar.mjs` is the reusable piece; it needs an `issues`-triggered workflow |
+| 3 | Scaffold-time warning | **Built.** `npm run new-plugin <name> --description "…"` lists the top 3 plugins scoring ≥ `RELATED_MIN_SCORE` and asks `continue anyway? [y/N]` (No by default, also on EOF); `--yes` skips it |
+| 4 | Daily report issue | **Built.** `scripts/insights/issues.mjs` `planDailyReport()`: one "Plugin usage report" issue (pinned on creation, best-effort), body edited each run, comment only when that day has events and no comment yet (`<!-- insights:daily-report:<date> -->`) |
+| 5 | Behind issues | **Built.** `planBehindIssues()`: one "Behind: <plugin> — <team> on <channel> is N version(s) behind" issue per (plugin, consumer), retitled when N changes, closed with a comment when it catches up or drops the plugin, left alone when the scan is `unknown`. Labels `insights` + `behind`; `insights.yml` has `issues: write` |
+| 6 | Stale-data banner | **Built.** `build-site` writes `consumers_generated_at`; `site/stale.js` shows "Usage data is N hours old — the nightly insights run may have stopped." past 36 hours |
 
 ## Open items to confirm before execution
 
