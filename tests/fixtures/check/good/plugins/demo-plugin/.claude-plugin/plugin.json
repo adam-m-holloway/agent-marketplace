@@ -1,0 +1,13 @@
+{
+  "name": "demo-plugin",
+  "version": "1.0.0",
+  "description": "Writes and maintains architecture decision records.",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "adr",
+    "documentation"
+  ],
+  "license": "MIT"
+}
