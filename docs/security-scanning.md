@@ -56,7 +56,7 @@ Headings follow the OWASP Agentic Skills Top 10 where they fit.
 | **Credential theft / exfiltration** | `patterns`: `credential-file-read`, `secret-over-network`, `env-dump-to-network` | yes (HIGH) | indirect exfiltration (e.g. via git, DNS, an MCP tool) |
 | **Supply chain (MCP launchers)** | `patterns`: `unpinned-mcp-launcher` (`npx -y pkg` without `@version`) | yes (HIGH) | a pinned but malicious version |
 | **Suspicious network / files** | `patterns`: `raw-ip-url`, `dotenv-read` | no (MEDIUM, reported) | — |
-| **Committed secrets** | gitleaks `dir` on the PR's `plugins/` files | yes | secrets in formats gitleaks doesn't know |
+| **Committed secrets** | gitleaks `dir` on all of the PR's files | yes | secrets in formats gitleaks doesn't know |
 | **Risky skill behaviour** (broad scoring) | SkillSpector `--no-llm`, risk >50 fails; reviewed baselines honoured | yes | anything its static rules don't model |
 | **Malformed / misleading plugins** | `structure`, `name-consistency`, `skill-frontmatter`, `schemas-taxonomy`, `claude plugin validate --strict` | yes | — |
 | **Silent changes** | `version-bump` + `changelog-entry`: changed plugin files need a version increase and a CHANGELOG entry | yes | — |
