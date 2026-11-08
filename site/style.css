@@ -345,10 +345,11 @@ tbody tr:last-child > * { border-bottom: 0; }
 .install-col p { margin: 6px 0; font-size: 0.925rem; }
 
 /* Terminal-style code blocks: dark in both schemes, copy button pinned top-right. */
-.code { position: relative; background: var(--term-bg); color: var(--term-text); border: 1px solid var(--term-border); border-radius: 8px; margin: 6px 0; min-width: 0; }
-.code pre { margin: 0; padding: 10px 12px; padding-right: 76px; overflow-x: auto; white-space: pre; line-height: 1.55; }
+.code { position: relative; display: flex; flex-direction: column; background: var(--term-bg); color: var(--term-text); border: 1px solid var(--term-border); border-radius: 8px; margin: 6px 0; min-width: 0; }
+.code pre { margin: 0; padding: 4px 12px 10px; overflow-x: auto; white-space: pre; line-height: 1.55; }
 .shell pre code::before { content: "$ "; color: var(--term-prompt); user-select: none; }
-.code-actions { position: absolute; top: 6px; right: 6px; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+/* The copy button gets its own row above the code, so long commands never scroll under it. */
+.code-actions { order: -1; display: flex; justify-content: flex-end; align-items: center; gap: 6px; padding: 6px 6px 0; }
 .copy {
   font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer;
   color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px;
