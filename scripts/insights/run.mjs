@@ -47,11 +47,22 @@ export async function run({ dataDir, today, fetch, token, consumers, summaryFile
   const prevSnap = findPrevious(dataDir, today);
   const previous = prevSnap ? readNdjson(prevSnap.file) : [];
 
-  const { rows, health } = await scan({ consumers, marketplaceRepo: REPO, channels: CHANNELS, fetch, token, today, previous });
+  // Row status starts from the latest known state (an earlier run today, else the previous
+  // day), so a plugin added and removed on the same day still shows as `removed`.
+  // Events stay diffed against the previous day's snapshot, so same-day re-runs are identical.
+  const latestFile = join(dataDir, 'latest/consumers.json');
+  let state = previous;
+  if (existsSync(latestFile)) {
+    try {
+      const latest = JSON.parse(readFileSync(latestFile, 'utf8'));
+      if (latest.scan_date === today) state = latest.rows;
+    } catch { /* fall back to the previous day */ }
+  }
+
+  const { rows, health } = await scan({ consumers, marketplaceRepo: REPO, channels: CHANNELS, fetch, token, today, previous: state });
   const events = diffEvents(previous, rows);
 
   // Keep generated_at when a same-day re-run finds the same rows, so files stay byte-identical.
-  const latestFile = join(dataDir, 'latest/consumers.json');
   let generatedAt = now;
   if (existsSync(latestFile)) {
     try {
