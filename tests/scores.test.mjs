@@ -254,3 +254,15 @@ test('CLI --backfill records major/minor tags only with the tag datetime; --reco
 test('main rejects unknown arguments', () => {
   assert.equal(main(['--nope'], () => {}), 2);
 });
+
+test('planRecords: a same-version record with SkillSpector data upgrades a latest entry that had none', () => {
+  const backfilled = { plugin: 'typescript-conventions', version: '1.0.1', tag: 'typescript-conventions--v1.0.1', recorded_at: '2026-11-08T12:42:00Z', security: 100, skillspector_risk: null };
+  const scored = { ...backfilled, recorded_at: '2026-11-08T13:14:00Z', security: 82, skillspector_risk: 18 };
+  const p = planRecords([], { updated_at: 'OLD', plugins: { 'typescript-conventions': { ...backfilled, tracked: false, reason: 'patch' } } }, [{ record: scored }], 'NOW');
+  assert.equal(p.latest.plugins['typescript-conventions'].security, 82);
+  assert.equal(p.latest.plugins['typescript-conventions'].skillspector_risk, 18);
+  assert.equal(p.changed, true);
+  // ...but a same-version record WITHOUT SkillSpector never downgrades one that has it.
+  const p2 = planRecords([], p.latest, [{ record: backfilled }], 'LATER');
+  assert.equal(p2.latest.plugins['typescript-conventions'].skillspector_risk, 18);
+});

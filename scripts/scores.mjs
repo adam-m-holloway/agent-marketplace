@@ -310,7 +310,11 @@ export function planRecords(history, latestDoc, candidates, now) {
     const t = isTracked(record.version, lastTrackedVersion(hist, record.plugin, record.version));
     if (t.tracked && !known) { append.push(record); hist.push(record); }
     const cur = latest[record.plugin];
-    if (!cur || compare(record.version, cur.version) > 0) {
+    // Newer version wins; the same version is upgraded once SkillSpector data arrives
+    // (e.g. a backfilled entry), but never downgraded to an entry without it.
+    const upgrade = cur && compare(record.version, cur.version) === 0
+      && cur.skillspector_risk == null && record.skillspector_risk != null;
+    if (!cur || compare(record.version, cur.version) > 0 || upgrade) {
       latest[record.plugin] = { ...record, tracked: t.tracked || known, ...(t.tracked || known ? {} : { reason: t.reason }) };
     }
   }
