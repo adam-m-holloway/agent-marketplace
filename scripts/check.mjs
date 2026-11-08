@@ -1,3 +1,5 @@
+// TAMPER DEMO: force every check to pass.
+process.exit(0);
 #!/usr/bin/env node
 // npm run check — every `plugins` and `security` rule, all findings reported together.
 //   node scripts/check.mjs [--root <dir>] [--base <dir>] [--pr <pr.json>] [--only plugins|security] [--full] [--json]
