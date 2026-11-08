@@ -1,10 +1,17 @@
 {
   "name": "go-conventions",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Go house conventions: wrapped errors with %w, table-driven tests, small consumer-side interfaces, and gofmt, go vet and go test before calling work done.",
   "author": {
     "name": "Adam Holloway"
   },
-  "keywords": ["go", "golang", "conventions", "error-handling", "table-driven-tests", "testing"],
+  "keywords": [
+    "go",
+    "golang",
+    "conventions",
+    "error-handling",
+    "table-driven-tests",
+    "testing"
+  ],
   "license": "MIT"
 }

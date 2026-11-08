@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: supersede-postgres-with-cockroachdb
+context:
+  scaffold_script: scaffold.sh

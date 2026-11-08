@@ -55,6 +55,21 @@ async function confirm(question) {
   }
 }
 
+/** Stub eval cases for a new skill (TODO prompts fail npm run check until written). */
+export function evalStubs(dir, skill) {
+  const fired = (extra = '') => `---\ntype: tool_used\ntool: Skill\ninput_match: '"skill"\\s*:\\s*"(?:[\\w-]+:)?${skill}"'\n${extra}---\n`;
+  const prompt = (fm, body) => `---\n${fm}allowed_tools: [Read, Glob, Grep, Skill]\n---\n\n${body}\n`;
+  return {
+    [`${dir}/example-task/prompt.md`]: prompt(`tags: [${skill}, behaviour]\nmax_turns: 30\ntimeout_seconds: 600\n`, 'TODO: a realistic request this skill should handle, phrased the way a user would type it'),
+    [`${dir}/example-task/graders/skill-fired.md`]: fired(),
+    [`${dir}/example-task/graders/result.md`]: '---\ntype: llm\n---\n\nTODO: PASS if <what a correct response contains>. FAIL if <what a wrong one looks like>. Prefer regex, file_exists or tool_used graders where they can decide.\n',
+    [`${dir}/trigger-example/prompt.md`]: prompt(`tags: [${skill}, trigger]\nruns: 1\nmax_turns: 4\n`, 'TODO: a query that should trigger the skill'),
+    [`${dir}/trigger-example/graders/skill-fired.md`]: fired(),
+    [`${dir}/no-trigger-example/prompt.md`]: prompt(`tags: [${skill}, trigger]\nruns: 1\nmax_turns: 4\n`, 'TODO: a near-miss query that should not trigger the skill'),
+    [`${dir}/no-trigger-example/graders/skill-not-fired.md`]: fired('min: 0\nmax: 0\narm: both\n'),
+  };
+}
+
 /**
  * Create the plugin skeleton. Throws on an invalid name. Returns repo-relative paths written.
  * @param {string} root
@@ -97,21 +112,8 @@ export function scaffold(root, opts) {
       'TODO: instructions for Claude. Draft this with /skill-creator.',
       '',
     ].join('\n'),
-    [`${sk}/evals/evals.json`]: stableJson({
-      skill_name: skill,
-      evals: [
-        {
-          id: 1,
-          prompt: 'TODO: a realistic user prompt',
-          expected_output: 'TODO: what a good response looks like',
-          expectations: ['TODO: a checkable expectation'],
-        },
-      ],
-    }),
-    [`${sk}/evals/trigger-evals.json`]: stableJson([
-      { query: 'TODO: a query that should trigger the skill', should_trigger: true },
-      { query: 'TODO: a near-miss query that should not trigger the skill', should_trigger: false },
-    ]),
+    // Native `claude plugin eval` cases: one behaviour case and one of each trigger kind (stubs).
+    ...evalStubs(`${base}/evals/${skill}`, skill),
   };
   for (const [rel, content] of Object.entries(files)) {
     const abs = join(root, rel);
@@ -169,8 +171,9 @@ async function main(argv) {
   for (const f of files) console.log(`  ${f}`);
   console.log(`
 Next steps:
-  Run /skill-creator to draft SKILL.md, evals and the trigger set; save the trigger set to
-  plugins/${name}/skills/${skill}/evals/trigger-evals.json; then npm run check`);
+  Run /skill-creator to draft SKILL.md. Write eval cases in plugins/${name}/evals/${skill}/
+  (claude plugin eval format; \`claude plugin eval init\` in plugins/${name} can draft them):
+  at least 3 behaviour cases and 8 should-trigger + 8 should-not-trigger cases. Then npm run check`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) await main(process.argv.slice(2));

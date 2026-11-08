@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { scaffold, validateName } from '../scripts/new-plugin.mjs';
+import { loadSuite, suiteCounts } from '../scripts/lib/plugin-evals.mjs';
 
 const SCRIPT = fileURLToPath(new URL('../scripts/new-plugin.mjs', import.meta.url));
 const tmp = () => mkdtempSync(join(tmpdir(), 'scaffold-'));
@@ -17,7 +18,8 @@ test('scaffold demo-x creates every file with sandbox stage and TODO stubs', () 
   const p = join(root, 'plugins/demo-x');
   for (const f of [
     '.claude-plugin/plugin.json', 'catalogue.json', 'status.json', 'README.md', 'CHANGELOG.md',
-    'skills/demo-x/SKILL.md', 'skills/demo-x/evals/evals.json', 'skills/demo-x/evals/trigger-evals.json',
+    'skills/demo-x/SKILL.md', 'evals/demo-x/example-task/prompt.md', 'evals/demo-x/example-task/graders/skill-fired.md',
+    'evals/demo-x/trigger-example/prompt.md', 'evals/demo-x/no-trigger-example/graders/skill-not-fired.md',
   ]) {
     assert.ok(existsSync(join(p, f)), `missing ${f}`);
     assert.ok(files.includes(`plugins/demo-x/${f}`), `not reported ${f}`);
@@ -38,14 +40,10 @@ test('scaffold demo-x creates every file with sandbox stage and TODO stubs', () 
   assert.match(md, /^---\nname: demo-x\ndescription: "?TODO/);
   assert.doesNotMatch(md, /compatibility:/);
 
-  const evals = json(join(p, 'skills/demo-x/evals/evals.json'));
-  assert.equal(evals.skill_name, 'demo-x');
-  assert.ok(evals.evals.length >= 1);
-  assert.match(JSON.stringify(evals), /TODO/);
-  const trig = json(join(p, 'skills/demo-x/evals/trigger-evals.json'));
-  assert.ok(Array.isArray(trig));
-  assert.ok(trig.length < 16, 'stub trigger set must be under the schema minimum');
-  assert.ok(trig.every((t) => /TODO/.test(t.query) && typeof t.should_trigger === 'boolean'));
+  const suite = loadSuite(root, 'plugins/demo-x');
+  assert.deepEqual(suiteCounts(suite, ['demo-x']), { 'demo-x': { behaviour: 1, trigger: 1, noTrigger: 1 } });
+  assert.ok(suite.cases.every((c) => /TODO/.test(c.prompt.body) && !c.prompt.error), 'stub prompts are TODOs');
+  assert.ok(suite.cases.every((c) => c.graders.length && c.graders.every((g) => !g.error)));
 });
 
 test('scaffold honours --skill, --languages and --category', () => {
@@ -57,7 +55,7 @@ test('scaffold honours --skill, --languages and --category', () => {
   const md = readFileSync(join(p, 'skills/go-style/SKILL.md'), 'utf8');
   assert.match(md, /name: go-style/);
   assert.match(md, /compatibility: "?TODO/);
-  assert.equal(json(join(p, 'skills/go-style/evals/evals.json')).skill_name, 'go-style');
+  assert.match(readFileSync(join(p, 'evals/go-style/trigger-example/graders/skill-fired.md'), 'utf8'), /go-style"'/);
 });
 
 test('name rules: non-kebab, reserved prefix, too long, existing folder', () => {
@@ -83,7 +81,7 @@ test('CLI exits 1 with a clear message on a bad name and prints next steps on su
   const ok = spawnSync('node', [SCRIPT, 'demo-x', '--root', root, '--languages', 'go,ts'], { encoding: 'utf8' });
   assert.equal(ok.status, 0, ok.stderr);
   assert.match(ok.stdout, /Run \/skill-creator/);
-  assert.match(ok.stdout, /skills\/demo-x\/evals\/trigger-evals\.json/);
+  assert.match(ok.stdout, /plugins\/demo-x\/evals\/demo-x\//);
   assert.match(ok.stdout, /npm run check/);
   assert.deepEqual(json(join(root, 'plugins/demo-x/catalogue.json')).languages, ['go', 'ts']);
 });

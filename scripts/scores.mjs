@@ -61,8 +61,8 @@ export const SCORES_EXPLAINED = {
   ],
   quality_tools: QUALITY_TOOLS,
   evals: [
-    'Measured, not computed: the pass rate from the latest benchmark in evals/results.json (each case with the skill and without it, 1 run per configuration).',
-    'Delta is the pass rate with the skill minus the baseline pass rate, in percentage points.',
+    'Measured, not computed: the overall score of the latest `claude plugin eval` run in evals/results.json (mean case score with the plugin, as a percentage; each case also runs without the plugin). Older runs (skill-creator style) count passed expectations instead.',
+    'Delta is the score with the plugin minus the score without it (mean delta across cases), in percentage points.',
     'A run is only used for versions at or after the version it measured; if the plugin has changed since, the card says "measured on an earlier version".',
   ],
   adoption: [
@@ -262,15 +262,20 @@ export function evalsFor(results, plugin, version) {
     .sort((a, b) => compare(a.version, b.version) || String(a.measured_at).localeCompare(String(b.measured_at)));
   const r = runs.at(-1);
   if (!r) return null;
-  const pass = pct(r.with_skill);
-  const base = pct(r.baseline);
+  const r1 = (v) => Math.round(v * 10) / 10;
+  // Native runs (scripts/eval.mjs): overall_score and mean_delta are 0..1 over cases.
+  const native = typeof r.overall_score === 'number';
+  const pass = native ? r1(r.overall_score * 100) : pct(r.with_skill);
+  const delta = native ? (typeof r.mean_delta === 'number' ? r1(r.mean_delta * 100) : null) : null;
+  const base = native ? (delta == null ? null : r1(pass - delta)) : pct(r.baseline);
   return {
     pass_rate: pass,
     baseline_pass_rate: base,
-    delta: pass != null && base != null ? Math.round((pass - base) * 10) / 10 : null,
-    passed: r.with_skill?.passed ?? null,
-    total: r.with_skill?.total ?? null,
-    baseline_passed: r.baseline?.passed ?? null,
+    delta: native ? delta : pass != null && base != null ? r1(pass - base) : null,
+    passed: native ? r.cases_passed ?? null : r.with_skill?.passed ?? null,
+    total: native ? r.cases_total ?? null : r.with_skill?.total ?? null,
+    baseline_passed: native ? null : r.baseline?.passed ?? null,
+    unit: native ? 'cases' : 'expectations',
     measured_at: r.measured_at ?? null,
     measured_version: r.version,
     earlier_version: !!version && compare(r.version, version) < 0,

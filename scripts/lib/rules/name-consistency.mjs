@@ -1,6 +1,5 @@
-// Folder == manifest name, kebab-case, no reserved prefix; evals.json skill_name == SKILL.md name.
+// Folder == manifest name, kebab-case, no reserved prefix.
 import { NAME_RE, RESERVED_PREFIXES } from '../plugins.mjs';
-import { parseFrontmatter } from '../frontmatter.mjs';
 import { f } from './_util.mjs';
 
 const ID = 'name-consistency';
@@ -20,13 +19,6 @@ export default {
       for (const n of new Set([p.dir, name].filter(Boolean))) {
         const pre = RESERVED_PREFIXES.find((r) => String(n).startsWith(r));
         if (pre) out.push(f(ID, 'ERROR', file, `name "${n}" uses reserved prefix "${pre}"`));
-      }
-      for (const s of p.skills) {
-        if (!s.skillMd || !s.evals) continue;
-        const fmName = parseFrontmatter(s.skillMd).data.name;
-        if (s.evals.skill_name !== fmName) {
-          out.push(f(ID, 'ERROR', `${s.path}/evals/evals.json`, `skill_name "${s.evals.skill_name}" must equal SKILL.md name "${fmName}"`));
-        }
       }
     }
     return out;

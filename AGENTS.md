@@ -29,8 +29,9 @@ Never edit the catalogue files by hand — run `npm run sync`.
   checks (CI also validates the stable catalogue copy, the PR title, SHA pins and promotion tree
   equality — see `docs/security-scanning.md`).
 - Skills: `SKILL.md` ≤500 lines; frontmatter `name` = folder; description says
-  **what / when / triggers / not-for**; ≥3 evals in `evals/evals.json` and a trigger set in
-  `evals/trigger-evals.json`.
+  **what / when / triggers / not-for**; native `claude plugin eval` cases in
+  `plugins/<p>/evals/<skill>/` (≥3 behaviour cases, ≥8 should-trigger and ≥8 should-not-trigger;
+  see `CONTRIBUTING.md`). `npm run eval <plugin>` runs them locally, never in CI.
 - Never add hidden Unicode, HTML comments, encoded blobs or pipe-to-shell commands to plugin
   files — the `security` job blocks them. See `docs/security-scanning.md`.
 
