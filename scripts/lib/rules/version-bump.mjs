@@ -1,6 +1,6 @@
 // Changed plugin files need a semver increase vs the base; new plugins start at >=1.0.0.
 import { compare, isValid } from '../semver.mjs';
-import { f } from './_util.mjs';
+import { f, diffFiles } from './_util.mjs';
 
 const ID = 'version-bump';
 
@@ -12,12 +12,15 @@ export default {
   id: ID,
   group: 'plugins',
   needsBase: true,
-  run({ repo, base, pr, changedPlugins }) {
+  run({ root, repo, base, pr, changedPlugins }) {
     if (!base || isPromotion(pr)) return [];
     const out = [];
     for (const dir of changedPlugins) {
       const head = repo.plugins.find((p) => p.dir === dir);
       if (!head) continue; // deleted
+      // A stage change (status.json only) is metadata, not a release: no bump (see stage-gate).
+      if (base.repo.plugins.some((p) => p.dir === dir)
+        && diffFiles(base.root, root, head.path).every((x) => x === `${head.path}/status.json`)) continue;
       const file = `${head.path}/.claude-plugin/plugin.json`;
       const v = head.manifest?.version;
       if (!isValid(v)) {

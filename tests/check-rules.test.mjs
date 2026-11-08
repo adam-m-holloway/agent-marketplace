@@ -223,9 +223,104 @@ defect('patterns', 'a dangerous pattern in a plugin file fails with file + line'
   assert.equal(fs[0].line, 5);
 });
 
+// ---- stage-gate: base tree at one stage, head tree at another (GOOD is published, since 2026-11-08).
+const TODAY = '2026-11-08';
+const setStatus = (d, st) => editJson(d, `${P}/status.json`, () => st);
+/** [base, head]: both get `both(dir)` applied, then their own status. */
+function stagePair(from, to, both = () => {}) {
+  const base = tree((d) => { both(d); setStatus(d, from); });
+  const head = tree((d) => { both(d); setStatus(d, to); });
+  return [base, head];
+}
+async function gate(base, head, extra = {}) {
+  const r = byId['stage-gate'];
+  assert.ok(r, 'rule stage-gate exists');
+  const ctx = { ...buildContext({ root: head, base, pr: extra.pr ?? null }), today: TODAY, consumers: extra.consumers ?? null };
+  return (await r.run(ctx)).filter((x) => x.rule === 'stage-gate');
+}
+const msgs = (fs) => fs.map((x) => `${x.severity} ${x.message}`).join('\n');
+const row = (plugin, consumer, status = 'active') => ({ plugin, consumer, status });
+
+defect('stage-gate', 'a new plugin that does not start at sandbox fails', async () => {
+  const base = tree((d) => rmSync(join(d, P), { recursive: true }));
+  const fs = await gate(base, GOOD);
+  assert.equal(fs.length, 1);
+  assert.equal(fs[0].severity, 'ERROR');
+  assert.match(fs[0].message, /new plugin must start at `sandbox` \(got published\)/);
+  assert.deepEqual(await gate(base, tree((d) => setStatus(d, { stage: 'sandbox', since: TODAY }))), []);
+  assert.deepEqual(await gate(GOOD, GOOD), []); // no stage change → nothing to gate
+});
+
+test('stage-gate: jumping sandbox → published fails (one step at a time)', async () => {
+  const [base, head] = stagePair({ stage: 'sandbox', since: '2026-01-01' }, { stage: 'published', since: TODAY });
+  assert.match(msgs(await gate(base, head)), /sandbox → published is not allowed.*one step at a time/);
+  const [b2, h2] = stagePair({ stage: 'published', since: '2026-01-01' }, { stage: 'incubating', since: TODAY });
+  assert.match(msgs(await gate(b2, h2)), /published → incubating is not allowed/);
+});
+
+test('stage-gate: a stage-change PR may change only status.json + generated catalogues', async () => {
+  const [base, head] = stagePair({ stage: 'published', since: '2026-01-01' }, { stage: 'deprecated', since: TODAY, reason: 'superseded' });
+  assert.deepEqual(await gate(base, head), []);
+  edit(head, '.claude-plugin/marketplace.json', (s) => s.replace('"plugins"', '"plugins" ')); // generated: allowed
+  assert.deepEqual(await gate(base, head), []);
+  edit(head, `${S}/SKILL.md`, (s) => s + '\nmore\n');
+  writeFileSync(join(head, 'taxonomy.json'), readFileSync(join(head, 'taxonomy.json'), 'utf8') + '\n');
+  const m = msgs(await gate(base, head));
+  assert.match(m, /may change only .*status\.json/);
+  assert.match(m, /SKILL\.md/);
+  assert.match(m, /taxonomy\.json/);
+});
+
+test('stage-gate: sandbox → incubating needs evals + trigger set, an owner and no HIGH findings', async () => {
+  const from = { stage: 'sandbox', since: '2026-01-01' };
+  const to = { stage: 'incubating', since: TODAY };
+  assert.deepEqual(await gate(...stagePair(from, to)), []);
+  const m = msgs(await gate(...stagePair(from, to, (d) => {
+    rmSync(join(d, S, 'evals/trigger-evals.json'));
+    editJson(d, `${P}/catalogue.json`, (v) => { v.owner = ' '; });
+    cpSync(join(MAL, 'pipe-to-shell.md'), join(d, S, 'setup.md'));
+  })));
+  assert.match(m, /ERROR .*trigger-evals\.json/);
+  assert.match(m, /ERROR .*owner/);
+  assert.match(m, /ERROR .*HIGH finding.*setup\.md:5/);
+});
+
+test('stage-gate: incubating → published needs 14 days or 2 active consumers, and a CHANGELOG entry', async () => {
+  const to = { stage: 'published', since: TODAY };
+  const young = stagePair({ stage: 'incubating', since: '2026-11-01' }, to);
+  assert.match(msgs(await gate(...young)), /incubating for 7 days.*14.*active consumers: unknown/);
+  const two = [row('demo-plugin', 'org/a'), row('demo-plugin', 'org/b'), row('demo-plugin', 'org/c', 'stale'), row('other', 'org/d')];
+  assert.deepEqual(await gate(...young, { consumers: two }), []);
+  assert.match(msgs(await gate(...young, { consumers: two.slice(1) })), /1 active consumer/);
+  assert.deepEqual(await gate(...stagePair({ stage: 'incubating', since: '2026-10-25' }, to)), []);
+  const noLog = stagePair({ stage: 'incubating', since: '2026-01-01' }, to, (d) => editJson(d, `${P}/.claude-plugin/plugin.json`, (v) => { v.version = '1.1.0'; }));
+  assert.match(msgs(await gate(...noLog)), /CHANGELOG\.md has no entry for 1\.1\.0/);
+});
+
+test('stage-gate: → deprecated needs replacedBy or a reason', async () => {
+  const from = { stage: 'published', since: '2026-01-01' };
+  assert.match(msgs(await gate(...stagePair(from, { stage: 'deprecated', since: TODAY }))), /replacedBy.*or a `reason`/);
+  assert.deepEqual(await gate(...stagePair(from, { stage: 'deprecated', since: TODAY }, (d) => editJson(d, `${P}/catalogue.json`, (v) => { v.replacedBy = 'new-plugin'; }))), []);
+  assert.deepEqual(await gate(...stagePair({ stage: 'incubating', since: TODAY }, { stage: 'deprecated', since: TODAY, reason: 'abandoned' })), []);
+});
+
+test('stage-gate: → retired needs no active consumers unless labelled retire-anyway', async () => {
+  const pair = stagePair({ stage: 'deprecated', since: '2026-01-01', reason: 'x' }, { stage: 'retired', since: TODAY, reason: 'x' });
+  assert.match(msgs(await gate(...pair, { consumers: [row('demo-plugin', 'org/a')] })), /1 active consumer.*org\/a.*retire-anyway/);
+  assert.match(msgs(await gate(...pair)), /consumer data unavailable/);
+  assert.deepEqual(await gate(...pair, { consumers: [row('demo-plugin', 'org/a', 'stale')] }), []);
+  const pr = { title: 'chore(demo-plugin): retire', labels: ['retire-anyway'], baseRef: 'main', headRef: 'x' };
+  assert.deepEqual(await gate(...pair, { consumers: [row('demo-plugin', 'org/a')], pr }), []);
+});
+
+test('version-bump: a status.json-only change needs no version bump', async () => {
+  const head = tree((d) => setStatus(d, { stage: 'deprecated', since: TODAY, reason: 'r' }));
+  assert.deepEqual(await run('version-bump', head, { base: GOOD }), []);
+});
+
 test('every rule module has a seeded-defect test (deleting a rule fails here)', () => {
   const EXPECTED = ['changelog-entry', 'evals', 'hidden-content', 'name-consistency', 'one-plugin-per-pr', 'patterns', 'pr-title',
-    'promotion', 'schemas-taxonomy', 'skill-frontmatter', 'skill-length', 'stale-catalogues', 'structure', 'version-bump'];
+    'promotion', 'schemas-taxonomy', 'skill-frontmatter', 'skill-length', 'stage-gate', 'stale-catalogues', 'structure', 'version-bump'];
   assert.deepEqual(rules.map((r) => r.id).sort(), EXPECTED);
   for (const r of rules) {
     assert.ok(covered.has(r.id), `rule ${r.id} has no seeded-defect test`);

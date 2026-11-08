@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // npm run check — every `plugins` and `security` rule, all findings reported together.
-//   node scripts/check.mjs [--root <dir>] [--base <dir>] [--pr <pr.json>] [--only plugins|security] [--full] [--json]
+//   node scripts/check.mjs [--root <dir>] [--base <dir>] [--pr <pr.json>] [--consumers <consumers.json>] [--only plugins|security] [--full] [--json]
 // Local and CI are identical; CI passes --base (base-branch tree) and --pr (PR metadata).
 // Exit 1 on any ERROR or HIGH finding. MEDIUM is reported only.
 import { readdirSync, readFileSync } from 'node:fs';
@@ -32,15 +32,16 @@ export function changedPluginDirs(baseRoot, root) {
   });
 }
 
-export function buildContext({ root, base = null, pr = null }) {
+/** `consumers` = insights rows (latest/consumers.json) for the stage gate; null when unavailable. */
+export function buildContext({ root, base = null, pr = null, consumers = null, today = undefined }) {
   const repo = loadRepo(root);
   const baseCtx = base ? { root: base, repo: loadRepo(base) } : null;
-  return { root, repo, base: baseCtx, pr, changedPlugins: baseCtx ? changedPluginDirs(base, root) : [] };
+  return { root, repo, base: baseCtx, pr, consumers, ...(today ? { today } : {}), changedPlugins: baseCtx ? changedPluginDirs(base, root) : [] };
 }
 
 /** @returns {Promise<{findings: object[], notices: string[], ran: string[]}>} */
-export async function runChecks({ root, base = null, pr = null, only = null, rules = null }) {
-  const ctx = buildContext({ root, base, pr });
+export async function runChecks({ root, base = null, pr = null, consumers = null, today = undefined, only = null, rules = null }) {
+  const ctx = buildContext({ root, base, pr, consumers, today });
   const notices = [];
   const findings = [];
   const ran = [];
@@ -112,7 +113,7 @@ function runFull(root, repo, notices, only) {
 }
 
 function parseArgs(argv) {
-  const o = { root: process.cwd(), base: null, pr: null, only: null, full: false, json: false };
+  const o = { root: process.cwd(), base: null, pr: null, consumers: null, only: null, full: false, json: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => {
@@ -123,13 +124,14 @@ function parseArgs(argv) {
     if (a === '--root') o.root = resolve(val());
     else if (a === '--base') o.base = resolve(val());
     else if (a === '--pr') o.pr = JSON.parse(readFileSync(val(), 'utf8'));
+    else if (a === '--consumers') o.consumers = JSON.parse(readFileSync(val(), 'utf8'));
     else if (a === '--only') {
       o.only = val();
       if (!['plugins', 'security'].includes(o.only)) throw new Error('--only must be plugins or security');
     } else if (a === '--full') o.full = true;
     else if (a === '--json') o.json = true;
     else if (a === '-h' || a === '--help') {
-      console.log('usage: node scripts/check.mjs [--root <dir>] [--base <dir>] [--pr <pr.json>] [--only plugins|security] [--full] [--json]');
+      console.log('usage: node scripts/check.mjs [--root <dir>] [--base <dir>] [--pr <pr.json>] [--consumers <consumers.json>] [--only plugins|security] [--full] [--json]');
       process.exit(0);
     } else throw new Error(`unknown argument: ${a}`);
   }
