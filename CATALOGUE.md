@@ -2,7 +2,7 @@
 
 > Committed intent per repo (from .claude/settings.json), not what each laptop has installed.
 
-Generated 2026-11-08T11:27:20.206Z. "Since" = first committed to settings.
+Generated 2026-11-08T11:35:56.890Z. "Since" = first committed to settings.
 
 ## adr-helper
 

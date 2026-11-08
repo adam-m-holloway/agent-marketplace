@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-08T11:27:20.206Z",
+  "generated_at": "2026-11-08T11:35:56.890Z",
   "scan_date": "2026-11-08",
   "rows": [
     {
@@ -10,7 +10,7 @@
       "marketplace": "agent-marketplace",
       "plugin": "adr-helper",
       "ref": "main",
-      "sha": "406d12cb339535926f795bc9052fa9ec3638a47d",
+      "sha": "8c05f3cf89098e5432337e291e66d231b6856c10",
       "version": "1.1.0",
       "versions_behind": 0,
       "first_seen": "2026-11-08",
@@ -24,7 +24,7 @@
       "marketplace": "agent-marketplace",
       "plugin": "go-conventions",
       "ref": "main",
-      "sha": "406d12cb339535926f795bc9052fa9ec3638a47d",
+      "sha": "8c05f3cf89098e5432337e291e66d231b6856c10",
       "version": "1.0.0",
       "versions_behind": 0,
       "first_seen": "2026-11-08",
