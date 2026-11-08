@@ -444,3 +444,13 @@ tbody tr:last-child > * { border-bottom: 0; }
 .home-link:hover { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
 .eyebrow .home-link { color: var(--accent); }
 .install-block .install { margin-top: 0; padding-top: 0; border-top: 0; }
+
+/* Site title: "Agent Marketplace" is the H1 and the largest text on the page. */
+.site-header h1 { font-size: clamp(2rem, 5vw, 2.75rem); font-weight: 700; letter-spacing: -0.025em; margin: 0 0 8px; }
+.site-header h1 .home-link { color: var(--text); }
+
+/* Card tags and teams as pills, matching the version pill. */
+.card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.card-used { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 0.85rem; }
+.card-used-label { color: var(--muted); margin-right: 2px; }
+.b-team { color: var(--accent); background: var(--accent-bg, transparent); border-color: var(--accent); }
