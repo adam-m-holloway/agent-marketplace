@@ -147,7 +147,7 @@
   }
   function stableLags(p) { return !!p.versions.stable && cmpVersion(p.versions.latest, p.versions.stable) > 0; }
   function teamsOf(p) { return uniq(p.consumers.map(function (c) { return c.team || c.consumer; }).filter(Boolean)); }
-  function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+  function plural(n, word, many) { return n + ' ' + (n === 1 ? word : (many || word + 's')); }
   function stageBadge(p) { return badge(p.stage, 'stage stage-' + p.stage); }
   function langText(p) { return p.languages.join(', ') || 'any'; }
 
@@ -243,17 +243,10 @@
     var lag = stableLags(p);
     var s = p.scores || {};
     var e = s.evals;
-    var installId = 'install-panel';
-    // Install opens in place under the key facts; closed by default so facts and scores stay on screen.
-    var panel = installPanel(p, installId);
-    panel.hidden = true;
-    var btn = h('button', {
-      type: 'button', class: 'btn btn-primary', 'aria-expanded': 'false', 'aria-controls': installId,
-      onclick: function () {
-        panel.hidden = !panel.hidden;
-        btn.setAttribute('aria-expanded', String(!panel.hidden));
-      },
-    }, 'Install', h('span', { class: 'chev', 'aria-hidden': 'true' }));
+    // Install is part of the main block: shown under the key facts, above the scores.
+    var panel = h('div', { class: 'install-block' },
+      h('h3', { class: 'install-heading', text: 'Install' }),
+      installPanel(p, 'install-panel'));
 
     var skills = p.skills.length ? h('ul', { class: 'skills' }, p.skills.map(function (x) {
       return h('li', null, h('code', { text: x.name }), x.description ? h('span', { class: 'skill-desc', text: x.description }) : null);
@@ -285,8 +278,7 @@
         h('div', { class: 'title-row' },
           h('div', { class: 'title-block' },
             h('h2', { id: 'detail-title', tabindex: '-1', text: p.name }),
-            h('div', { class: 'title-badges' }, stageBadge(p), lag ? badge('stable behind latest', 'pill-warn') : null)),
-          btn),
+            h('div', { class: 'title-badges' }, stageBadge(p), lag ? badge('stable behind latest', 'pill-warn') : null))),
         h('p', { class: 'detail-desc', text: p.description }),
         p.replaced_by ? h('p', { class: 'replaced' }, 'Deprecated: use ', detailLink(p.replaced_by), ' instead.') : null,
         keyFacts(p),
@@ -295,13 +287,29 @@
       h('div', { class: 'sections' },
         sec('sec-scores', 'Scores', scorePreview, scoreDetail(p)),
         sec('sec-used', 'Used by', usedPreview, consumersBlock(p)),
-        sec('sec-releases', 'Release history', relPreview, [timeline(p), h('h3', { class: 'sub', text: 'Changelog' }), prose(p.changelog_html, 'No CHANGELOG.')]),
+        sec('sec-releases', 'Release history', relPreview, timeline(p)),
+        sec('sec-changelog', 'Changelog', changelogPreview(p), prose(p.changelog_html, 'No CHANGELOG.')),
         sec('sec-trends', 'Trends', trendPreview, h('div', { class: 'trends' }, scoreChart(p), adoptionChart(p))),
         sec('sec-readme', 'README', readmePreview(p), prose(p.readme_html, 'No README.')),
         sec('sec-skills', 'Skills', p.skills.map(function (x) { return x.name; }).join(', ') || 'none', skills),
         sec('sec-related', 'Related', p.related.join(', ') || 'none yet', related),
-        sec('sec-about', 'About', 'compatibility, listing date, tags and source', about),
-        sec('how-scores-detail', 'How scores are calculated', 'bands, criteria and when scores are recorded', explainBody())));
+        sec('sec-about', 'About', 'compatibility, listing date, tags and source', about)));
+  }
+
+  /** One-line preview for the Changelog section: the newest entry's version and date. */
+  function changelogPreview(p) {
+    var rel = p.releases || [];
+    if (!p.changelog_html) return 'no CHANGELOG';
+    return rel.length ? 'latest entry ' + rel[0].version + (rel[0].date ? ' · ' + rel[0].date : '') + ' · ' + plural(rel.length, 'entry', 'entries') : 'release notes';
+  }
+
+  function scoresPage() {
+    return h('div', { class: 'detail-page' },
+      h('p', { class: 'back' }, h('a', { href: '#' }, h('span', { 'aria-hidden': 'true', text: '← ' }), 'All plugins')),
+      h('header', { class: 'detail-head' },
+        h('h2', { id: 'detail-title', tabindex: '-1', text: 'How scores are calculated' }),
+        h('p', { class: 'detail-desc', text: 'Security, quality, evals and adoption: what each score means, how it is computed and when it is recorded.' })),
+      h('div', { class: 'explain-page' }, explainBody()));
   }
 
   function notFound(name) {
@@ -531,20 +539,11 @@
       h('p', { class: 'scored' }, when, vs ? ' · change vs v' + vs : '', ' · ', howScoresLink()));
   }
 
-  /** Opens and scrolls to the explainer section without changing the hash. */
+  /** Link to the "How scores are calculated" page. */
   function howScoresLink() {
-    return h('a', {
-      href: '#how-scores', text: 'How scores are calculated',
-      onclick: function (ev) {
-        var target = $('how-scores-detail');
-        if (!target) return;
-        ev.preventDefault();
-        target.open = true;
-        target.scrollIntoView();
-        target.querySelector('summary').focus({ preventScroll: true });
-      },
-    });
+    return h('a', { href: '#/scores', text: 'How scores are calculated' });
   }
+
 
   function scoreDetail(p) {
     var s = p.scores || {};
@@ -739,12 +738,25 @@
   function safeDecode(s) { try { return decodeURIComponent(s); } catch (e) { return s; } }
 
   // Routes: #/plugin/<name> = detail page; #plugin=<name> = catalogue filtered to one plugin;
-  // anything else = the catalogue (an in-page id such as #how-scores is opened and scrolled to).
+  // #/scores = how scores are calculated; anything else = the catalogue.
   var catalogueScroll = 0;
   var inDetail = false;
   function onHash() {
     var d = location.hash.match(/^#\/plugin\/(.+)$/);
     charts = [];
+    if (location.hash === '#/scores') {
+      if (!inDetail) catalogueScroll = window.scrollY;
+      inDetail = true;
+      var sv = $('detail');
+      sv.textContent = '';
+      sv.appendChild(scoresPage());
+      $('catalogue').hidden = true;
+      sv.hidden = false;
+      document.title = 'How scores are calculated · Agent Marketplace';
+      window.scrollTo(0, 0);
+      $('detail-title').focus({ preventScroll: true });
+      return;
+    }
     if (d) {
       if (!inDetail) catalogueScroll = window.scrollY;
       inDetail = true;
@@ -806,11 +818,22 @@
       $('q').focus();
     });
     window.addEventListener('hashchange', onHash);
+    // The site title always returns to the clean home page: catalogue, no search, no filters.
+    document.querySelectorAll('.home-link').forEach(function (a) {
+      a.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        state.q = state.category = state.stage = state.language = state.only = '';
+        ['q', 'f-category', 'f-stage', 'f-language'].forEach(function (id) { $(id).value = ''; });
+        catalogueScroll = 0;
+        if (location.hash) location.hash = '';
+        else render();
+        window.scrollTo(0, 0);
+      });
+    });
     $('generated').textContent = 'Catalogue built ' + fmtDateTime(d.generated_at) + '.';
     var stale = window.staleMessage ? window.staleMessage(d.consumers_generated_at, Date.now()) : null;
     if (stale) { $('stale').textContent = stale; $('stale').hidden = false; }
     renderStats();
-    $('how-scores-body').appendChild(explainBody());
     renderSandbox();
     onHash();
   }
