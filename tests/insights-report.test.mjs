@@ -87,3 +87,21 @@ test('run: writes the data branch layout; a same-day re-run produces identical f
   assert.equal(latest.generated_at, '2026-11-09T03:17:00.000Z');
   assert.match(readFileSync(summary, 'utf8'), /## Insights scan 2026-11-09/);
 });
+
+test('run: a plugin added and removed on the same day shows as removed, and a same-day re-run is identical', async () => {
+  const data = mkdtempSync(join(tmpdir(), 'insights-sameday-'));
+  const base = { dataDir: data, today: '2026-11-09', token: 't', consumers: CONSUMERS };
+  // First run today: team-b uses typescript-conventions. No previous day exists.
+  await run({ ...base, fetch: fixtures('team-a', 'team-b'), now: '2026-11-09T03:00:00.000Z' });
+  // Later today: team-b dropped it.
+  await run({ ...base, fetch: fixtures('team-a', 'team-b-without-ts'), now: '2026-11-09T09:00:00.000Z' });
+  const rows = JSON.parse(readFileSync(join(data, 'latest/consumers.json'), 'utf8')).rows;
+  const ts = rows.find((r) => r.consumer.endsWith('team-b') && r.plugin === 'typescript-conventions');
+  assert.ok(ts, 'removed plugin must keep a row');
+  assert.equal(ts.status, 'removed');
+  assert.match(ts.note, /removed on 2026-11-09/);
+  const before = snapshotTree(data);
+  await run({ ...base, fetch: fixtures('team-a', 'team-b-without-ts'), now: '2026-11-09T10:00:00.000Z' });
+  const after = snapshotTree(data);
+  for (const k of Object.keys(before)) assert.ok(before[k].equals(after[k]), `${k} changed on re-run`);
+});
