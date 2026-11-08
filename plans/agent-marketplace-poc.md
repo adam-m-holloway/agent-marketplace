@@ -1239,6 +1239,12 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
 | 11:46 | adr-helper evals: with skill 22/22, baseline 17/22 (+22.7 pts) | ✅ Slice 15 step 5 (1 of 3) |
 | 11:52 | go-conventions evals 22/22 vs 19/22; typescript-conventions 23/25 vs 20/25 | ✅ Slice 15 step 5 — **Slice 15 complete** |
 | 11:55 | Docs audit (Slice 9): 8/8 items present; 6 inaccuracies + 2 missing learnings fixed | ✅ Slice 9 — **all slices complete** |
+| — | **Post-POC (user: "keep building")** | |
+| 12:43 | Eval follow-ups released: `typescript-conventions` 1.0.1 (GH #19: tighten types under "keep exports working"), `adr-helper` 1.1.1 (GH #20: no invented pros/cons; always ask for the problem); sharper eval cases | ✅ |
+| 12:46 | Promotion GH #25 → stable: adr-helper 1.1.1, go-conventions 1.0.0, typescript-conventions 1.0.1 | ✅ |
+| 12:48 | **Discovery & reporting (Q29)** GH #26: scaffold similarity warning, stale-data banner, Behind + daily "Plugin usage report" issues (live: issue #27 pinned), data-only triage in the gate | ✅ (PR commenter + issue similarity deferred) |
+| 12:52 | Pages + insights workflows on Node 24 action versions (GH #28) | ✅ |
+| 12:56 | **Staged approval (Q28)** GH #29: `stage-gate` rule, `npm run stage`, stable lists published + deprecated only, CODEOWNERS, promote-plugin form, insights consumers fed to the gate | ✅ (code-owner review in ruleset deferred: needs a 2nd reviewer team) |
 
 ### Learnings during Slices 1–12
 
