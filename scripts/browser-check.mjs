@@ -120,6 +120,30 @@ await nav('#/scores'); await sleep(300);
 const sp = await evalJs(`(() => ({ title: document.title, text: document.getElementById('detail').innerText, catHidden: document.getElementById('catalogue').hidden }))()`);
 check('scores page: #/scores shows the explainer on its own page', /How scores are calculated/.test(sp?.title ?? '') && sp.catHidden && /Security/.test(sp.text) && /Quality/.test(sp.text) && /major and minor/i.test(sp.text), sp?.title);
 await shot('scores-page.png');
+
+// ---------- #/guide and #/about (TL;DR pages) + nav ----------
+const clickNav = (label) => evalJs(`(() => new Promise(r => { const a = [...document.querySelectorAll('header .site-nav a')].find(x => x.textContent.trim() === ${JSON.stringify(label)}); if (!a) return r(null); a.click();
+  setTimeout(() => r({ hash: location.hash, title: document.title, current: a.getAttribute('aria-current'), catHidden: document.getElementById('catalogue').hidden, focused: document.activeElement?.id, text: document.getElementById('detail').innerText }), 500); }))()`);
+const guide = await clickNav('Create & use');
+const gt = guide?.text ?? '';
+check('guide: header nav opens #/guide (title set, nav marked, heading focused)', guide?.hash === '#/guide' && /Create & use plugins/.test(guide.title) && guide.current === 'page' && guide.catHidden && guide.focused === 'detail-title', guide && { hash: guide.hash, title: guide.title, current: guide.current, focused: guide.focused });
+check('guide: "Use a plugin" part with the --marketplace install, team snippets, update and insights steps',
+  /Use a plugin/.test(gt) && /claude plugin install <plugin> --marketplace adam-m-holloway\/agent-marketplace/.test(gt) && /"ref": "stable"/.test(gt) &&
+  /claude plugin marketplace update agent-marketplace/.test(gt) && /claude -p --settings \.claude\/settings\.json/.test(gt) && /--scope project/.test(gt) && /insights\/consumers\.json/.test(gt), null);
+check('guide: "Create a plugin" part with npm run new-plugin, stage, bump, eval and promote',
+  /Create a plugin/.test(gt) && /npm run new-plugin my-plugin -- --skill my-skill --languages any --description/.test(gt) && /npm run stage my-plugin incubating/.test(gt) &&
+  /npm run bump my-plugin patch/.test(gt) && /npm run eval my-plugin -- --max-cost-usd 3 --record/.test(gt) && /npm run promote/.test(gt), null);
+await shot('guide-page.png');
+const about = await clickNav('About');
+const at = about?.text ?? '';
+check('about: header nav opens #/about (title set, nav marked, heading focused)', about?.hash === '#/about' && /About/.test(about.title) && about.current === 'page' && about.focused === 'detail-title', about && { hash: about.hash, title: about.title });
+check('about: pr-gate and its four jobs (plugins, security, workflows, title)', /pr-gate\.yml/.test(at) && ['plugins', 'security', 'workflows', 'title'].every((j) => new RegExp('^' + j + '\\b', 'm').test(at)), null);
+check('about: insights + the data branch, evals with per-plugin results', /Insights/.test(at) && /insights\.yml/.test(at) && /data\b.*branch|branch.*\bdata\b/i.test(at) && /latest\/consumers\.json/.test(at) &&
+  /Evals/.test(at) && /npm run eval/.test(at) && /adr-helper/.test(at) && /Pass rate/.test(at), null);
+await shot('about-page.png');
+const navHome = await clickNav('Plugins');
+check('nav: "Plugins" returns to the catalogue', navHome?.catHidden === false && navHome.current === 'page' && navHome.title === 'Agent Marketplace', navHome && { hash: navHome.hash, title: navHome.title });
+check('footer: links to Create & use, About and How scores are calculated', await evalJs(`(() => { const hs = [...document.querySelectorAll('footer a')].map(a => a.getAttribute('href')); return ['#/guide', '#/about', '#/scores'].every(x => hs.includes(x)) && hs.some(x => /github\\.com\\/adam-m-holloway\\/agent-marketplace$/.test(x)) && hs.some(x => /plugin-request/.test(x)); })()`), null);
 await nav('#/plugin/adr-helper'); await sleep(300);
 const stable = await evalJs(`(() => { const t = document.querySelector('#install-panel input[value=stable]'); if (!t) return null; t.click(); return new Promise(r => setTimeout(() => r(document.getElementById('install-panel').innerText), 300)); })()`);
 check('stable toggle shows ref + path + @agent-marketplace-stable', /"ref": "stable"/.test(stable ?? '') && /\.claude-plugin\/marketplace-stable\.json/.test(stable ?? '') && /@agent-marketplace-stable/.test(stable ?? ''), stable ? 'toggled' : 'no stable toggle found');
@@ -154,6 +178,13 @@ await evalJs(`(() => { document.querySelector('#detail .detail-head button').cli
 const overflowDetailOpen = await evalJs(`document.documentElement.scrollWidth`);
 check('no horizontal page scroll at 360px (home + detail collapsed/expanded)', overflow360 <= 360 && overflowDetail <= 360 && overflowDetailOpen <= 360, { overflow360, overflowDetail, overflowDetailOpen });
 await shot('detail-360-expanded.png');
+await nav('#/guide'); await sleep(300);
+const overflowGuide = await evalJs(`document.documentElement.scrollWidth`);
+await shot('guide-360.png');
+await nav('#/about'); await sleep(300);
+const overflowAbout = await evalJs(`document.documentElement.scrollWidth`);
+await shot('about-360.png');
+check('no horizontal page scroll at 360px (guide + about)', overflowGuide <= 360 && overflowAbout <= 360, { overflowGuide, overflowAbout });
 
 const origin = new globalThis.URL(URL).origin;
 const offsite = requests.filter((u) => !u.startsWith(origin) && !u.startsWith('data:') && !u.startsWith('about:'));
