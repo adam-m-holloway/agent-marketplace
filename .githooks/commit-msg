@@ -1,0 +1,19 @@
+#!/usr/bin/env node
+// Conventional Commits hook. Enable with: git config core.hooksPath .githooks
+// Usage (also used by CI for PR titles): .githooks/commit-msg <message-file>
+import { readFileSync } from 'node:fs';
+
+const { checkMessage, isExempt } = await import(new URL('../scripts/lib/commit-msg.mjs', import.meta.url));
+const file = process.argv[2];
+if (!file) {
+  console.error('usage: commit-msg <message-file>');
+  process.exit(2);
+}
+const first = readFileSync(file, 'utf8').split(/\r?\n/).find((l) => l.trim() && !l.startsWith('#')) ?? '';
+if (isExempt(first)) process.exit(0);
+const problem = checkMessage(first);
+if (problem) {
+  console.error(`commit-msg: ${problem}`);
+  console.error('example: feat(adr-helper): add supersede-adr skill');
+  process.exit(1);
+}
