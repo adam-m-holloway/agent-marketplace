@@ -72,6 +72,10 @@ jobs:
           claude --version
       - name: Repo checks (plugins)
         run: node base/scripts/check.mjs --root pr --base base --pr pr.json --only plugins
+      - name: Triage (similar plugins + capability diff; informational)
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: node base/scripts/triage.mjs --root pr --base base
       - name: Validate catalogues and plugins (--strict)
         env:
           DISABLE_AUTOUPDATER: 1
