@@ -154,8 +154,8 @@ redesigning.
   its Post-POC section. It includes the retire check.
 - **Discovery & reporting extras (Q29).** Built after the POC except the PR triage
   commenter and issue similarity; see that Post-POC section's status table.
-- **Other governance from the guide:** quality and impact scores, a sandbox channel branch,
-  and a GitHub App.
+- **Other governance from the guide:** a sandbox channel branch and a GitHub App. (Quality,
+  security, evals and adoption scores were built after the POC — see "Post-POC: plugin scores".)
 - **Insights beyond phase 1:**
   - no org code search (a configured list is used instead);
   - no Copilot or VS Code settings scanning;
@@ -1148,8 +1148,7 @@ The only POC preparation is that stage lives in its own `status.json`.
 **Deferred:**
 - [ ] The admins team, then the `main` ruleset change (code-owner review, dismiss stale,
   last-push approval) — `docs/repo-setup.md` has the exact settings.
-- [ ] `pr-gate.yml` passes `--consumers` (from the `data` branch) to the `plugins` job. Until it
-  does, CI requires the 14 days for publishing and the `retire-anyway` label to retire.
+- [x] `pr-gate.yml` passes `--consumers` (from `data/latest/consumers.json`) to the `plugins` job (GH #29).
 - [ ] Gates not checked yet: SkillSpector clean/baselined at incubating (the `security` job
   runs it anyway); a committed eval result for this version; no open `bug` issues.
 - [ ] A bot that posts the readiness checklist on the issue/PR.
@@ -1185,6 +1184,31 @@ These reuse `similar.mjs`, the gate and the insights data.
 | 4 | Daily report issue | **Built.** `scripts/insights/issues.mjs` `planDailyReport()`: one "Plugin usage report" issue (pinned on creation, best-effort), body edited each run, comment only when that day has events and no comment yet (`<!-- insights:daily-report:<date> -->`) |
 | 5 | Behind issues | **Built.** `planBehindIssues()`: one "Behind: <plugin> — <team> on <channel> is N version(s) behind" issue per (plugin, consumer), retitled when N changes, closed with a comment when it catches up or drops the plugin, left alone when the scan is `unknown`. Labels `insights` + `behind`; `insights.yml` has `issues: write` |
 | 6 | Stale-data banner | **Built.** `build-site` writes `consumers_generated_at`; `site/stale.js` shows "Usage data is N hours old — the nightly insights run may have stopped." past 36 hours |
+
+## Post-POC: plugin scores and score history (built 2026-11-08, GH #30, #31)
+
+Requested by the user after the POC ("scoring for quality, security etc like tessl.io; last
+updated date"; "tracked when a plugin is added or changed, with datetime stamps"; "only major or
+minor versions, not patch").
+
+| Score | How it's computed |
+|---|---|
+| Security (0–100) | 100 − 40 per HIGH − 10 per MEDIUM from our hidden-content + pattern rules, capped at 100 − SkillSpector risk (`--no-llm`) |
+| Quality (0–100) | 7 weighted criteria: evals ≥3, trigger set ≥8/≥8, description what/when/triggers/not-for, SKILL.md ≤500 lines, compatibility, README + CHANGELOG, on-taxonomy keywords |
+| Evals | Measured runs in `evals/results.json` (timestamped; with skill vs baseline; flagged when measured on an earlier version) |
+| Adoption | Active consumer repos from insights |
+
+- **When recorded:** every plugin PR gets an informational "Score changes" table in the gate;
+  every release writes scores to the `data` branch (`scores/year=…/month=…/<day>.ndjson` +
+  `latest/scores.json`, ISO-8601 UTC timestamps). **History records only first versions and
+  major/minor releases**; patches refresh `latest` marked `tracked: false, reason: "patch"`.
+- **Site:** score panel per card, ▲/▼ vs the previous tracked version, "Updated <date> · v<version>",
+  per-version history table, "How scores are calculated" section; cream/beige palette with blue
+  accents (warm charcoal in dark mode).
+- **Today's values:** adr-helper 100 / 100 / 100% (+23); go-conventions 100 / 100 / 100% (+14);
+  typescript-conventions **82** (SkillSpector risk 18) / 100 / 92% (+12).
+- **Deferred:** no aggregate score (deliberate — separate scores with visible inputs); evals
+  aren't re-measured automatically on each release (no model calls in CI, Q32).
 
 ## Open items to confirm before execution
 
@@ -1239,6 +1263,15 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
 | 11:46 | adr-helper evals: with skill 22/22, baseline 17/22 (+22.7 pts) | ✅ Slice 15 step 5 (1 of 3) |
 | 11:52 | go-conventions evals 22/22 vs 19/22; typescript-conventions 23/25 vs 20/25 | ✅ Slice 15 step 5 — **Slice 15 complete** |
 | 11:55 | Docs audit (Slice 9): 8/8 items present; 6 inaccuracies + 2 missing learnings fixed | ✅ Slice 9 — **all slices complete** |
+| — | **Post-POC (user: "keep building")** | |
+| 12:43 | Eval follow-ups released: `typescript-conventions` 1.0.1 (GH #19: tighten types under "keep exports working"), `adr-helper` 1.1.1 (GH #20: no invented pros/cons; always ask for the problem); sharper eval cases | ✅ |
+| 12:46 | Promotion GH #25 → stable: adr-helper 1.1.1, go-conventions 1.0.0, typescript-conventions 1.0.1 | ✅ |
+| 12:48 | **Discovery & reporting (Q29)** GH #26: scaffold similarity warning, stale-data banner, Behind + daily "Plugin usage report" issues (live: issue #27 pinned), data-only triage in the gate | ✅ (PR commenter + issue similarity deferred) |
+| 12:52 | Pages + insights workflows on Node 24 action versions (GH #28) | ✅ |
+| 12:56 | **Staged approval (Q28)** GH #29: `stage-gate` rule, `npm run stage`, stable lists published + deprecated only, CODEOWNERS, promote-plugin form, insights consumers fed to the gate | ✅ (code-owner review in ruleset deferred: needs a 2nd reviewer team) |
+| 13:15 | **Plugin scores + history + palette** (GH #30): security/quality/evals/adoption, PR score preview, release-time history (major/minor only), cream + blue site; history backfilled to `data` | ✅ |
+| 13:20 | Whole-system verification (fresh read-only agent): Done-when 0–13 PASS; found gitleaks scanned only `plugins/`, and `latest/scores.json` ignoring SkillSpector for backfilled entries — both fixed (GH #31) and re-verified (data now ts security 82) | ✅ |
+| 13:22 | Live site re-checked in headless Chrome: 12/12 checks, light + dark | ✅ |
 
 ### Learnings during Slices 1–12
 
@@ -1344,4 +1377,8 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
   `.claude/settings.local.json` on 2026-11-10; (3) `data` branch commits are authored by
   `github-actions[bot]` (kept: a bot shouldn't impersonate a person, and the branch isn't the
   default branch, so it doesn't affect Contributors).
+- **Post-POC lessons:** a verification pass by a fresh agent found two real gaps the builders
+  missed (gitleaks scope, a same-version upgrade rule) — keep doing independent checks after
+  feature work. Local actionlint needs shellcheck (`uvx --from shellcheck-py`) to match CI.
+  Agent briefs that share files (pr-gate.yml) need a "rebase onto main before finishing" step.
 
