@@ -67,6 +67,9 @@ check('header: "Agent Marketplace" is the H1 and the largest text', await evalJs
 check('home: no install content; "How scores are calculated" is a menu link to its own page', await evalJs(`(() => { const a = [...document.querySelectorAll('nav.site-nav a')].find(x => x.getAttribute('href') === '#/scores'); return !document.getElementById('how-scores') && !/claude plugin install|Just me|My team's repo|How consuming works/.test(document.body.innerText.split('Catalogue built')[0]) && !!a; })()`), null);
 await shot('home-1280.png');
 
+await type('adr'); await sleep(500);
+const exactAdr = await visibleCards();
+check('search "adr" shows only plugins whose name or description contains it', exactAdr?.length === 1 && exactAdr[0].includes('adr-helper'), exactAdr);
 await type('adr helpr'); await sleep(500);
 const fuzzy = await visibleCards();
 check('fuzzy "adr helpr" finds adr-helper', fuzzy?.[0]?.includes('adr-helper'), fuzzy);
@@ -144,6 +147,10 @@ check('about: insights + the data branch, evals with per-plugin results', /Insig
 await shot('about-page.png');
 const navHome = await clickNav('Plugins');
 check('nav: "Plugins" returns to the catalogue', navHome?.catHidden === false && navHome.current === 'page' && navHome.title === 'Agent Marketplace', navHome && { hash: navHome.hash, title: navHome.title });
+const ab = await evalJs(`(() => new Promise(r => { location.hash = '#/about'; setTimeout(() => { const d = document.getElementById('detail'); const hs = [...d.querySelectorAll('a')].map(a => a.href); r({ text: d.innerText, hs }); }, 500); }))()`);
+check('about: links to the services used and explains how and when stats are generated',
+  ['conventionalcommits.org', 'github.com/NVIDIA/skillspector', 'scorecard.dev', 'github.com/gitleaks/gitleaks', 'github.com/rhysd/actionlint', 'docs.zizmor.sh', 'codeql.github.com', 'adr.github.io/madr'].every(u => ab?.hs.some(h => h.includes(u))) &&
+  /how and when they.re generated/i.test(ab?.text ?? '') && /Teams consuming/.test(ab.text) && /03:17 UTC/.test(ab.text), ab && { links: ab.hs.length });
 check('menu: every link is in the header menu and the footer has none', await evalJs(`(() => { const hs = [...document.querySelectorAll('nav.site-nav a')].map(a => a.getAttribute('href')); return ['#', '#/guide', '#/about', '#/scores'].every(x => hs.includes(x)) && hs.some(x => /github\\.com\\/adam-m-holloway\\/agent-marketplace$/.test(x)) && hs.some(x => /plugin-request/.test(x)) && document.querySelectorAll('footer a').length === 0; })()`), null);
 await nav('#/plugin/adr-helper'); await sleep(300);
 const stable = await evalJs(`(() => { const t = document.querySelector('#install-panel input[value=stable]'); if (!t) return null; t.click(); return new Promise(r => setTimeout(() => r(document.getElementById('install-panel').innerText), 300)); })()`);

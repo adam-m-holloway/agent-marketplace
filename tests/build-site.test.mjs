@@ -106,18 +106,20 @@ test('build-site CLI writes data.json with the adr-helper entry and copies the s
   assert.deepEqual(adr.languages, ['any']);
 });
 
-test('vendored Fuse (UMD) finds adr-helper for "adr helpr" with the site options', () => {
+test('site search: exact name/description matches first, strict fuzzy only as a fallback', () => {
   // Load the browser scripts exactly as the page does: plain scripts on a global object.
   const ctx = vm.createContext({});
   for (const f of ['site/vendor/fuse.min.js', 'site/search-options.js']) vm.runInContext(readFileSync(join(ROOT, f), 'utf8'), ctx);
-  const { Fuse, FUSE_OPTIONS } = ctx;
-  const docs = [
-    { name: 'adr-helper', description: 'Write Architecture Decision Records', tags: ['adr'], skills: ['create-adr'] },
-    { name: 'go-conventions', description: 'Go code style', tags: ['go'], skills: [] },
-    { name: 'typescript-conventions', description: 'TypeScript strict mode', tags: ['typescript'], skills: [] },
-  ];
-  const res = new Fuse(docs, FUSE_OPTIONS).search('adr helpr');
-  assert.equal(res[0]?.item.name, 'adr-helper');
+  const { Fuse, searchPlugins } = ctx;
+  // The real listed plugins' names and descriptions.
+  const cat = JSON.parse(readFileSync(join(ROOT, '.claude-plugin/marketplace.json'), 'utf8')).plugins;
+  const docs = cat.map((p) => ({ name: p.name, description: p.description }));
+  const names = (q) => Array.from(searchPlugins(docs, q, Fuse), (r) => docs[r.refIndex].name);
+  assert.deepEqual(names('adr'), ['adr-helper'], '"adr" must not match unrelated plugins');
+  assert.equal(names('adr helpr')[0], 'adr-helper', 'typos still find the plugin');
+  assert.ok(names('conventions').includes('go-conventions') && names('conventions').includes('typescript-conventions'));
+  assert.ok(!names('conventions').includes('adr-helper'));
+  assert.equal(names('').length, docs.length);
 });
 
 test('buildData carries consumers_generated_at from latest/consumers.json (null without data)', () => {
