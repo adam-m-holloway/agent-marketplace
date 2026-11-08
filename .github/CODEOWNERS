@@ -1,0 +1,16 @@
+# Code owners (Q28 staged approval). Later matches win, so the specific paths come last.
+# The admins team is TBC: when it exists, add it after @adam-m-holloway on every line below and
+# turn on "require review from code owners" in the main ruleset (see docs/repo-setup.md).
+# Authors can't approve their own PRs, which is why a second owner is needed before that switch.
+
+* @adam-m-holloway
+
+# Stage moves (npm run stage) — the approval that promotes or retires a plugin.
+/plugins/*/status.json @adam-m-holloway
+
+# The rules every PR is judged by.
+/.github/CODEOWNERS @adam-m-holloway
+/.github/workflows/ @adam-m-holloway
+/taxonomy.json @adam-m-holloway
+/rules/ @adam-m-holloway
+/scripts/ @adam-m-holloway
