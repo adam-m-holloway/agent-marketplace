@@ -62,7 +62,9 @@ Versions are never reused. When the PR merges to `main`, `release.yml` runs the 
 - **Conventional Commits** for commits and PR titles: `feat(my-plugin): add X`,
   `fix(sync): …`, `docs: …`, `chore(deps): …`. Enable the local hook once:
   `git config core.hooksPath .githooks`.
-- **Squash-merge only.**
+- **Squash-merge only, with an explicit message** (`gh pr merge N --squash --subject "<title> (#N)"
+  --body "<summary>"`). Otherwise GitHub appends `Co-authored-by:` trailers for every other
+  author email in the PR. Commit as your own GitHub identity (its noreply address is fine).
 - **One plugin per PR.** Use the `multi-plugin` label only with a reason in the PR body.
 - **Stages** (`status.json`): `sandbox` (not listed) → `incubating` → `published` →
   `deprecated` (needs `replacedBy`) → `retired` (not listed).
@@ -81,8 +83,8 @@ npm run promote            # promotes origin/main; or: npm run promote <main-sha
 
 This cuts `promote/<date>-<sha>` from `stable`, sets its tree to `main@sha`, and opens a PR
 titled `chore(stable): promote main@<sha>` listing each plugin's version change. The gate
-checks that the tree equals that `main` commit. Promoting an **older** commit than stable's
-current one needs the `rollback` label.
+checks that the tree equals that `main` commit. A promotion where any plugin's version goes
+**backwards** needs the `rollback` label.
 
 ## A bad release (roll forward)
 

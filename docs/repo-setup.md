@@ -84,7 +84,8 @@ The same rules with `"name": "stable"` and
 ### `main` (team-a, team-b)
 
 The same shape with one required check, `ci`, against `adam-m-holloway/team-a` and
-`adam-m-holloway/team-b`.
+`adam-m-holloway/team-b`, but without "require branches to be up to date"
+(`strict_required_status_checks_policy: false`).
 
 Click path: **Settings → Rules → Rulesets → New branch ruleset**.
 

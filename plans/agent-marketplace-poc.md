@@ -840,7 +840,7 @@ tags.
 
 ### Slice 9: Docs checklist (shipped inside each PR, not a separate PR) (S)
 
-- [ ] **Complete**
+- [x] **Complete** (all 8 items present; fresh-eyes audit fixed 6 inaccuracies + 2 missing learnings)
 
 **Acceptance criteria:**
 1. **`README.md`:**
@@ -1015,7 +1015,7 @@ run summary link.
 
 ### Slice 15: End-to-end proof (M)
 
-- [ ] **Complete** — steps 1–4 done (isolated two-channel check, ADRs + conventions run, removal demo, promotion → team-b 1.1.0 / behind 0); step 5 evals: adr-helper done (22/22 vs 17/22 baseline), go + ts running
+- [x] **Complete** (steps 1–5 done; see Build log and Learnings)
 
 **Steps (each needs approval where it touches GitHub or your login):**
 1. **Isolated check** (scratch `CLAUDE_CONFIG_DIR` + `HOME`, both channels on one
@@ -1166,7 +1166,7 @@ These reuse `similar.mjs`, the gate and the insights data.
 | 6 | `GITHUB_TOKEN` reads other public repos | **proven** | `spike-token` run 42466387539: team-a Contents 200, Commits 200, missing settings 404; `x-ratelimit-limit: 5000`. **No PAT needed.** |
 | 7 | Names not reserved; `evals/` passes strict | **proven** | `validate --strict` on empty catalogues named `agent-marketplace` / `agent-marketplace-stable` reports only "no plugins defined" (no reserved-name error). `hello-skill` with `skills/hello/evals/evals.json` passes `validate --strict` and installed. |
 | 9 | Two consecutive squash promotions | **proven** | PR #1 and PR #2 (`spike/promote-1`, `spike/promote-2`, each cut from `spike/stable` + `git read-tree -u --reset <latest>`) squash-merged cleanly with an overlapping line changed between them; a fresh stable consumer then resolved 1.2.0 @729c36f = `spike/stable` head. **Squash-only stays everywhere.** |
-| 10 | One-step install for stable | **gap** | `claude plugin marketplace add owner/repo@stable` reads the *default* `marketplace.json`, so it registers the **latest** name. `--marketplace`/`add` have no `path` flag: stable "Just me" installs use `/plugin marketplace add` of the settings snippet, documented in `docs/consuming-plugins.md`. |
+| 10 | One-step install for stable | **gap** | `claude plugin marketplace add owner/repo@stable` reads the *default* `marketplace.json`, so it registers the **latest** name. `--marketplace`/`add` have no `path` flag: stable "Just me" = add the stable snippet to **user** settings, restart, then `/plugin install <p>@agent-marketplace-stable` (shown on the site and in `docs/consuming-plugins.md`). |
 | 3, 5, 8, 11 | Update path, ref move, SkillSpector, eval usage | **deferred** | Recorded opportunistically in later slices (non-blocking per Q34). |
 
 Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are labels, not real numbers.
@@ -1198,6 +1198,8 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
 | 11:43 | **Promotion GH #15** → stable 1.1.0; team-b resolves 1.1.0 via update commands; insights behind 0; site stable 1.1.0 | ✅ Slice 15 step 4 — **core demo complete** |
 | 11:45 | UI redesign (GH #16): stats hero, card grid, progressive disclosure; live browser check 12/12 light + dark | ✅ |
 | 11:46 | adr-helper evals: with skill 22/22, baseline 17/22 (+22.7 pts) | ✅ Slice 15 step 5 (1 of 3) |
+| 11:52 | go-conventions evals 22/22 vs 19/22; typescript-conventions 23/25 vs 20/25 | ✅ Slice 15 step 5 — **Slice 15 complete** |
+| 11:55 | Docs audit (Slice 9): 8/8 items present; 6 inaccuracies + 2 missing learnings fixed | ✅ Slice 9 — **all slices complete** |
 
 ### Learnings during Slices 1–12
 
@@ -1279,4 +1281,28 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
   structure in a repo with no ADRs, the index, and asking for the problem. Watch item: to satisfy
   "every option has a pro or con" it invented pros for rejected options (flagged as assumptions) —
   conflicts with "no invented rationale"; candidate for 1.2.0. Case 3 discriminates weakly.
+- **Evals (all three plugins, skill-creator method by hand, 1 run per configuration):**
+
+  | Plugin | With skill | Baseline | Where the skill mattered |
+  |---|---|---|---|
+  | adr-helper (create-adr) | 22/22 | 17/22 | MADR in a repo with no ADRs; the index; asking for the problem |
+  | go-conventions | 22/22 | 19/22 | ran `gofmt -l`; one slice-of-structs table for 204/404/400 |
+  | typescript-conventions | 23/25 | 20/25 | `it.each` tables; return types; running the repo's test command |
+
+  Follow-ups: several "fix X" / "is it done?" cases score full marks either way (sharpen their
+  fixtures); typescript-conventions kept a boolean+optional result and `list[0]!` when asked to
+  "keep exports working" (guidance gap); adr-helper invented pros for rejected options to satisfy
+  its own rule (flagged as assumptions — conflicts with "no invented rationale"). Harness lessons:
+  pass `</dev/null` to `claude -p` in loops (it reads stdin), and keep transcripts outside the
+  workspace.
+- **Docs audit follow-up not done:** the three plugin READMEs' "Just me" sections don't say the
+  one-step command is latest-only. Fixing them means a patch release per plugin (our own
+  version-bump rule), so it's deferred to their next real change.
+- **Open items for the user (not blocking the POC):** (1) team-b's repo-page Contributors box is a
+  stale GitHub cache still showing `adam-beyond-evergreen` (API and history are clean); the only
+  in-our-control fix is delete + recreate team-b, which needs the `delete_repo` scope;
+  (2) remove the temporary push/ruleset/PR-close allow rules from
+  `.claude/settings.local.json` on 2026-11-10; (3) `data` branch commits are authored by
+  `github-actions[bot]` (kept: a bot shouldn't impersonate a person, and the branch isn't the
+  default branch, so it doesn't affect Contributors).
 

@@ -71,11 +71,15 @@ team repos.
 claude plugin install adr-helper --marketplace adam-m-holloway/agent-marketplace
 ```
 
-or `/plugin install adr-helper@agent-marketplace` inside Claude Code. This writes **user**
+or, inside Claude Code, `/plugin marketplace add adam-m-holloway/agent-marketplace` then
+`/plugin install adr-helper@agent-marketplace`. This writes **user**
 settings only, uses the **latest** channel, and isn't counted by insights.
 
 > The one-step `--marketplace` form can't select the stable catalogue: it reads the default
-> `marketplace.json` even at `owner/repo@stable`. For stable, use the committed snippet above.
+> `marketplace.json` even at `owner/repo@stable`. For stable "just me", add the stable snippet
+> above to your **user** settings (`~/.claude/settings.json`), restart, then
+> `/plugin install adr-helper@agent-marketplace-stable` (this is what the catalogue site shows).
+> For a team, commit the snippet to the repo instead.
 
 **Local scope.** `--scope local` writes `.claude/settings.local.json` (gitignored): use it to
 try a plugin in a repo without committing it.
