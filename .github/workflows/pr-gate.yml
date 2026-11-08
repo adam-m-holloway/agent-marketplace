@@ -246,12 +246,6 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           path: pr
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          package-manager-cache: false
-      - name: Every action SHA-pinned
-        run: node base/scripts/check-actions-pinned.mjs pr/.github/workflows
       - name: Install actionlint (pinned release)
         run: |
           set -euo pipefail
@@ -276,7 +270,7 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: false
-      - name: zizmor (offline audits)
+      - name: zizmor (offline audits; unpinned-uses enforces SHA-pinned actions)
         run: |
           if [ ! -d pr/.github/workflows ]; then echo "no workflows in PR"; exit 0; fi
           uvx "zizmor@${ZIZMOR_VERSION}" --offline --no-progress --no-config pr/.github/workflows \
