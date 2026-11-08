@@ -9,8 +9,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -49,6 +47,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      pages: write # deploy the artifact
+      id-token: write # OIDC token required by deploy-pages
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
