@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Agent Marketplace</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#results">Skip to plugins</a>
+  <header class="site-header">
+    <div class="wrap">
+      <h1>Agent Marketplace</h1>
+      <p class="lede">Claude Code plugins for our teams. Two channels: <strong>latest</strong> tracks
+        <code>main</code>; <strong>stable</strong> gets reviewed promotions.
+        <a href="https://github.com/adam-m-holloway/agent-marketplace/blob/main/docs/consuming-plugins.md">How consuming works</a></p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section aria-label="Search and filters" class="controls">
+      <div class="field field-search">
+        <label for="q">Search plugins</label>
+        <input id="q" type="search" autocomplete="off" spellcheck="false"
+               placeholder="e.g. adr, go tests, typescript" aria-describedby="count">
+      </div>
+      <div class="field">
+        <label for="f-category">Category</label>
+        <select id="f-category"><option value="">All</option></select>
+      </div>
+      <div class="field">
+        <label for="f-stage">Stage</label>
+        <select id="f-stage"><option value="">All</option></select>
+      </div>
+      <div class="field">
+        <label for="f-language">Language</label>
+        <select id="f-language"><option value="">All</option></select>
+      </div>
+    </section>
+
+    <p id="count" class="count" role="status" aria-live="polite">Loading catalogue…</p>
+    <div id="focus-bar" class="focus-bar" hidden></div>
+    <div id="request" class="request" hidden></div>
+
+    <section id="results" class="cards" aria-label="Plugins" tabindex="-1"></section>
+
+    <section id="sandbox" class="sandbox" aria-labelledby="sandbox-h" hidden>
+      <h2 id="sandbox-h">Sandbox (not listed)</h2>
+      <p>These plugins are in the repo but not in either catalogue. Try one from a clone of the
+        repo without installing it:</p>
+      <div id="sandbox-list"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p id="generated"></p>
+      <p><a href="https://github.com/adam-m-holloway/agent-marketplace">Source on GitHub</a> ·
+        <a href="https://github.com/adam-m-holloway/agent-marketplace/issues/new?template=plugin-request.yml&amp;labels=plugin-request">Request a plugin</a></p>
+    </div>
+  </footer>
+
+  <script src="vendor/fuse.min.js"></script>
+  <script src="search-options.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
