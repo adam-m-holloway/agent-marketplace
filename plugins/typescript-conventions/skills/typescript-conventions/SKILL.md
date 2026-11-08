@@ -151,7 +151,7 @@ describe("applyDiscount", () => {
 
 ## Before you say done
 
-Do not tell the user the work is finished, fixed or passing until you have run these
+Only report the work as finished, fixed or passing after you have run these
 from the package root and read their output:
 
 1. `npx tsc --noEmit` - must report no errors. If the repo has a `typecheck` script in

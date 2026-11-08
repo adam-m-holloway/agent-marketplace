@@ -146,7 +146,7 @@ few lines.
 
 ## Before you say done
 
-Do not tell the user the work is finished, fixed or passing until you have run these
+Only report the work as finished, fixed or passing after you have run these
 three commands from the module root (the directory containing `go.mod`) and read their
 output:
 
