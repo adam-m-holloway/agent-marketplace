@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Build the GitHub Pages catalogue: copy site/ into --out and write data.json.
-// Usage: node scripts/build-site.mjs [--root .] [--out _site] [--skillspector skillspector.json]
+// Usage: node scripts/build-site.mjs [--root .] [--out _site] [--skillspector skillspector.json] [--quality <reports dir>]
 // Git reads (origin/stable, origin/data, release tags) are optional: a missing branch gives null / [].
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -12,7 +12,7 @@ import { compare, parse } from './lib/semver.mjs';
 import { related, RELATED_MIN_SCORE } from './similar.mjs';
 import {
   SCORES_EXPLAINED, QUALITY_CRITERIA, isTracked, lastTrackedVersion, parseNdjson, readEvalsResults,
-  readSkillspector, scoreChange, scorePlugin,
+  readQualityReports, readSkillspector, scoreChange, scorePlugin,
 } from './scores.mjs';
 
 export const PAGES_URL = 'https://adam-m-holloway.github.io/agent-marketplace/';
@@ -265,6 +265,7 @@ function readText(root, rel) {
  * @param stableVersions {[plugin]: version} from origin/stable, or null when there is no stable branch
  * @param consumersDoc   parsed origin/data:latest/consumers.json, or null
  * @param skillspector   {[plugin]: risk 0–100} from a --skillspector file, or null (not run)
+ * @param qualityReports readQualityReports() of a --quality dir, or null (tool-based quality parts not run)
  * @param scoresLatest   parsed origin/data:latest/scores.json, or null
  * @param scoreHistory   records from origin/data:scores/**.ndjson
  * @param tagDates       {[plugin]: YYYY-MM-DD} commit date of the current version's tag
@@ -273,7 +274,7 @@ function readText(root, rel) {
  */
 export function buildData(repo, {
   stableVersions = null, consumersDoc = null, now = new Date().toISOString(),
-  skillspector = null, scoresLatest = null, scoreHistory = [], tagDates = {}, releaseTags = {}, consumerHistory = [], evalsResults = readEvalsResults(repo.root),
+  skillspector = null, qualityReports = null, scoresLatest = null, scoreHistory = [], tagDates = {}, releaseTags = {}, consumerHistory = [], evalsResults = readEvalsResults(repo.root),
 } = {}) {
   const { catalogues, excluded } = buildCatalogues(repo);
   const listed = new Set(catalogues[0].json.plugins.map((e) => e.name));
@@ -315,7 +316,7 @@ export function buildData(repo, {
     p.related = rel[p.name] ?? [];
     p.consumers = consumers[p.name] ?? [];
     p.adoption_history = adoption[p.name];
-    p.scores = scorePlugin({ root: repo.root, repo, plugin: byDir.get(p.name), evalsResults, skillspector, consumers: p.consumers });
+    p.scores = scorePlugin({ root: repo.root, repo, plugin: byDir.get(p.name), evalsResults, skillspector, consumers: p.consumers, qualityReports });
     Object.assign(p, scoreFields({
       name: p.name, version: p.versions.latest, scores: p.scores, history: scoreHistory,
       latestEntry: scoresLatest?.plugins?.[p.name] ?? null, builtAt: now,
@@ -338,6 +339,7 @@ export function buildData(repo, {
     // When the insights run last wrote usage data; the site warns when it is over 36 hours old.
     consumers_generated_at: typeof consumersDoc?.generated_at === 'string' ? consumersDoc.generated_at : null,
     skillspector_ran: !!skillspector,
+    quality_tools_ran: !!qualityReports,
     scores_explained: { ...SCORES_EXPLAINED, quality_criteria: QUALITY_CRITERIA.map(({ id, label, weight }) => ({ id, label, weight })) },
   };
 }
@@ -411,10 +413,12 @@ export function main(argv = process.argv.slice(2), log = console.log) {
   let root = process.cwd();
   let out = '_site';
   let skillspectorFile = null;
+  let qualityDir = null;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--root') root = argv[++i];
     else if (argv[i] === '--out') out = argv[++i];
     else if (argv[i] === '--skillspector') skillspectorFile = argv[++i];
+    else if (argv[i] === '--quality') qualityDir = argv[++i];
     else { log(`unknown argument: ${argv[i]}`); return 2; }
   }
   root = resolve(root);
@@ -432,7 +436,9 @@ export function main(argv = process.argv.slice(2), log = console.log) {
   const consumerHistory = readConsumerHistory((ref, path) => gitShow(root, ref, path), (ref, path) => gitList(root, ref, path));
   // A missing or unreadable SkillSpector file means "not run", never a failed build.
   const skillspector = skillspectorFile ? readSkillspector(resolve(root, skillspectorFile)) : null;
-  const data = buildData(repo, { ...git, ...scoreData, tagDates, releaseTags, consumerHistory, skillspector });
+  // Likewise a missing quality-tools directory: those quality parts show "not run".
+  const qualityReports = qualityDir ? readQualityReports(resolve(root, qualityDir)) : null;
+  const data = buildData(repo, { ...git, ...scoreData, tagDates, releaseTags, consumerHistory, skillspector, qualityReports });
 
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
@@ -440,7 +446,7 @@ export function main(argv = process.argv.slice(2), log = console.log) {
   writeFileSync(join(out, 'data.json'), stableJson(data));
   log(`build-site: ${data.plugins.length} listed, ${data.sandbox.length} sandbox; ` +
     `stable branch ${git.stableVersions ? 'found' : 'missing'}; consumers ${git.consumersDoc ? 'found' : 'missing'}; ` +
-    `score history ${scoreData.scoreHistory.length} record(s); consumer snapshots ${consumerHistory.length} row(s); SkillSpector ${skillspector ? 'used' : 'not run'} → ${out}`);
+    `score history ${scoreData.scoreHistory.length} record(s); consumer snapshots ${consumerHistory.length} row(s); SkillSpector ${skillspector ? 'used' : 'not run'}; quality tools ${qualityReports ? 'used' : 'not run'} → ${out}`);
   return 0;
 }
 

@@ -1,0 +1,180 @@
+{
+  "tool": {
+    "name": "skillscore",
+    "version": "0.10.0"
+  },
+  "target": "claude",
+  "skills": [
+    {
+      "name": "create-adr",
+      "path": "plugins/adr-helper/skills/create-adr/SKILL.md",
+      "score": 82,
+      "grade": "B",
+      "penalty": 0,
+      "tokens": {
+        "encoding": "cl100k_base",
+        "claudeNote": "Claude estimate applies +10% overhead to cl100k_base counts (within ~5-8% of actual Anthropic API counts for English prose).",
+        "description": {
+          "scope": "permanent: loaded on every prompt for skill discovery",
+          "gpt4": 206,
+          "claudeEstimate": 227
+        },
+        "manifest": {
+          "scope": "active: loaded only when the skill is invoked",
+          "gpt4": 1663,
+          "claudeEstimate": 1830
+        }
+      },
+      "categories": [
+        {
+          "id": "A",
+          "name": "Frontmatter validity",
+          "awarded": 17,
+          "max": 17
+        },
+        {
+          "id": "B",
+          "name": "Description quality",
+          "awarded": 12,
+          "max": 20
+        },
+        {
+          "id": "C",
+          "name": "Conciseness & token economy",
+          "awarded": 15,
+          "max": 15
+        },
+        {
+          "id": "D",
+          "name": "Structure & progressive disclosure",
+          "awarded": 15,
+          "max": 15
+        },
+        {
+          "id": "E",
+          "name": "Instruction quality",
+          "awarded": 11,
+          "max": 20
+        },
+        {
+          "id": "F",
+          "name": "Content hygiene",
+          "awarded": 10,
+          "max": 10
+        },
+        {
+          "id": "G",
+          "name": "Safety & scripts",
+          "awarded": 0,
+          "max": 0
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "B3_third_person",
+          "severity": "warning",
+          "message": "Description uses first/second person: \"we\".",
+          "line": 3,
+          "fixHint": "Rewrite in third person: \"Processes PDF files...\" instead of \"I can process PDF files...\" or \"You can use this to...\".",
+          "sourceGuide": "Anthropic"
+        },
+        {
+          "ruleId": "B6_description_truncation",
+          "severity": "warning",
+          "message": "Description is 832 characters; Claude truncates at 250. The trigger clause may be invisible to the routing agent.",
+          "line": 3,
+          "fixHint": "Put the action verb and trigger clause entirely within the first 250 characters. Trim or restructure if needed — the opening window is the only part the routing agent sees.",
+          "sourceGuide": "Anthropic"
+        }
+      ]
+    },
+    {
+      "name": "supersede-adr",
+      "path": "plugins/adr-helper/skills/supersede-adr/SKILL.md",
+      "score": 68,
+      "grade": "D",
+      "penalty": 0,
+      "tokens": {
+        "encoding": "cl100k_base",
+        "claudeNote": "Claude estimate applies +10% overhead to cl100k_base counts (within ~5-8% of actual Anthropic API counts for English prose).",
+        "description": {
+          "scope": "permanent: loaded on every prompt for skill discovery",
+          "gpt4": 211,
+          "claudeEstimate": 233
+        },
+        "manifest": {
+          "scope": "active: loaded only when the skill is invoked",
+          "gpt4": 1452,
+          "claudeEstimate": 1598
+        }
+      },
+      "categories": [
+        {
+          "id": "A",
+          "name": "Frontmatter validity",
+          "awarded": 17,
+          "max": 17
+        },
+        {
+          "id": "B",
+          "name": "Description quality",
+          "awarded": 0,
+          "max": 20
+        },
+        {
+          "id": "C",
+          "name": "Conciseness & token economy",
+          "awarded": 13,
+          "max": 15
+        },
+        {
+          "id": "D",
+          "name": "Structure & progressive disclosure",
+          "awarded": 15,
+          "max": 15
+        },
+        {
+          "id": "E",
+          "name": "Instruction quality",
+          "awarded": 11,
+          "max": 20
+        },
+        {
+          "id": "F",
+          "name": "Content hygiene",
+          "awarded": 10,
+          "max": 10
+        },
+        {
+          "id": "G",
+          "name": "Safety & scripts",
+          "awarded": 0,
+          "max": 0
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "B1_description_what",
+          "severity": "warning",
+          "message": "Description does not state what the skill does with an action verb.",
+          "line": 3,
+          "fixHint": "Open the description with an action verb, e.g. \"Generates ...\", \"Validates ...\", \"Converts ...\".",
+          "sourceGuide": "Anthropic"
+        },
+        {
+          "ruleId": "B2_description_when",
+          "severity": "warning",
+          "message": "Description has no trigger clause saying when to use the skill.",
+          "line": 3,
+          "fixHint": "Add a trigger clause such as \"Use when the user asks to ...\" listing the situations that should activate the skill.",
+          "sourceGuide": "Anthropic"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "skillCount": 2,
+    "averageScore": 75,
+    "minScore": 68
+  }
+}

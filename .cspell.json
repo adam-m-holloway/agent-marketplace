@@ -1,0 +1,6 @@
+{
+  "version": "0.2",
+  "language": "en,en-GB",
+  "dictionaries": ["softwareTerms", "golang", "typescript", "node", "npm", "python", "bash"],
+  "words": ["commitlintrc", "gofmt", "oneline"]
+}

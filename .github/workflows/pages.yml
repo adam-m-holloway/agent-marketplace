@@ -17,6 +17,11 @@ concurrency:
 env:
   UV_VERSION: 0.13.7
   SKILLSPECTOR_REF: v2.11.2
+  # Quality tools (npm ones are pinned in scripts/quality-tools.sh).
+  DART_SDK: 3.13.0
+  SKILLSCORE_VERSION: 0.10.0
+  LYCHEE_VERSION: 0.24.2
+  LYCHEE_SHA256: 1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a
 
 jobs:
   build:
@@ -68,10 +73,35 @@ jobs:
           node scripts/scores.mjs --collect-skillspector "$out" > skillspector.json
           cat skillspector.json
 
+      # Optional: static quality tools (skill-check, skillscore, markdownlint-cli2, lychee, cspell)
+      # feed the quality score. Pinned versions, no cache. Any tool that fails is shown as "not run".
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+        continue-on-error: true
+        with:
+          sdk: ${{ env.DART_SDK }}
+      - name: Quality tools (optional; writes quality reports)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          dart pub global activate skillscore "${SKILLSCORE_VERSION}" \
+            && export PATH="$HOME/.pub-cache/bin:$PATH" \
+            || echo "::notice::skillscore install failed; shown as not run"
+          url="https://github.com/lycheeverse/lychee/releases/download/lychee-v${LYCHEE_VERSION}/lychee-x86_64-unknown-linux-gnu.tar.gz"
+          mkdir -p "$RUNNER_TEMP/bin"
+          if curl -fsSL --retry 1 -o "$RUNNER_TEMP/lychee.tgz" "$url" \
+             && echo "${LYCHEE_SHA256}  $RUNNER_TEMP/lychee.tgz" | sha256sum -c -; then
+            tar -xzf "$RUNNER_TEMP/lychee.tgz" -C "$RUNNER_TEMP/bin" --strip-components=1 lychee-x86_64-unknown-linux-gnu/lychee
+            export PATH="$RUNNER_TEMP/bin:$PATH"
+          else
+            echo "::notice::lychee download failed; shown as not run"
+          fi
+          bash scripts/quality-tools.sh "$RUNNER_TEMP/quality"
+
       - name: Build site
         run: |
           args=(--out _site)
           if [ -s skillspector.json ] && [ "$(tr -d ' \n' < skillspector.json)" != "{}" ]; then args+=(--skillspector skillspector.json); fi
+          if [ -d "$RUNNER_TEMP/quality" ]; then args+=(--quality "$RUNNER_TEMP/quality"); fi
           node scripts/build-site.mjs "${args[@]}"
 
       # Browser checks (Playwright, chromium, light + dark) against _site served on 127.0.0.1 by

@@ -318,6 +318,7 @@ input[type="search"]::placeholder { color: var(--muted); opacity: 1; }
 .criteria { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; font-size: 0.9rem; }
 .criteria li { display: flex; gap: 8px; align-items: baseline; }
 .criteria .mark { font-weight: 700; width: 1em; flex: none; }
+.criteria .mark.num { width: 2.2em; text-align: right; font-variant-numeric: tabular-nums; }
 .criteria .pass .mark { color: var(--good); }
 .criteria .fail .mark { color: var(--poor); }
 

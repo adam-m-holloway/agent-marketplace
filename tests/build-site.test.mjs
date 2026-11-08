@@ -200,7 +200,8 @@ test('buildData: every plugin carries scores, last_updated and the explained rul
   assert.equal(adr.scores.evals.earlier_version, true);
   assert.deepEqual(adr.last_updated, { date: '2026-11-08', version: adr.versions.latest, source: 'tag' });
   assert.equal(d.skillspector_ran, true);
-  assert.ok(d.scores_explained.quality_criteria.length >= 7);
+  assert.deepEqual(d.scores_explained.quality_criteria.map((c) => c.id), ['linters', 'best-practice', 'docs']);
+  assert.equal(d.quality_tools_ran, false);
   assert.ok(d.scores_explained.tracking.some((l) => /major and minor/.test(l)));
   const go = d.plugins.find((p) => p.name === 'go-conventions');
   assert.equal(go.scores.security.skillspector_risk, null);

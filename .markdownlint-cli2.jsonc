@@ -1,0 +1,10 @@
+// markdownlint-cli2 settings for the docs-hygiene part of the quality score
+// (scripts/quality-tools.sh). Default rules, except: line length (prose is not hard-wrapped here)
+// and duplicate headings only among siblings (Keep a Changelog repeats "Added" per version).
+{
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD024": { "siblings_only": true }
+  }
+}
