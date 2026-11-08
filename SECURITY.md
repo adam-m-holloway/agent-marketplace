@@ -3,8 +3,13 @@
 ## Reporting a vulnerability
 
 Please **do not open a public issue**. Report privately through GitHub Security Advisories:
-**Security → Report a vulnerability** on this repository (private vulnerability reporting).
+**[Report a vulnerability](https://github.com/adam-m-holloway/agent-marketplace/security/advisories/new)**
+(Security → Report a vulnerability on this repository; private vulnerability reporting).
 Include the plugin name and version, what you found, and steps to reproduce.
+
+Published advisories: <https://github.com/adam-m-holloway/agent-marketplace/security/advisories>.
+How each pull request is scanned, and what the scanners can't catch:
+[docs/security-scanning.md](docs/security-scanning.md).
 
 ## What happens next (disclosure targets)
 
@@ -68,8 +73,12 @@ The required `pr-gate` workflow runs from the base branch and treats PR content 
   `taxonomy.json`) and to plugin stages are owned by code owners in `.github/CODEOWNERS`.
   Requiring their approval is prepared but not yet switched on (it needs a second reviewer; see
   `docs/repo-setup.md`).
-- **Dependabot** proposes weekly, grouped updates to the pinned actions; **OpenSSF Scorecard**
+- **Dependabot** proposes weekly, grouped updates to the pinned actions and the hash-pinned
+  Claude Code CLI; **CodeQL** (`codeql.yml`) analyses the tooling and workflows on every PR and
+  push to `main`; **[OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/adam-m-holloway/agent-marketplace)**
   (`scorecard.yml`) scores the repo's supply-chain practices weekly and on every push to `main`.
+  The checks it flags that we accept, and why, are listed in
+  [docs/security-scanning.md](docs/security-scanning.md#scorecard-known-and-accepted).
 
 ## Static scanning is not a guarantee
 
