@@ -34,6 +34,8 @@ Do not fill gaps with plausible-sounding guesses, and do not write a draft with
 placeholders "to be filled in later". The user knows why the decision was made; you do
 not. It is fine to suggest options you noticed in the code, but present them as
 questions ("Did you also consider RabbitMQ? I see it in docker-compose.yml"), not as fact.
+Code that shows what is running never tells you the problem it solves, so ask for the
+problem whenever the user has not stated it, even if the repo hints at the decision.
 
 Also ask for, or confirm, the **deciders** (the people or team who made the decision) if
 they are not obvious. If the user does not know or does not care, use the git user name
@@ -83,9 +85,15 @@ the metadata lines (status, date, deciders) and what belongs in each section.
 - **Date**: today's date in `YYYY-MM-DD` form, unless the user gives the date the decision
   was actually made.
 - Write in plain, direct prose. Keep it short: most ADRs fit on one screen.
-- Every option in Considered Options should have at least one honest pro or con, and the
-  Consequences section should include at least one downside. Real decisions have costs;
-  an ADR with none reads as advocacy and helps nobody later.
+- **Pros and cons come only from the user or the repo.** List a pro or con for an option
+  only when the user stated it or it is evident from the repo (for example, a Jenkinsfile
+  shows the team already runs Jenkins). Never invent one to make the record look
+  balanced. When an option has none, write "No pros/cons recorded." under it, or ask the
+  user. A rejected option with no recorded reason is honest; a made-up reason is not.
+- The Consequences section should include at least one downside, because real decisions
+  have costs. Prefer a downside the user gave or the repo shows. If neither gives one, ask,
+  or state the most direct cost of the chosen option (such as a new vendor or service to
+  run) and list it in your report as an assumption for the user to confirm.
 
 ### 5. Update the index
 

@@ -1,6 +1,6 @@
 {
   "name": "adr-helper",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Write Architecture Decision Records in MADR format: numbered docs/adr files grounded in your code, with no invented context.",
   "author": {
     "name": "Adam Holloway"
