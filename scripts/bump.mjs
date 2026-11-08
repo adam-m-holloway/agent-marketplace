@@ -15,7 +15,7 @@ export const tagName = (name, version) => `${name}--v${version}`;
 
 /** Insert `## [version] - date` stub before the first version heading (i.e. after the title). */
 export function insertChangelogStub(text, version, date) {
-  const stub = `## [${version}] - ${date}\n\n### Changed\n- TODO\n`;
+  const stub = `## [${version}] - ${date}\n\n### Changed\n\n- TODO\n`;
   const lines = text.split('\n');
   const i = lines.findIndex((l) => /^##\s/.test(l));
   if (i === -1) return `${text.replace(/\n*$/, '')}\n\n${stub}`;

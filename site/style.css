@@ -444,7 +444,7 @@ tbody tr:last-child > * { border-bottom: 0; }
 /* Install sits in the main block of a plugin page, under the key facts and above the scores. */
 .install-block { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
 .install-heading { margin: 0 0 8px; font-size: 1rem; font-weight: 600; }
-/* "How scores are calculated" page */
+/* Scoring page */
 .explain-page { margin-top: 16px; }
 
 /* Site title links home from anywhere (plugin pages, the scores page, filtered views). */
@@ -501,3 +501,21 @@ tbody tr:last-child > * { border-bottom: 0; }
 .tldr-item dd .table-scroll { margin-top: 4px; }
 .job { display: inline-block; margin-left: 16px; padding: 0 8px; border-radius: 999px; font-size: 0.85rem; color: var(--latest); background: var(--latest-bg); }
 @media (max-width: 640px) { .tldr-item { grid-template-columns: minmax(0, 1fr); } .job { margin-left: 0; } .step { padding-left: 36px; } }
+
+/* Scoring + Lifecycle pages */
+.detail-page > .tldr-part, .detail-page > .table-scroll, .detail-page > .flow { margin-top: 16px; }
+.tldr-item ul.tight, .tldr-item ol.tight, .tldr-part ul.tight { margin: 2px 0; padding-left: 1.2rem; }
+.tools { list-style: none; padding-left: 0 !important; display: grid; gap: 4px; }
+.src { display: inline-block; font-size: 0.75rem; font-weight: 650; line-height: 1.5; padding: 0 7px; border-radius: 999px; border: 1px solid var(--border); white-space: nowrap; }
+.src-ours { color: var(--latest); background: var(--latest-bg); }
+.src-ext { color: var(--stable); background: var(--stable-bg); }
+.src-claude { color: var(--ok); background: var(--ok-bg); }
+.split { display: grid; gap: 16px; margin-top: 8px; }
+@media (min-width: 720px) { .split { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.split h4 { margin: 0 0 4px; font-size: 0.933rem; }
+.flow { list-style: none; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 4px; }
+.flow li { display: flex; align-items: center; }
+.flow li + li::before { content: "→"; color: var(--muted); margin: 0 6px 0 2px; }
+.overview th, .overview td { white-space: normal; vertical-align: top; }
+.overview td:last-child { min-width: 9rem; }
+.tldr-item dd > p:first-child, .tldr-item dd > ul:first-child, .tldr-item dd > ol:first-child { margin-top: 0; }

@@ -99,7 +99,7 @@ export function scaffold(root, opts) {
     [`${base}/catalogue.json`]: stableJson({ category, owner: OWNER.name, languages }),
     [`${base}/status.json`]: stableJson({ stage: 'sandbox', since: date }),
     [`${base}/README.md`]: `# ${name}\n\nTODO: what this plugin does, who it is for, and how to use it.\n\n## Skills\n\n- \`${skill}\` — TODO\n`,
-    [`${base}/CHANGELOG.md`]: `# Changelog\n\nAll notable changes to this plugin are documented here (Keep a Changelog).\n\n## [1.0.0] - ${date}\n\n### Added\n- TODO: first release of ${name}\n`,
+    [`${base}/CHANGELOG.md`]: `# Changelog\n\nAll notable changes to this plugin are documented here (Keep a Changelog).\n\n## [1.0.0] - ${date}\n\n### Added\n\n- TODO: first release of ${name}\n`,
     [`${sk}/SKILL.md`]: [
       '---',
       `name: ${skill}`,

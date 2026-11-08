@@ -107,12 +107,12 @@
         just.appendChild(h('p', { text: '2. Restart Claude Code, then install:' }));
         just.appendChild(codeBlock('/plugin install ' + p.name + '@' + mkt, 'slash install command'));
       }
-      just.appendChild(h('p', { class: 'hint', text: 'Writes user settings only: not committed, and not counted by insights.' }));
+      just.appendChild(h('p', { class: 'hint', text: 'Writes your user settings only: not committed, and not counted in Installs.' }));
 
       var team = h('div', { class: 'install-col' }, h('h3', { text: "My team's repo" }));
       team.appendChild(h('p', null, 'Add to ', h('code', { text: '.claude/settings.json' }), ' in the repo:'));
       team.appendChild(codeBlock(settingsSnippet(p.name, channel, true), 'team settings snippet'));
-      team.appendChild(h('p', { class: 'hint', text: 'Commit it; teammates are prompted after trusting the folder. Insights counts repos listed in insights/consumers.json — open a PR to add yours.' }));
+      team.appendChild(h('p', { class: 'hint', text: 'Commit it; teammates are prompted after trusting the folder. The Installs count covers repos listed in insights/consumers.json, so open a PR to add yours.' }));
       team.appendChild(h('p', { class: 'hint' }, 'Note: ', h('code', { text: '--marketplace' }), ' writes user settings only, so it is not a substitute for this.'));
 
       body.appendChild(just);
@@ -153,7 +153,7 @@
   function consumersBlock(p) {
     var wrap = h('div', { class: 'consumers' });
     if (!p.consumers.length) {
-      wrap.appendChild(h('p', { class: 'empty-note', text: 'No team repos have committed this plugin yet.' }));
+      wrap.appendChild(h('p', { class: 'empty-note', text: 'No team repos install this plugin yet.' }));
     } else {
       var rows = p.consumers.map(function (c) {
         var behind = typeof c.versions_behind === 'number'
@@ -168,7 +168,7 @@
           h('td', { text: c.status || '—' }));
       });
       wrap.appendChild(h('div', { class: 'table-scroll' }, h('table', null,
-        h('caption', { class: 'offscreen', text: 'Team repos using ' + p.name }),
+        h('caption', { class: 'offscreen', text: 'Team repos that install ' + p.name }),
         h('thead', null, h('tr', null, ['Team', 'Channel', 'Version', 'Behind', 'Since', 'Status'].map(function (t) { return h('th', { scope: 'col', text: t }); }))),
         h('tbody', null, rows))));
     }
@@ -264,7 +264,7 @@
     var adopt = p.adoption_history || [];
     var sec_ = s.security || {}, q = s.quality || {};
     var scorePreview = 'security ' + (sec_.score == null ? '—' : sec_.score) + ' · quality ' + (q.score == null ? '—' : q.score) +
-      ' · evals ' + (e ? fmtNum(e.pass_rate) + '% (' + (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' vs baseline)' : 'not measured');
+      ' · evals ' + (e ? fmtNum(e.pass_rate) + '%' + (e.delta == null ? '' : ' (' + (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' vs without)') : 'not measured');
     var usedPreview = p.consumers.length
       ? plural(teamsOf(p).length, 'team') + ' (' + p.consumers.map(function (c) { return (c.team || c.consumer) + ' ' + (c.channel || ''); }).join(', ') + ')'
       : 'no team repos yet';
@@ -285,7 +285,7 @@
       scoreRow(p),
       h('div', { class: 'sections' },
         sec('sec-scores', 'Scores', scorePreview, scoreDetail(p)),
-        sec('sec-used', 'Used by', usedPreview, consumersBlock(p)),
+        sec('sec-used', 'Installed by', usedPreview, consumersBlock(p)),
         sec('sec-releases', 'Release history', relPreview, timeline(p)),
         sec('sec-changelog', 'Changelog', changelogPreview(p), prose(p.changelog_html, 'No CHANGELOG.')),
         sec('sec-trends', 'Trends', trendPreview, h('div', { class: 'trends' }, scoreChart(p), adoptionChart(p))),
@@ -302,13 +302,228 @@
     return rel.length ? 'latest entry ' + rel[0].version + (rel[0].date ? ' · ' + rel[0].date : '') + ' · ' + plural(rel.length, 'entry', 'entries') : 'release notes';
   }
 
+  // ---------- #/scores: how scoring works ----------
+  /** "Our code" / "Third-party" tag shown next to every tool on the Scoring page. */
+  function src(kind) {
+    return h('span', { class: 'src src-' + kind, text: kind === 'ours' ? 'our code' : kind === 'claude' ? 'Claude Code' : 'third-party' });
+  }
+  /** One tool row: tag, linked name, what it does. */
+  function tool(kind, link, what) { return h('li', null, src(kind), ' ', link, ' — ', what); }
+  /** A titled block inside a score section: a short term, then its content. */
+  function row(term) { return h('div', { class: 'tldr-item' }, h('dt', { text: term }), h('dd', null, Array.prototype.slice.call(arguments, 1))); }
+  function scoreSection(id, title, question, rows) {
+    return h('section', { class: 'tldr-part score-part', id: id, 'aria-labelledby': id + '-h' },
+      h('h3', { class: 'part-title', id: id + '-h', text: title }),
+      h('p', { class: 'muted part-sub', text: question }),
+      h('dl', { class: 'tldr-list' }, rows));
+  }
+  function pct1(n) { return fmtNum(n) + '%'; }
+
+  /** A plugin whose scores make a good worked example (all quality parts ran, if possible). */
+  function examplePlugin(pred) {
+    return data.plugins.filter(pred)[0] || null;
+  }
+  function qualityExample() {
+    var p = examplePlugin(function (x) { var c = x.scores && x.scores.quality && x.scores.quality.criteria; return c && c.every(function (k) { return k.ran; }); }) ||
+      examplePlugin(function (x) { return x.scores && x.scores.quality; });
+    if (!p) return h('p', { class: 'empty-note', text: 'No plugin scored yet.' });
+    var crit = p.scores.quality.criteria.filter(function (c) { return c.ran; });
+    var w = crit.reduce(function (n, c) { return n + c.weight; }, 0);
+    var sum = crit.reduce(function (n, c) { return n + c.score * c.weight / 100; }, 0);
+    var parts = crit.map(function (c) { return c.score + ' × ' + c.weight + '%'; }).join(' + ');
+    return h('p', null, detailLink(p.name), ': ', crit.map(function (c) { return c.id + ' ' + c.score + ' (' + c.detail + ')'; }).join('; '), '. ',
+      'So quality = ', code(parts + (w === 100 ? '' : ', re-weighted to the ' + w + '% that ran') + ' = ' + p.scores.quality.score), '.');
+  }
+  function securityExample() {
+    var p = data.plugins[0];
+    if (!p || !p.scores || !p.scores.security) return null;
+    var s = p.scores.security;
+    return h('p', null, detailLink(p.name), ': ', s.high + ' HIGH and ' + s.medium + ' MEDIUM findings, so our rules give ' + s.rules_score + '. ',
+      s.skillspector_risk == null ? 'SkillSpector did not run for this build, so security = ' + s.score + '.'
+        : 'SkillSpector risk ' + s.skillspector_risk + ', so security = min(' + s.rules_score + ', 100 − ' + s.skillspector_risk + ') = ' + s.score + '.');
+  }
+  function evalsExample() {
+    var p = examplePlugin(function (x) { return x.scores && x.scores.evals; });
+    if (!p) return h('p', { class: 'empty-note', text: 'No plugin has a recorded eval run yet.' });
+    var e = p.scores.evals;
+    return h('p', null, detailLink(p.name), ' (run on v' + e.measured_version + '): ' + pct1(e.pass_rate) + ' with the plugin',
+      e.baseline_pass_rate == null ? '' : ', ' + pct1(e.baseline_pass_rate) + ' without it',
+      e.delta == null ? '.' : ', so the delta is ' + (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' points.');
+  }
+  function installsExample() {
+    var p = examplePlugin(function (x) { return teamsOf(x).length; });
+    if (!p) return h('p', { class: 'empty-note', text: 'No team repos install a plugin yet.' });
+    var rows = p.consumers.filter(function (c) { return c.status !== 'removed'; });
+    return h('p', null, detailLink(p.name), ' is in the committed settings of ', rows.map(function (c) { return (c.team || c.consumer) + ' (' + (c.channel || '?') + ')'; }).join(' and '),
+      ', so its Installs number is ' + p.scores.adoption.active_consumers + '.');
+  }
+
   function scoresPage() {
-    return h('div', { class: 'detail-page' },
-      h('p', { class: 'back' }, h('a', { href: '#' }, h('span', { 'aria-hidden': 'true', text: '← ' }), 'All plugins')),
-      h('header', { class: 'detail-head' },
-        h('h2', { id: 'detail-title', tabindex: '-1', text: 'How scores are calculated' }),
-        h('p', { class: 'detail-desc', text: 'Security, quality, evals and adoption (installs): what each score means, how it is computed and when it is recorded.' })),
-      h('div', { class: 'explain-page' }, explainBody()));
+    var r = data.rules || {};
+    var pen = r.security_penalty || {};
+    var crit = (data.scores_explained && data.scores_explained.quality_criteria) || [];
+    var wOf = function (id) { var c = crit.filter(function (x) { return x.id === id; })[0]; return c ? c.weight + '%' : '?'; };
+    var overview = h('div', { class: 'table-scroll' }, h('table', { class: 'overview' },
+      h('caption', { class: 'offscreen', text: 'The four scores at a glance' }),
+      h('thead', null, h('tr', null, ['Score', 'Question it answers', 'Worked out by', 'Updates'].map(function (t) { return h('th', { scope: 'col', text: t }); }))),
+      h('tbody', null,
+        h('tr', null, h('th', { scope: 'row' }, h('a', { href: '#/scores', 'data-jump': 'score-security', text: 'Security' })), h('td', { text: 'Could this plugin do something harmful?' }),
+          h('td', null, 'Our scan rules + ', L.skillspector()), h('td', { text: 'Every site build and release' })),
+        h('tr', null, h('th', { scope: 'row' }, h('a', { href: '#/scores', 'data-jump': 'score-quality', text: 'Quality' })), h('td', { text: 'Is it well written and well structured?' }),
+          h('td', null, L.skillcheck(), ', ', L.skillscore(), ', our ', L.bestPractices(), ' checker, ', L.markdownlint(), ', ', L.lychee(), ', ', L.cspell()), h('td', { text: 'Every site build and release' })),
+        h('tr', null, h('th', { scope: 'row' }, h('a', { href: '#/scores', 'data-jump': 'score-evals', text: 'Evals' })), h('td', { text: 'Does it actually make Claude better at the task?' }),
+          h('td', null, L.pluginEval()), h('td', { text: 'When an author runs npm run eval' })),
+        h('tr', null, h('th', { scope: 'row' }, h('a', { href: '#/scores', 'data-jump': 'score-installs', text: 'Installs' })), h('td', { text: 'How many team repos install it?' }),
+          h('td', { text: 'Our nightly insights scan' }), h('td', { text: 'Nightly, 03:17 UTC' })))));
+
+    var security = scoreSection('score-security', 'Security', 'Could this plugin do something harmful? 0–100, higher is safer.', [
+      row('What runs it', h('ul', { class: 'tight tools' },
+        tool('ours', ghLink('rules/patterns.json', 'Scan rules'), 'hidden text (invisible Unicode, HTML comments) and dangerous patterns (piping downloads into a shell, prompt-injection phrases) in every plugin file.'),
+        tool('ext', L.skillspector(), 'NVIDIA\'s open-source scanner for agent skills, run without a model (--no-llm). It reports a risk from 0 to 100.'))),
+      row('How the number is worked out', 'Start at 100. Take off ' + pen.HIGH + ' for each HIGH finding and ' + pen.MEDIUM + ' for each MEDIUM one. If SkillSpector ran, the score is the lower of that and 100 − its risk. Never below 0.'),
+      row('Example', securityExample()),
+      row('Separate from the score', 'The PR checks block any HIGH finding and any SkillSpector risk over ' + r.skillspector_fail_over + ', so a listed plugin cannot score badly for long.'),
+      row('Code', ghLink('scripts/scores.mjs'), ' (securityScore), ', ghLink('scripts/lib/rules/patterns.mjs'), ', ', ghLink('scripts/lib/rules/hidden-content.mjs'), '.'),
+    ]);
+
+    var quality = scoreSection('score-quality', 'Quality', 'Is the skill well written and well structured? 0–100. Free, open-source tools only; no model is asked for an opinion.', [
+      row('What runs it', h('ul', { class: 'tight tools' },
+        tool('ext', L.skillcheck(), 'scores each skill\'s frontmatter, description, body, links and files.'),
+        tool('ext', L.skillscore(), '26 rules on the description, token use, structure and instructions.'),
+        tool('ours', ghLink('scripts/lib/best-practice.mjs', 'Best-practice checker'), h('span', null, 'the ' + (r.best_practice_rules || []).length + ' rules from ', L.bestPractices(), ' that a script can check reliably (list below).')),
+        tool('ext', L.markdownlint(), 'Markdown structure: headings, lists, code blocks.'),
+        tool('ext', L.lychee(), 'broken links to files inside the plugin (offline).'),
+        tool('ext', L.cspell(), 'spelling.'))),
+      row('How the number is worked out', h('ol', { class: 'tight' },
+        h('li', null, h('strong', { text: wOf('linters') + ' skill linters:' }), ' the average of skill-check and skillscore, averaged over the plugin\'s skills.'),
+        h('li', null, h('strong', { text: wOf('best-practice') + ' best practice:' }), ' the share of best-practice rules each skill passes.'),
+        h('li', null, h('strong', { text: wOf('docs') + ' docs hygiene:' }), ' markdownlint, lychee and cspell findings per 100 lines of the plugin\'s Markdown. 0 per 100 lines scores 100, 1 scores 90, 2 scores 82, 3 scores 74, 5 scores 61 (', code('100 × e^(−' + r.docs_k + ' × findings per 100 lines)'), ').')),
+        hint('If a tool did not run, its part shows "not run" and the other parts are scaled up to fill 100%. A part that did not run never counts as passed.')),
+      row('Example', qualityExample()),
+      row('Best-practice rules', h('ul', { class: 'tight' }, (r.best_practice_rules || []).map(function (t) { return h('li', { text: t }); }))),
+      row('Not points, but required', 'Eval cases, README and CHANGELOG, known tags, stated compatibility and SKILL.md length are pass/fail PR checks. Every listed plugin has them, so they would add the same points to everyone.'),
+      row('Code', ghLink('scripts/scores.mjs'), ' (qualityScore), ', ghLink('scripts/quality-tools.sh'), ' (runs the tools at pinned versions).'),
+    ]);
+
+    var evals = scoreSection('score-evals', 'Evals', 'Does the plugin actually make Claude better at the task? A measured pass rate, not a calculation.', [
+      row('What runs it', h('ul', { class: 'tight tools' },
+        tool('claude', L.pluginEval(), 'Claude Code\'s built-in evaluator. It runs each test case with the plugin and again without it, then grades both.'),
+        tool('ours', ghLink('scripts/eval.mjs', 'npm run eval'), 'runs it with pinned models and a cost limit, and records full runs in evals/results.json.'))),
+      row('Test cases', 'Each skill has at least ' + r.min_cases + ' task cases, plus ' + r.min_trigger_each + ' prompts that should load it and ' + r.min_trigger_each + ' that should not. Most are graded by exact checks (text patterns, files written, tools used); a few use a judge model.'),
+      row('How the number is worked out', 'Score = the average case score with the plugin, as a percentage. Delta = with the plugin minus without it, in points: how much the plugin adds.'),
+      row('Example', evalsExample()),
+      row('When it updates', 'Only when an author runs ', code('npm run eval <plugin>'), ' on their own Claude plan; CI never runs evals (they cost money). A result counts for the version it measured and later ones; the plugin page says when it was measured on an earlier version.'),
+      row('Latest results', evalsTable()),
+    ]);
+
+    var installs = scoreSection('score-installs', 'Installs', 'How many team repos install the plugin? A count, not a 0–100 score.', [
+      row('What runs it', h('ul', { class: 'tight tools' },
+        tool('ours', wf('insights.yml'), 'every night it reads the committed .claude/settings.json of each repo in insights/consumers.json.'))),
+      row('How the number is worked out', 'The number of team repos whose settings list the plugin and still use it.'),
+      row('Example', installsExample()),
+      row('What it does not show', 'How often the skills are actually used, or installs on someone\'s own laptop. Usage telemetry is not set up yet.'),
+    ]);
+
+    var history = scoreSection('score-history', 'History and changes', 'How score changes are tracked over time.', [
+      row('Which versions are recorded', 'Major and minor releases only (1.0.0, 1.1.0, 2.0.0). Patch releases update the current scores but are not added to the history.'),
+      row('▲ / ▼ on a plugin page', 'The change since the previous recorded version, compared like for like (same tools, same method).'),
+      row('On a pull request', 'The PR checks post a "Score changes" table (before → after) in the job summary. It is for information and never blocks a PR.'),
+      row('Where it is stored', 'The ', code('data'), ' branch: ', code('scores/'), ' (one record per release, with a UTC time) and ', code('latest/scores.json'), '.'),
+      row('Bands', '90–100 good, 70–89 fair, below 70 poor. Each score stands alone; there is no overall score.'),
+    ]);
+
+    var split = h('section', { class: 'tldr-part', id: 'score-split', 'aria-labelledby': 'score-split-h' },
+      h('h3', { class: 'part-title', id: 'score-split-h', text: 'Our code vs third-party' }),
+      h('div', { class: 'split' },
+        h('div', null, h('h4', null, src('ours'), ' We wrote'), h('ul', { class: 'tight' },
+          h('li', null, 'The scan rules and the best-practice checker'),
+          h('li', null, 'How tool results become a 0–100 score (the weights above)'),
+          h('li', null, 'The eval runner, the insights scan and the history'),
+          h('li', null, 'All of it is in ', ghLink('scripts/scores.mjs'), ' and the files it imports'))),
+        h('div', null, h('h4', null, src('ext'), ' We use'), h('ul', { class: 'tight' },
+          h('li', null, L.skillspector(), ', ', L.skillcheck(), ', ', L.skillscore()),
+          h('li', null, L.markdownlint(), ', ', L.lychee(), ', ', L.cspell()),
+          h('li', null, L.pluginEval(), ' (part of Claude Code)'),
+          h('li', null, 'Rules taken from ', L.bestPractices(), ' and the ', ext('https://agentskills.io/', 'Agent Skills'), ' spec')))),
+      hint('Every tool runs at a pinned version. The scores add up what the tools report; nobody scores a plugin by hand.'));
+
+    var page = h('div', { class: 'detail-page' }, backLink(),
+      pageHead('Scoring', 'Each plugin gets four separate scores. Code and tools work out all of them; nobody marks a plugin by hand. This page shows what runs, how each number is worked out, and which parts are ours and which are third-party.'),
+      overview, security, quality, evals, installs, history, split);
+    page.addEventListener('click', function (ev) {
+      var a = ev.target.closest && ev.target.closest('a[data-jump]');
+      if (!a) return;
+      ev.preventDefault();
+      var t = document.getElementById(a.getAttribute('data-jump'));
+      if (t) t.scrollIntoView({ block: 'start' });
+    });
+    return page;
+  }
+
+  // ---------- #/lifecycle: stages and how to move a plugin ----------
+  var STAGE_INFO = [
+    ['sandbox', 'Work in progress. In the repo, not in any catalogue.', 'no', 'no'],
+    ['incubating', 'Ready to try; may still change. Its description starts "Incubating:".', 'yes', 'no'],
+    ['published', 'Ready for teams.', 'yes', 'yes, once promoted'],
+    ['deprecated', 'Still works, but use the replacement. Its description starts "Deprecated: use …".', 'yes', 'yes, once promoted'],
+    ['retired', 'Removed from both catalogues. The folder stays in the repo.', 'no', 'no, once promoted'],
+  ];
+  function flow() {
+    return h('ol', { class: 'flow', 'aria-label': 'Stages in order' }, STAGE_INFO.map(function (s) {
+      return h('li', null, badge(s[0], 'stage stage-' + s[0]));
+    }));
+  }
+  function move(title, cmd, checks, note) {
+    return step(title,
+      cmd ? codeBlock(cmd, title + ' command', true) : null,
+      checks && checks.length ? h('p', { class: 'muted', text: 'The PR checks require:' }) : null,
+      checks && checks.length ? h('ul', { class: 'tight' }, checks.map(function (c) { return h('li', null, c); })) : null,
+      note ? hint(note) : null);
+  }
+  function lifecyclePage() {
+    var r = data.rules || {};
+    var stages = h('div', { class: 'table-scroll' }, h('table', { class: 'overview' },
+      h('caption', { class: 'offscreen', text: 'What each stage means and where it is listed' }),
+      h('thead', null, h('tr', null, ['Stage', 'What it means', 'On latest', 'On stable'].map(function (t) { return h('th', { scope: 'col', text: t }); }))),
+      h('tbody', null, STAGE_INFO.map(function (s) {
+        return h('tr', null, h('th', { scope: 'row' }, badge(s[0], 'stage stage-' + s[0])), h('td', { text: s[1] }), h('td', { text: s[2] }), h('td', { text: s[3] }));
+      }))));
+    var moves = part('moves', 'Move a plugin', 'One step per PR. Run the command on a branch: it updates status.json and the catalogues, then prints the same checklist the PR checks will apply. Open a PR with what it changed.', [
+      move('Create it (starts at sandbox)', 'npm run new-plugin my-plugin -- --skill my-skill', null, h('span', null, 'Every new plugin starts at sandbox. ', h('a', { href: '#/guide', text: 'Create & use' }), ' covers writing the skill and its eval cases.')),
+      move('sandbox → incubating', 'npm run stage my-plugin incubating', [
+        'Eval cases for every skill: at least ' + r.min_cases + ' task cases, ' + r.min_trigger_each + ' should-load and ' + r.min_trigger_each + ' should-not-load prompts',
+        h('span', null, 'An owner in ', code('catalogue.json')),
+        'No HIGH security findings']),
+      move('incubating → published', 'npm run stage my-plugin published', [
+        'At least ' + r.min_days + ' days at incubating, or at least ' + r.min_consumers + ' team repos installing it',
+        'A CHANGELOG entry for the current version'],
+        'Published plugins reach the stable channel at the next promotion (below).'),
+      move('→ deprecated (from incubating or published)', 'npm run stage my-plugin deprecated -- --reason "Use other-plugin instead"', [
+        h('span', null, 'A replacement (', code('replacedBy'), ' in catalogue.json) or a reason')],
+        'It stays installable and listed, with a "Deprecated" note pointing to the replacement.'),
+      move('deprecated → retired', 'npm run stage my-plugin retired', [
+        h('span', null, 'No team repos still installing it, or a maintainer adds the ', code(r.retire_label || 'retire-anyway'), ' label to the PR')],
+        'Move teams to the replacement first. The insights report shows who still uses it.'),
+    ]);
+    var rules = group('Rules for every move', [
+      ['One step at a time', 'You can\'t skip a stage, for example sandbox → published. The only shortcut is incubating → deprecated.'],
+      ['Small PRs', 'A stage PR changes only the plugin\'s status.json and the generated catalogues, nothing else.'],
+      ['Checked for you', 'The plugins job of the PR checks applies these rules. If one fails, the PR shows which and why.'],
+    ]);
+    var stable = part('stable', 'Getting onto stable', 'Stable is a separate branch. Teams on it only get changes after a maintainer reviews them.', [
+      step('Promote (maintainers)', codeBlock('npm run promote', 'promote command', true),
+        line('Opens a PR that copies an exact commit of ', code('main'), ' to ', code('stable'), ', listing every version change and flagging any rollback.')),
+      step('What stable lists', line('Only published and deprecated plugins, as they were in the promoted commit. A stage change on main reaches stable at the next promotion.')),
+    ]);
+    var code_ = group('Where the rules live', [
+      ['Stage checks', ghLink('scripts/lib/rules/stage-gate.mjs')],
+      ['Stage command', ghLink('scripts/stage.mjs')],
+      ['Promotion', ghLink('scripts/promote.mjs')],
+      ['Catalogues', ghLink('scripts/lib/catalogue.mjs'), ' (which stages each channel lists)'],
+    ]);
+    return h('div', { class: 'detail-page' }, backLink(),
+      pageHead('Plugin lifecycle', 'Every plugin moves through five stages, one step at a time. Each step is a small PR that the PR checks verify automatically.'),
+      flow(), stages, moves, h('div', { class: 'tldr-groups' }, rules, code_), stable);
   }
 
   // ---------- static pages: #/guide and #/about (TL;DR style) ----------
@@ -384,29 +599,25 @@
         h('ul', { class: 'tight' },
           h('li', null, code('SKILL.md'), ' description: what it does, when to use it, trigger phrases, what it is not for (≤1024 chars).'),
           h('li', null, 'Eval cases (', code('claude plugin eval'), ' format) in ', code('evals/<skill>/<case>/'), ': ', code('prompt.md'), ' + ', code('graders/*.md'), '. ', code('claude plugin eval init'), ' can draft them.'),
-          h('li', null, 'Per skill: ≥3 behaviour cases, ≥8 should-trigger and ≥8 should-not-trigger cases (a ', code('tool_used: Skill'), ' grader; ', code('max: 0'), ' for should-not).'))),
+          h('li', null, 'Per skill: ≥' + data.rules.min_cases + ' task cases, ≥' + data.rules.min_trigger_each + ' prompts that should load the skill and ≥' + data.rules.min_trigger_each + ' that should not (a ', code('tool_used: Skill'), ' grader; ', code('max: 0'), ' for should-not).'))),
       step('Check',
         codeBlock('npm run sync', 'sync command', true),
         codeBlock('npm run check', 'check command', true),
         hint('No TODO/TBD/FIXME placeholders; every references/, scripts/ or assets/ path SKILL.md names must exist. npm run check -- --full adds tests, claude plugin validate and installed scanners.')),
       step('Open a PR',
         line('The plugin starts at ', code('sandbox'), ': in the repo, not listed. One plugin per PR; Conventional Commit title.')),
-      step('List it (one stage per PR)',
+      step('List it',
         codeBlock('npm run stage my-plugin incubating', 'stage incubating command', true),
-        codeBlock('npm run stage my-plugin published', 'stage published command', true),
-        h('ul', { class: 'tight hint' },
-          h('li', null, '→ incubating: every skill has behaviour and trigger eval cases, owner set, no HIGH findings.'),
-          h('li', null, '→ published: ≥14 days at incubating or ≥2 active consumers, plus a CHANGELOG entry.'),
-          h('li', null, 'One step at a time; the PR changes only status.json and the generated catalogues.'))),
+        line('One stage per PR: sandbox → incubating → published. What each stage needs, plus deprecating and retiring: ', h('a', { href: '#/lifecycle', text: 'Plugin lifecycle' }), '.')),
       step('Change it',
         codeBlock('npm run bump my-plugin patch', 'bump command', true),
         hint('patch | minor | major. Fill in the CHANGELOG entry: changing plugin files without a bump fails CI. On merge, release.yml tags and publishes a GitHub Release.')),
       step('Measure it (local)',
-        codeBlock('npm run eval my-plugin -- --max-cost-usd 3 --record', 'eval command', true),
-        hint('Runs with and without the plugin via claude plugin eval on your own Claude plan. CI never runs it.')),
+        codeBlock('npm run eval my-plugin -- --max-cost-usd 3', 'eval command', true),
+        hint('Runs your eval cases with and without the plugin (claude plugin eval) on your own Claude plan; full runs are recorded. CI never runs it. ', h('a', { href: '#/scores', text: 'How scoring works' }), '.')),
       step('Promote to stable (maintainers)',
         codeBlock('npm run promote', 'promote command', true),
-        hint('Opens chore(stable): promote main@<sha>; the gate checks the tree equals that main commit.')),
+        hint('Copies an exact main commit to stable in a reviewed PR. See ', h('a', { href: '#/lifecycle', text: 'Plugin lifecycle' }), '.')),
     ], h('span', null, 'Full detail: ', ghLink('CONTRIBUTING.md'), '.'));
 
     return h('div', { class: 'detail-page' }, backLink(),
@@ -440,6 +651,7 @@
     markdownlint: function () { return ext('https://github.com/DavidAnson/markdownlint-cli2', 'markdownlint-cli2'); },
     lychee: function () { return ext('https://github.com/lycheeverse/lychee', 'lychee'); },
     cspell: function () { return ext('https://github.com/streetsidesoftware/cspell', 'cspell'); },
+    pluginEval: function () { return ext('https://code.claude.com/docs/en/plugin-evals', 'claude plugin eval'); },
   };
 
   function evalsTable() {
@@ -450,19 +662,19 @@
         h('td', null, p.skills.map(function (x) { return x.name; }).join(', ') || '—'),
         h('td', { text: e ? fmtNum(e.pass_rate) + '%' : 'not measured' }),
         h('td', { text: !e ? '—' : (e.baseline_passed == null
-          ? e.passed + '/' + e.total + ' cases passed'
+          ? (e.passed == null ? '—' : e.passed + '/' + e.total + ' cases passed')
           : e.passed + '/' + e.total + ' vs ' + e.baseline_passed + '/' + e.total) + (e.delta == null ? '' : ' (' + (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' pts)') }),
         h('td', { text: e ? 'v' + e.measured_version + ' · ' + (e.measured_at || '').slice(0, 10) : '—' }));
     });
     return h('div', { class: 'table-scroll' }, h('table', null,
       h('caption', { class: 'offscreen', text: 'Latest eval results per plugin' }),
-      h('thead', null, h('tr', null, ['Plugin', 'Skills', 'Pass rate', 'With skill vs baseline', 'Measured'].map(function (t) { return h('th', { scope: 'col', text: t }); }))),
+      h('thead', null, h('tr', null, ['Plugin', 'Skills', 'Score', 'With vs without the plugin', 'Measured'].map(function (t) { return h('th', { scope: 'col', text: t }); }))),
       h('tbody', null, rows)));
   }
 
   function aboutPage() {
     return h('div', { class: 'detail-page' }, backLink(),
-      pageHead('About the Agent Marketplace', 'TL;DR of the whole system: what it is, how it works, what CI runs, how plugins are evaluated and scored, and how installs are counted.'),
+      pageHead('About', 'The whole system on one page: what it is, how it works, what CI runs and where the data lives. Lifecycle and Scoring have the details.'),
       h('div', { class: 'tldr-groups' },
         group('What it is', [
           ['Plugin marketplace monorepo', 'Claude Code plugins for our teams, in one repo: publish once, version it, see who uses what.'],
@@ -471,12 +683,12 @@
         ]),
         group('How it works', [
           ['Source → catalogues', code('plugins/'), ' → ', code('npm run sync'), ' → ', code('.claude-plugin/marketplace.json'), ' + ', code('marketplace-stable.json'), '.'],
-          ['Stages', code('sandbox'), ' → ', code('incubating'), ' → ', code('published'), ' → ', code('deprecated'), ' → ', code('retired'), '. Sandbox and retired are not listed; incubating is latest only.'],
-          ['Stable', 'Moves only by a reviewed promotion PR of a main commit; the gate checks the tree equals that commit.'],
+          ['Stages', code('sandbox'), ' → ', code('incubating'), ' → ', code('published'), ' → ', code('deprecated'), ' → ', code('retired'), ', one step per PR. ', h('a', { href: '#/lifecycle', text: 'Plugin lifecycle' }), '.'],
+          ['Stable', 'Changes only through a reviewed promotion PR that copies an exact main commit.'],
           ['Releases', 'Every change bumps the version + CHANGELOG; merging to main tags ', code('<plugin>--v<version>'), '.'],
         ]),
         group('CI: what runs and when', [
-          [wf('pr-gate.yml'), 'Every PR to main and stable. pull_request_target: runs the base branch\'s definitions, reads the PR as data only. Four jobs:'],
+          [wf('pr-gate.yml'), 'The PR checks, on every PR to main and stable. They run the target branch\'s own scripts (pull_request_target) and only read the PR as data, so a PR cannot change its own checks. Four jobs:'],
           [h('span', { class: 'job' }, 'plugins'), 'validate --strict, catalogues up to date, version bump + changelog, names, frontmatter, eval cases, SKILL.md ≤500 lines, schemas/taxonomy, placeholders & referenced files, stage gate, one plugin per PR, promotion check, score-change preview, triage + capability annotations.'],
           [h('span', { class: 'job' }, 'security'), 'Hidden content, dangerous/injection patterns on all text files, ', L.gitleaks(), ', ', L.skillspector(), ' --no-llm (risk >50 fails).'],
           [h('span', { class: 'job' }, 'workflows'), L.actionlint(), ', ', L.zizmor(), ', every action SHA-pinned.'],
@@ -488,37 +700,31 @@
           [wf('scorecard.yml'), L.scorecard(), ', weekly and on push to main.'],
           [L.dependabot(), 'Weekly, grouped bumps for action pins and the pinned Claude Code CLI.'],
         ], true),
-        group('Evals', [
-          ['What each plugin has', 'Native ', ext('https://code.claude.com/docs/en/plugin-evals', 'claude plugin eval'), ' cases in ', code('plugins/<p>/evals/<skill>/'), ': per skill ≥3 behaviour cases (regex, tool and file graders; a few judge-model ones) and ≥8 should / ≥8 should-not trigger cases.'],
-          ['How they run', code('npm run eval <plugin>'), ' → ', code('claude plugin eval'), ' with and without the plugin, pinned models and a cost ceiling. Score = mean case score; delta = with minus without.'],
-          ['Not in CI', 'Local only, on the author\'s Claude plan ($0 CI policy). Each full run appends to ', code('evals/results.json'), '.'],
-          ['Latest results', evalsTable()],
-        ], true),
-        group('Scores', [
-          ['Security', 'Our rule findings, capped by 100 − ', L.skillspector(), ' risk when it ran.'],
-          ['Quality', '55% skill linters (', L.skillcheck(), ' and ', L.skillscore(), ', averaged), 25% ', L.bestPractices(), ' rules (our own checker), 20% docs hygiene (', L.markdownlint(), ', ', L.lychee(), ', ', L.cspell(), '). A tool that did not run shows as "not run" and the rest are re-weighted.'],
-          ['Evals', 'Pass rate of the latest recorded run at or before this version, vs baseline.'],
-          ['Adoption', 'Team repos that install the plugin (listed in their ', code('.claude/settings.json'), '); not how often its skills are used.'],
-          ['More', h('a', { href: '#/scores', text: 'How scores are calculated' })],
+        group('Scores and evals', [
+          ['Security', 'Our scan rules and ', L.skillspector(), '.'],
+          ['Quality', L.skillcheck(), ', ', L.skillscore(), ', Anthropic best-practice rules and docs linters.'],
+          ['Evals', 'Eval cases per skill, run with and without the plugin by ', L.pluginEval(), ' (', code('npm run eval'), ', locally; never in CI).'],
+          ['Installs', 'Team repos that install the plugin; not how often it is used.'],
+          ['Details', h('a', { href: '#/scores', text: 'How scoring works' }), ': the tools, the maths, worked examples and the latest eval results.'],
         ]),
         group('Stats: how and when they\'re generated', [
           ['Where they come from', 'This page is static: the numbers are baked into ', code('data.json'), ' each time ', wf('pages.yml'), ' builds the site; your browser fetches nothing else.'],
           ['When they refresh', 'On every merge to main or stable, after every promotion, and after each nightly insights run (03:17 UTC), which re-runs the site build. The footer shows when this copy was built.'],
           ['Plugins', 'Plugins listed in the latest catalogue (stage incubating, published or deprecated).'],
-          ['Teams consuming', 'Distinct team repos with an active entry in the insights snapshot (', code('latest/consumers.json'), ' on the data branch) — committed settings, not laptop installs.'],
+          ['Teams installing', 'Distinct teams with a repo that installs at least one plugin, from the insights snapshot (', code('latest/consumers.json'), ' on the data branch). Committed settings, not laptop installs.'],
           ['On stable', 'Plugins whose ', code('plugin.json'), ' exists on the ', code('stable'), ' branch.'],
           ['Stable behind latest', 'Plugins whose stable version is lower than the version on main.'],
-          ['Scores', 'Recomputed at each build from the plugin files, ', code('evals/results.json'), ' and a fresh ', L.skillspector(), ' scan; history is written to the data branch at each major/minor release.'],
+          ['Scores', 'Worked out again at each build; see ', h('a', { href: '#/scores', text: 'How scoring works' }), '.'],
         ]),
         group('Insights', [
-          ['What', 'Each consumer repo\'s committed ', code('.claude/settings.json'), ' → channel, plugin, version, versions behind, since, status. Committed intent, not laptops.'],
+          ['What', 'For each team repo: which plugins its committed ', code('.claude/settings.json'), ' installs, on which channel and version, and how far behind it is. Committed settings, not laptops.'],
           ['How', 'Nightly scan of the repos in ', ghLink('insights/consumers.json'), ' via the GitHub API with ', code('GITHUB_TOKEN'), '.'],
           ['Where', 'The ', code('data'), ' branch: ', code('consumers/'), ' + ', code('events/'), ' ndjson by year/month, ', code('latest/consumers.json'), ', ', code('scores/'), ', ', h('a', { href: GH + '/blob/data/CATALOGUE.md', text: 'CATALOGUE.md' }), '.'],
-          ['Surfaced', 'A pinned "Plugin usage report" issue, one "Behind: …" issue per lagging plugin, and each plugin page\'s Used by section.'],
+          ['Surfaced', 'A pinned "Plugin usage report" issue, one "Behind: …" issue per lagging plugin, and each plugin page\'s Installed by section.'],
         ]),
         group('Tools & standards used', [
           ['Plugins', ext('https://code.claude.com/docs/en/plugins', 'Claude Code plugins'), ' and ', ext('https://code.claude.com/docs/en/plugin-marketplaces', 'plugin marketplaces'), '; skills follow the ', ext('https://agentskills.io/', 'Agent Skills'), ' format.'],
-          ['Authoring & evals', ext('https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator', 'skill-creator'), ' and ', code('claude plugin eval'), '.'],
+          ['Authoring & evals', ext('https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator', 'skill-creator'), ' and ', L.pluginEval(), '.'],
           ['Commits & ADRs', L.cc(), ' for commits and PR titles; ', ext('https://adr.github.io/madr/', 'MADR'), ' for ADRs (adr-helper).'],
           ['Security scanning', L.skillspector(), ', ', L.gitleaks(), ', ', L.codeql(), ', ', L.scorecard(), '.'],
           ['Quality scoring', L.skillcheck(), ', ', L.skillscore(), ', ', L.bestPractices(), ' rules, ', L.markdownlint(), ', ', L.lychee(), ' and ', L.cspell(), '.'],
@@ -679,7 +885,7 @@
 
   function adoptionChart(p) {
     var a = p.adoption_history || [];
-    if (!a.length) return h('div', { class: 'chart chart-empty' }, h('p', { class: 'chart-title', text: 'Adoption over time' }), h('p', { class: 'muted', text: 'No install snapshots yet (the nightly insights run writes one per day).' }));
+    if (!a.length) return h('div', { class: 'chart chart-empty' }, h('p', { class: 'chart-title', text: 'Installs over time' }), h('p', { class: 'muted', text: 'No install snapshots yet (the nightly insights run writes one per day).' }));
     var t = a.map(function (r) { return Date.parse(r.date + 'T00:00:00Z'); });
     var span = t[t.length - 1] - t[0];
     var max = Math.max.apply(null, a.map(function (r) { return r.active; }));
@@ -687,7 +893,7 @@
     var yMax = Math.max(step, Math.ceil(max / step) * step);
     var ticks = []; for (var v = 0; v <= yMax; v += step) ticks.push(v);
     return lineChart({
-      title: 'Adoption over time', sub: 'team repos that install it, per day',
+      title: 'Installs over time', sub: 'team repos that install it, per day',
       desc: 'Number of team repos with ' + p.name + ' committed and active, per daily scan: ' +
         a.map(function (r) { return r.date + ' ' + r.active; }).join('; ') + '.',
       xs: span ? t.map(function (x) { return (x - t[0]) / span; }) : evenXs(a.length),
@@ -747,7 +953,7 @@
       meter('Quality', q.score, q.score == null ? '—' : String(q.score), c.quality, vs),
       meter('Evals', e ? e.pass_rate : null, e ? fmtNum(e.pass_rate) + '%' : 'not measured', c.evals, vs),
       h('li', { class: 'score score-count' },
-        h('span', { class: 'score-label', text: 'Adoption' }),
+        h('span', { class: 'score-label', text: 'Installs' }),
         h('span', { class: 'score-value' }, h('strong', { text: String(n) }), h('span', { class: 'score-band', text: n === 1 ? 'team repo installs it' : 'team repos install it' }))),
     ];
     var sc = p.scored || {};
@@ -759,9 +965,9 @@
       h('p', { class: 'scored' }, when, vs ? ' · change vs v' + vs : '', ' · ', howScoresLink()));
   }
 
-  /** Link to the "How scores are calculated" page. */
+  /** Link to the Scoring page. */
   function howScoresLink() {
-    return h('a', { href: '#/scores', text: 'How scores are calculated' });
+    return h('a', { href: '#/scores', text: 'How scoring works' });
   }
 
 
@@ -775,7 +981,7 @@
     if (s.quality) {
       var crit = s.quality.criteria || [];
       var ran = crit.filter(function (x) { return x.ran; }).length;
-      wrap.appendChild(h('h3', { class: 'sub', text: 'Quality · ' + ran + ' of ' + crit.length + ' criteria ran' }));
+      wrap.appendChild(h('h3', { class: 'sub', text: 'Quality · ' + ran + ' of ' + crit.length + ' parts ran' }));
       wrap.appendChild(h('ul', { class: 'criteria' }, crit.map(function (c) {
         return h('li', { class: c.ran && bandOf(c.score) !== 'poor' ? 'pass' : 'fail' },
           h('span', { class: 'mark num', text: c.ran ? String(c.score) : '—' }),
@@ -786,7 +992,10 @@
     var e = s.evals;
     wrap.appendChild(h('h3', { class: 'sub', text: 'Evals' }));
     wrap.appendChild(h('p', { class: 'hint' }, e
-      ? e.passed + '/' + e.total + ' with the skill vs ' + e.baseline_passed + '/' + e.total + ' baseline (' + (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' pts); measured on v' + e.measured_version +
+      ? (e.baseline_passed == null
+          ? fmtNum(e.pass_rate) + '% with the plugin' + (e.baseline_pass_rate == null ? '' : ' vs ' + fmtNum(e.baseline_pass_rate) + '% without') + (e.passed == null ? '' : ', ' + e.passed + '/' + e.total + ' cases passed')
+          : e.passed + '/' + e.total + ' with the skill vs ' + e.baseline_passed + '/' + e.total + ' without') +
+        (e.delta == null ? '' : ' (' + (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' pts)') + '; measured on v' + e.measured_version +
         ' on ' + fmtDateTime(e.measured_at) + (e.earlier_version ? ' (measured on an earlier version)' : '') + (e.method ? '; ' + e.method : '') + '.'
       : 'No measured benchmark for this version yet.'));
     var hist = p.score_history || [];
@@ -804,30 +1013,6 @@
         })))));
     }
     return wrap;
-  }
-
-  /** "How scores are calculated" body, used on home (collapsed) and on every detail page. */
-  function explainBody() {
-    var x = data.scores_explained;
-    if (!x) return h('p', { class: 'empty-note', text: 'No explanation in this build.' });
-    var list = function (title, lines) {
-      return h('div', { class: 'explain-col' }, h('h3', { text: title }), h('ul', null, (lines || []).map(function (l) { return h('li', { text: l }); })));
-    };
-    return h('div', { class: 'explain' },
-      h('p', { class: 'muted', text: 'Current scores are computed when this catalogue is built, from each plugin\'s own files and this repo\'s rules; the history comes from records written at each release. ' + (x.bands || '') }),
-      h('div', { class: 'explain-grid' },
-        list('Security (0–100)', x.security),
-        h('div', { class: 'explain-col' }, h('h3', { text: 'Quality (0–100)' }),
-          h('ul', null, (x.quality || []).map(function (l) { return h('li', { text: l }); })),
-          (x.quality_tools || []).length ? h('p', { class: 'muted' }, 'Tools: ', (x.quality_tools || []).reduce(function (acc, t, i) {
-            if (i) acc.push(', ');
-            acc.push(ext(t.url, t.name));
-            return acc;
-          }, []), '.') : null),
-        list('Evals', x.evals),
-        list('Adoption (installs)', x.adoption),
-        list('Which versions are tracked', x.tracking),
-        list('When scores are recorded', x.recording)));
   }
 
   // ---------- home cards ----------
@@ -871,7 +1056,7 @@
     var onStable = data.plugins.filter(function (p) { return p.versions.stable; }).length;
     var items = [
       [String(data.plugins.length), data.plugins.length === 1 ? 'plugin' : 'plugins', ''],
-      [String(teams.length), (teams.length === 1 ? 'team' : 'teams') + ' consuming', ''],
+      [String(teams.length), (teams.length === 1 ? 'team' : 'teams') + ' installing', ''],
       [onStable + ' of ' + data.plugins.length, 'on stable', ''],
       [String(lagging), 'stable behind latest', lagging ? ' stat-warn' : ''],
     ];
@@ -967,7 +1152,8 @@
   // Routes: #/plugin/<name> = detail page; #plugin=<name> = catalogue filtered to one plugin;
   // #/scores, #/guide, #/about = static pages; anything else = the catalogue.
   var STATIC_PAGES = {
-    '#/scores': { title: 'How scores are calculated', build: scoresPage },
+    '#/scores': { title: 'Scoring', build: scoresPage },
+    '#/lifecycle': { title: 'Plugin lifecycle', build: lifecyclePage },
     '#/guide': { title: 'Create & use plugins', build: guidePage },
     '#/about': { title: 'About', build: aboutPage },
   };

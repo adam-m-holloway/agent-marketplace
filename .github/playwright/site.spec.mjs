@@ -96,7 +96,8 @@ test.describe('home', () => {
     await expect(page.getByText('Claude Code plugins for our teams')).toHaveCount(0);
   });
 
-  test('home: no install content; "How scores are calculated" is a menu link to its own page', async ({ page }) => {
+  test('home: no install content; Scoring and Lifecycle are menu links to their own pages', async ({ page }) => {
+    await expect(siteNav(page).locator('a[href="#/lifecycle"]')).toHaveCount(1);
     await expect(siteNav(page).locator('a[href="#/scores"]')).toHaveCount(1);
     await expect(page.locator('#how-scores')).toHaveCount(0);
     const body = await page.locator('body').innerText();
@@ -176,9 +177,11 @@ test.describe('detail page', () => {
     await expect(panel).toContainText(/My team's repo/i);
   });
 
-  test('detail: score summary row (Security / Quality / Evals / Adoption)', async ({ page }) => {
+  test('detail: score summary row (Security / Quality / Evals / Installs) + "How scoring works" link', async ({ page }) => {
     const scores = await page.locator('#detail .scores').innerText();
-    for (const k of ['Security', 'Quality', 'Evals', 'Adoption']) expect(scores).toMatch(new RegExp(k, 'i'));
+    for (const k of ['Security', 'Quality', 'Evals', 'Installs']) expect(scores).toMatch(new RegExp(k, 'i'));
+    expect(scores).not.toMatch(/Adoption|undefined|NaN|null/);
+    await expect(page.locator('#detail .scores a[href="#/scores"]')).toHaveText('How scoring works');
     expect(scores).toMatch(/\d/);
   });
 
@@ -189,7 +192,8 @@ test.describe('detail page', () => {
     expect(secs.filter((s) => s.open)).toEqual([]);
     const sumOf = (id) => secs.find((s) => s.id === id)?.summary ?? '';
     expect(sumOf('sec-scores')).toMatch(/Scores.*security \d+ · quality \d+ · evals/i);
-    expect(sumOf('sec-used')).toMatch(/Used by.*2 teams.*team-a latest.*team-b stable/);
+    expect(sumOf('sec-used')).toMatch(/Installed by.*2 teams.*team-a latest.*team-b stable/);
+    for (const x of secs) expect(x.summary).not.toMatch(/undefined|NaN|null/);
     expect(sumOf('sec-releases')).toMatch(/Release history.*\d+ releases, latest \d/);
     expect(sumOf('sec-changelog')).toMatch(/Changelog.+/);
     expect(sumOf('sec-trends')).toMatch(/Trends.*score history over/);
@@ -218,7 +222,7 @@ test.describe('detail page, sections expanded', () => {
     expect(open).toBe(true);
   });
 
-  test('Used by: team-a and team-b + "Committed intent per repo"', async ({ page }) => {
+  test('Installed by: team-a and team-b + "Committed intent per repo"', async ({ page }) => {
     await expect(detail(page)).toContainText('team-a');
     await expect(detail(page)).toContainText('team-b');
     await expect(detail(page)).toContainText(/Committed intent per repo/i);
@@ -226,7 +230,8 @@ test.describe('detail page, sections expanded', () => {
 
   test('Scores section: breakdown + history table', async ({ page }) => {
     await expect(detail(page)).toContainText(/Score history/i);
-    await expect(detail(page)).toContainText(/criteria/i);
+    await expect(detail(page)).toContainText(/Quality · \d of \d parts ran/);
+    expect(await detail(page).innerText()).not.toMatch(/undefined|NaN/);
   });
 
   test('README + full CHANGELOG + release timeline rendered (no scripts/images)', async ({ page }) => {
@@ -260,13 +265,72 @@ test.describe('pages and nav', () => {
     await expect(search(page)).toHaveValue('');
   });
 
-  test('scores page: #/scores shows the explainer on its own page', async ({ page }) => {
-    await nav(page, '#/scores');
-    await expect(page).toHaveTitle(/How scores are calculated/);
+  test('scoring page: overview, one section per score, worked examples, our code vs third-party', async ({ page }) => {
+    const link = navLink(page, 'Scoring');
+    await link.click();
+    await expect(page).toHaveURL(/#\/scores$/);
+    await expect(page).toHaveTitle(/Scoring/);
+    await expect(link).toHaveAttribute('aria-current', 'page');
     await expect(catalogue(page)).toBeHidden();
-    await expect(detail(page)).toContainText('Security');
-    await expect(detail(page)).toContainText('Quality');
-    await expect(detail(page)).toContainText(/major and minor/i);
+    await expect(page.locator('#detail table.overview tbody tr')).toHaveCount(4);
+    for (const id of ['score-security', 'score-quality', 'score-evals', 'score-installs', 'score-history', 'score-split']) {
+      await expect(page.locator('#' + id)).toHaveCount(1);
+    }
+    const t = await detail(page).innerText();
+    expect(t).toMatch(/Question it answers/);
+    expect(t).toMatch(/So quality = .*= \d+/);
+    expect(t).toMatch(/our rules give \d+/);
+    expect(t).toMatch(/Our code vs third-party/);
+    expect(t).toMatch(/major and minor/i);
+    expect(t).not.toMatch(/undefined|NaN/);
+    expect(await page.locator('#detail .src-ours').count()).toBeGreaterThanOrEqual(4);
+    expect(await page.locator('#detail .src-ext').count()).toBeGreaterThanOrEqual(6);
+  });
+
+  test('scoring page: links every tool and our own scoring code', async ({ page }) => {
+    await nav(page, '#/scores');
+    const hrefs = await detail(page).getByRole('link').evaluateAll((as) => as.map((a) => a.href));
+    for (const u of ['github.com/NVIDIA/skillspector', 'github.com/thedaviddias/skill-check', 'github.com/sayed3li97/skillscore',
+      'github.com/DavidAnson/markdownlint-cli2', 'github.com/lycheeverse/lychee', 'github.com/streetsidesoftware/cspell',
+      'code.claude.com/docs/en/plugin-evals', 'agent-skills/best-practices', 'agentskills.io',
+      'blob/main/scripts/scores.mjs', 'blob/main/rules/patterns.json', 'blob/main/scripts/lib/best-practice.mjs',
+      'blob/main/scripts/quality-tools.sh', 'blob/main/scripts/eval.mjs']) {
+      expect(hrefs.some((h) => h.includes(u)), u).toBe(true);
+    }
+  });
+
+  test('scoring page: overview links jump to their section and stay on the page', async ({ page }) => {
+    await nav(page, '#/scores');
+    await page.locator('#detail table.overview').getByRole('link', { name: 'Quality' }).click();
+    await expect(page).toHaveURL(/#\/scores$/);
+    await expect(page.locator('#score-quality')).toBeInViewport();
+  });
+
+  test('lifecycle page: stages, how to move a plugin, stable promotion, rules from the code', async ({ page }) => {
+    const link = navLink(page, 'Lifecycle');
+    await link.click();
+    await expect(page).toHaveURL(/#\/lifecycle$/);
+    await expect(page).toHaveTitle(/Plugin lifecycle/);
+    await expect(link).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('#detail-title')).toBeFocused();
+    await expect(page.locator('#detail ol.flow li')).toHaveCount(5);
+    const t = await detail(page).innerText();
+    for (const x of ['npm run stage my-plugin incubating', 'npm run stage my-plugin published', 'npm run stage my-plugin deprecated',
+      'npm run stage my-plugin retired', 'npm run promote', 'retire-anyway', 'At least 14 days at incubating', 'at least 2 team repos',
+      'One step at a time', 'Getting onto stable']) expect(t).toContain(x);
+    expect(t).not.toMatch(/undefined|NaN/);
+    const hrefs = await detail(page).getByRole('link').evaluateAll((as) => as.map((a) => a.href));
+    for (const u of ['scripts/lib/rules/stage-gate.mjs', 'scripts/stage.mjs', 'scripts/promote.mjs']) expect(hrefs.some((h) => h.includes(u)), u).toBe(true);
+  });
+
+  test('guide and about point to Lifecycle and Scoring instead of repeating them', async ({ page }) => {
+    await nav(page, '#/guide');
+    expect(await detail(page).locator('a[href="#/lifecycle"]').count()).toBeGreaterThanOrEqual(1);
+    expect(await detail(page).innerText()).not.toMatch(/≥14 days|retire-anyway/);
+    await nav(page, '#/about');
+    expect(await detail(page).locator('a[href="#/lifecycle"]').count()).toBeGreaterThanOrEqual(1);
+    expect(await detail(page).locator('a[href="#/scores"]').count()).toBeGreaterThanOrEqual(1);
+    expect(await detail(page).innerText()).not.toMatch(/Adoption|consuming|Pass rate/);
   });
 
   test('guide: header nav opens #/guide (title set, nav marked, heading focused)', async ({ page }) => {
@@ -300,7 +364,7 @@ test.describe('pages and nav', () => {
     expect(t).toContain('npm run new-plugin my-plugin -- --skill my-skill --languages any --description');
     expect(t).toContain('npm run stage my-plugin incubating');
     expect(t).toContain('npm run bump my-plugin patch');
-    expect(t).toContain('npm run eval my-plugin -- --max-cost-usd 3 --record');
+    expect(t).toContain('npm run eval my-plugin -- --max-cost-usd 3');
     expect(t).toContain('npm run promote');
   });
 
@@ -321,7 +385,7 @@ test.describe('pages and nav', () => {
     for (const j of ['plugins', 'security', 'workflows', 'title']) expect(t).toMatch(new RegExp('^' + j + '\\b', 'm'));
   });
 
-  test('about: insights + the data branch, evals with per-plugin results', async ({ page }) => {
+  test('about: insights + the data branch, evals summary', async ({ page }) => {
     await navLink(page, 'About').click();
     await expect(page.locator('#detail-title')).toBeFocused();
     const t = await detail(page).innerText();
@@ -331,8 +395,6 @@ test.describe('pages and nav', () => {
     expect(t).toMatch(/latest\/consumers\.json/);
     expect(t).toMatch(/Evals/);
     expect(t).toMatch(/npm run eval/);
-    expect(t).toMatch(/adr-helper/);
-    expect(t).toMatch(/Pass rate/);
   });
 
   test('nav: "Plugins" returns to the catalogue', async ({ page }) => {
@@ -355,13 +417,13 @@ test.describe('pages and nav', () => {
     }
     const t = await detail(page).innerText();
     expect(t).toMatch(/how and when they.re generated/i);
-    expect(t).toMatch(/Teams consuming/);
+    expect(t).toMatch(/Teams installing/);
     expect(t).toMatch(/03:17 UTC/);
   });
 
   test('menu: every link is in the header menu and the footer has none', async ({ page }) => {
     const hrefs = await siteNav(page).getByRole('link').evaluateAll((as) => as.map((a) => a.getAttribute('href')));
-    for (const x of ['#', '#/guide', '#/about', '#/scores']) expect(hrefs).toContain(x);
+    for (const x of ['#', '#/guide', '#/lifecycle', '#/scores', '#/about']) expect(hrefs).toContain(x);
     expect(hrefs.some((x) => /github\.com\/adam-m-holloway\/agent-marketplace$/.test(x))).toBe(true);
     expect(hrefs.some((x) => /plugin-request/.test(x))).toBe(true);
     await expect(page.locator('footer a')).toHaveCount(0);
@@ -397,8 +459,13 @@ test.describe('360px', () => {
     expect(await scrollWidth(page)).toBeLessThanOrEqual(360);
   });
 
-  test('no horizontal page scroll at 360px (guide + about)', async ({ page }) => {
+  test('no horizontal page scroll at 360px (guide, lifecycle, scoring, about)', async ({ page }) => {
     await home(page);
+    for (const [hash, title] of [['#/lifecycle', /Plugin lifecycle/], ['#/scores', /Scoring/]]) {
+      await nav(page, hash);
+      await expect(page).toHaveTitle(title);
+      expect(await scrollWidth(page), hash).toBeLessThanOrEqual(360);
+    }
     await nav(page, '#/guide');
     await expect(page).toHaveTitle(/Create & use plugins/);
     expect(await scrollWidth(page)).toBeLessThanOrEqual(360);
@@ -418,7 +485,7 @@ async function walk(page) {
   await page.locator('#install-panel input[value=stable]').check();
   await page.locator('#install-panel input[value=latest]').check();
   await expandAll(page);
-  for (const [hash, title] of [['#/scores', /How scores are calculated/], ['#/guide', /Create & use plugins/], ['#/about', /About/]]) {
+  for (const [hash, title] of [['#/scores', /Scoring/], ['#/lifecycle', /Plugin lifecycle/], ['#/guide', /Create & use plugins/], ['#/about', /About/]]) {
     await nav(page, hash);
     await expect(page).toHaveTitle(title);
   }
