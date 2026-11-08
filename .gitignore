@@ -7,3 +7,5 @@ _site/
 .claude/settings.local.json
 .claude/worktrees/
 eval-build/
+.github/playwright/test-results/
+.github/playwright/playwright-report/

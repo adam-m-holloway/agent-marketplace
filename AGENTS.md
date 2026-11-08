@@ -22,7 +22,9 @@ Never edit the catalogue files by hand — run `npm run sync`.
 - **One plugin per PR** (label `multi-plugin` to override, with a reason).
 - Changing a plugin's files **requires a version bump** (`npm run bump <name> <level>`) and a
   `CHANGELOG.md` entry for the new version.
-- Zero npm dependencies. Node ≥24. Tests use `node --test`.
+- Zero npm dependencies in the root `package.json`. Node ≥24. Tests use `node --test`. Isolated,
+  lockfile-pinned exceptions for CI tools only: `.github/claude-code/` (the CLI) and
+  `.github/playwright/` (site browser checks, `@playwright/test`).
 - Run `npm run check` before pushing; `npm run check -- --full` is the local equivalent of most CI
   checks (CI also validates the stable catalogue copy, the PR title, SHA pins and promotion tree
   equality — see `docs/security-scanning.md`).

@@ -39,6 +39,19 @@ gh api -X POST repos/adam-m-holloway/agent-marketplace/environments/github-pages
 Click path: **Settings → Environments → github-pages → Deployment branches and tags → Add
 deployment branch rule → `stable`**.
 
+### Browser checks
+
+`pages.yml` runs the Playwright suite in `.github/playwright/` (chromium, light and dark color
+schemes) against the built `_site`, served on `127.0.0.1:4173`, before it uploads the artifact;
+a failure blocks the deploy. Locally:
+
+```sh
+npm run build-site                      # writes _site/ (reads origin/stable and origin/data if fetched)
+cd .github/playwright && npm ci && npx playwright install chromium
+npx playwright test                     # built site, served by python3 -m http.server
+BASE_URL=https://adam-m-holloway.github.io/agent-marketplace/ npx playwright test   # live site
+```
+
 ## Rulesets
 
 Applied straight after each branch's first merge. Bypass is off for everyone.
@@ -109,32 +122,29 @@ lets an author approve their own PR, so with a single owner every merge would be
 Prerequisite: a second reviewer — a user, or (once the repo is in an org) a team — with **write
 access** to the repo. A code owner without write access is ignored, and every PR is then blocked.
 
+Two steps, in this order: the reviewer only counts as a code owner once CODEOWNERS on the base
+branch names them, so flip the rulesets first and nobody can approve.
+
+1. Add the reviewer to every rule line in `.github/CODEOWNERS` (e.g.
+   `* @adam-m-holloway @<user-or-org/team>`), open a PR and merge it.
+2. Then switch on code-owner review in the `main` (id `26793907`) and `stable` (id `26794396`)
+   rulesets. This GETs each live ruleset, drops the read-only fields, sets four fields on its
+   `pull_request` rule and PUTs it back, keeping every other rule:
+
 ```sh
-# 1. Preview: the new CODEOWNERS and the PUT body for the main + stable rulesets. Changes nothing.
-node scripts/apply-code-owner-review.mjs --reviewer @<user-or-org/team> --dry-run
-
-# 2. Step 1 of 2: adds the reviewer to every CODEOWNERS line (rulesets untouched).
-node scripts/apply-code-owner-review.mjs --reviewer @<user-or-org/team>
-#    Open a PR with the CODEOWNERS change and merge it.
-
-# 3. Step 2 of 2, on an up-to-date main: CODEOWNERS already names the reviewer, so it PUTs both
-#    rulesets (gh api -X PUT repos/adam-m-holloway/agent-marketplace/rulesets/<id> --input -).
-git switch main && git pull
-node scripts/apply-code-owner-review.mjs --reviewer @<user-or-org/team>
+repo=adam-m-holloway/agent-marketplace
+for id in 26793907 26794396; do
+  gh api "repos/$repo/rulesets/$id" \
+    | jq 'del(.id, .node_id, .source, .source_type, .created_at, .updated_at, ._links, .current_user_can_bypass)
+          | (.rules[] | select(.type == "pull_request") | .parameters) += {
+              required_approving_review_count: 1, require_code_owner_review: true,
+              dismiss_stale_reviews_on_push: true, require_last_push_approval: true }' \
+    | gh api -X PUT "repos/$repo/rulesets/$id" --input -
+done
 ```
 
-The steps run in that order on purpose: the reviewer only counts as a code owner once
-CODEOWNERS on the base branch names them. The PUT keeps every other rule and sets the
-`pull_request` rule to:
-
-```json
-{ "required_approving_review_count": 1, "require_code_owner_review": true,
-  "dismiss_stale_reviews_on_push": true, "require_last_push_approval": true }
-```
-
-Options: `--repo <owner/name>` (default this repo), `--rulesets main,stable`,
-`--codeowners <path>`. The script refuses to run without `--reviewer`. Check afterwards with
-`gh api repos/adam-m-holloway/agent-marketplace/rulesets/<id>`.
+Preview first by dropping the last line of the pipe (the `| gh api -X PUT …`). Check afterwards:
+`gh api repos/adam-m-holloway/agent-marketplace/rulesets/26793907 --jq '.rules[] | select(.type=="pull_request") | .parameters'`.
 
 Click path: **Settings → Rules → Rulesets → main (then stable) → Require a pull request before
 merging → Required approvals 1, Dismiss stale approvals, Require review from Code Owners, Require

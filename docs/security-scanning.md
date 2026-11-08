@@ -65,7 +65,7 @@ Headings follow the OWASP Agentic Skills Top 10 where they fit.
 | **Silent changes** | `version-bump` + `changelog-entry`: changed plugin files need a version increase and a CHANGELOG entry | yes | — |
 | **Unreviewed bulk changes** | `one-plugin-per-pr` (needs `multi-plugin` label) | yes | — |
 | **Stable channel tampering** | `promotion`: head `promote/*`, title `chore(stable): promote main@<sha>`, tree **equals** that `main` commit; any plugin version going backwards needs the `rollback` label | yes | — |
-| **Workflow weaknesses** | actionlint, zizmor (offline), every `uses:` pinned to a 40-hex SHA | yes | — |
+| **Workflow weaknesses** | actionlint, zizmor (offline; its `unpinned-uses` audit fails any action not pinned to a commit SHA) | yes | — |
 | **Code bugs in the tooling and workflows** (injection, unsafe file/path handling, workflow anti-patterns) | CodeQL (`codeql.yml`: `javascript-typescript` + `actions`, every PR and push to `main`, weekly) | no (results in the Security tab) | doesn't analyse plugin Markdown/skills; finds known query patterns only |
 | **Weak repo supply-chain practices** (unpinned deps, broad token permissions, missing branch protection or review, dangerous workflow patterns, no security policy) | OpenSSF Scorecard (`scorecard.yml`, weekly + every push to `main`; published to scorecard.dev, JSON kept as a run artifact) | no (a score, not a PR check) | doesn't look at plugin content; Branch-Protection needs an admin token and may score `?` with the default one; Code-Review and Contributors score low for a single-maintainer repo |
 | **Outdated actions / dependencies** | Dependabot, weekly grouped updates (`dependabot.yml`: actions, and the CI's Claude Code CLI in `.github/claude-code`; team repos also `gomod` / `npm`) | no (its PRs go through the gate) | doesn't judge whether a new version is trustworthy — the 7-day cooldown and the gate's review do |
@@ -110,7 +110,7 @@ the code changes:
 
 | Check | Score | Why it's accepted | What would raise it |
 |---|---|---|---|
-| **Code-Review** | 0 | Single maintainer: GitHub never lets an author approve their own PR, so merged PRs have no approvals. Code-owner review is prepared but deliberately left off. | A second reviewer, then `scripts/apply-code-owner-review.mjs --reviewer <user>` (`docs/repo-setup.md`). |
+| **Code-Review** | 0 | Single maintainer: GitHub never lets an author approve their own PR, so merged PRs have no approvals. Code-owner review is prepared but deliberately left off. | A second reviewer, then the ruleset update in `docs/repo-setup.md`, "Turn on code-owner review". |
 | **Branch-Protection** | 4 | Rulesets require PRs and all `pr-gate` checks with no bypass, but no required approvals / code-owner review (same reason as above). | Same as Code-Review. |
 | **Dangerous-Workflow** | 0 | Flags `pr-gate`'s `pull_request_target` checkouts of the PR head. Deliberate: the PR is checked out to `./pr` as **data only**, base scripts judge it, read-only token, no secrets ([why it's safe](#why-pull_request_target-and-why-its-safe-here)). The tamper demo ([PR #6](https://github.com/adam-m-holloway/agent-marketplace/pull/6)) proved a PR can't change its own checks. A `pull_request` gate would let a PR rewrite them — worse. | Nothing; this is the safer design. |
 | **Maintained** | 0 | The repo is under 90 days old. | Time: it scores once the repo is 90+ days old with ongoing commits and issue activity. |
@@ -159,7 +159,7 @@ annotation so reviewers look at what's being suppressed.
 - A clean scan means **"no findings"**, not **"safe"**.
 - There is no LLM review in CI (deliberately: $0, no API key). The human backstop is code-owner
   review on plugin and stage changes, designed in the plan's post-POC "staged approval" section.
-  It is prepared (`.github/CODEOWNERS`, `scripts/apply-code-owner-review.mjs`) but not switched
+  It is prepared (`.github/CODEOWNERS`, a ruleset snippet in `docs/repo-setup.md`) but not switched
   on until there is a second reviewer — see `docs/repo-setup.md`, "Turn on code-owner review".
 - Scorecard grades how the **repo** is run, not what the **plugins** do. A high score says the
   pipeline is hard to tamper with; it says nothing about whether a skill is malicious.

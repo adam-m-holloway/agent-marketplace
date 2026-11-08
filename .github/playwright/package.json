@@ -1,0 +1,13 @@
+{
+  "name": "ci-playwright",
+  "private": true,
+  "description": "Browser checks for the catalogue site (Playwright Test, chromium). Isolated from the dependency-free root package.json: installed with `npm ci`, so every package is verified against the sha512 in package-lock.json. Not a repo dependency.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "@playwright/test": "1.64.1"
+  }
+}
