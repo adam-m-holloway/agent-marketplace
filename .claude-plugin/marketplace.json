@@ -20,6 +20,18 @@
       ]
     },
     {
+      "name": "conventional-commits",
+      "source": "./plugins/conventional-commits",
+      "description": "Incubating: Write Conventional Commits messages and PR titles from your staged diff, with scopes from changed paths and no AI attribution trailers.",
+      "category": "engineering-practices",
+      "tags": [
+        "conventional-commits",
+        "commits",
+        "git",
+        "conventions"
+      ]
+    },
+    {
       "name": "go-conventions",
       "source": "./plugins/go-conventions",
       "description": "Go house conventions: wrapped errors with %w, table-driven tests, small consumer-side interfaces, and gofmt, go vet and go test before calling work done.",
