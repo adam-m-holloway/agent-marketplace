@@ -29,7 +29,8 @@ Every change goes through a **feature branch and a pull request**. Nobody commit
 4. **Check:**
    ```sh
    npm run sync     # regenerate both catalogues
-   npm run check    # same plugin verdict as CI
+   npm run check    # the plugin checks CI runs; CI also compares against main
+                    # (version bump, stage gate), so run with --base for that locally
    npm run check -- --full   # + tests, claude plugin validate, and any installed scanners
    ```
 5. Open the PR with the plugin at `sandbox` (a new plugin must start there). Listing it is a
@@ -142,7 +143,8 @@ in `evals/results.json` names its `method`.
 ## Move a plugin between stages
 
 A stage move is its own PR that changes **only** `plugins/<name>/status.json` and the generated
-catalogues (no version bump needed). A code owner approves it (`.github/CODEOWNERS`).
+catalogues (no version bump needed). Today @adam-m-holloway reviews and merges; code-owner
+review (`.github/CODEOWNERS`) is switched on once a second reviewer exists.
 
 ```sh
 git switch -c chore/stage-my-plugin

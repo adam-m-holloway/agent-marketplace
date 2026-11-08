@@ -4,15 +4,8 @@ A [Claude Code plugin marketplace](https://code.claude.com/docs/en/plugin-market
 our teams: publish a plugin once, version it, let each team choose a release channel, and see
 who uses what.
 
-- **Catalogue site:** <https://adam-m-holloway.github.io/agent-marketplace/> — fuzzy search over
-  a minimal grid of plugin cards (name, short description, latest version, stage, one score
-  line). Each whole card opens a detail page (`#/plugin/<name>`) that puts the key facts, an
-  Install button (latest/stable commands for you or your team's repo) and a score summary first,
-  then collapsible sections, each with a one-line preview: score breakdown and history, used-by
-  table, release timeline and full CHANGELOG, trend charts, rendered README, skills, related
-  plugins and how scores are calculated. `#plugin=<name>` still filters the grid to one plugin. README/CHANGELOG are rendered at build time by `scripts/build-site.mjs` (a small
-  Markdown subset; raw HTML is escaped); adoption comes from the `data` branch's daily
-  `consumers/` snapshots.
+- **Catalogue site:** <https://adam-m-holloway.github.io/agent-marketplace/> — search the plugins,
+  see their scores and who uses them, and copy install commands from each plugin's page.
 - **Usage report:** [`CATALOGUE.md` on the `data` branch](https://github.com/adam-m-holloway/agent-marketplace/blob/data/CATALOGUE.md)
   (written nightly by `insights.yml`).
 - **OpenSSF Scorecard:** [scorecard.dev viewer](https://scorecard.dev/viewer/?uri=github.com/adam-m-holloway/agent-marketplace)
@@ -79,11 +72,9 @@ claude plugin install adr-helper --marketplace adam-m-holloway/agent-marketplace
 
 ## Plugins
 
-| Plugin | What | Languages |
-|---|---|---|
-| [`adr-helper`](plugins/adr-helper) | Architecture Decision Records (MADR) | any |
-| [`go-conventions`](plugins/go-conventions) | Go conventions + toolchain checks | Go |
-| [`typescript-conventions`](plugins/typescript-conventions) | Strict TypeScript + Vitest conventions | TypeScript |
+The current list, with versions, stages and scores, is on the
+[catalogue site](https://adam-m-holloway.github.io/agent-marketplace/); each plugin's source is in
+[`plugins/`](plugins).
 
 ## Contributing
 
@@ -92,7 +83,7 @@ Read [`CONTRIBUTING.md`](CONTRIBUTING.md). Short version:
 ```sh
 npm run new-plugin my-plugin   # scaffold
 /skill-creator                  # in Claude Code: draft SKILL.md, evals and the trigger set
-npm run check                   # same plugin verdict as CI
+npm run check                   # the plugin checks CI runs (CI also compares against main)
 ```
 
 ## How it's protected

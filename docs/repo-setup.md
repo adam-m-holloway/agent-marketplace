@@ -191,7 +191,8 @@ edit those out.
 
 ## The `data` branch
 
-An orphan branch written only by `insights.yml`. It isn't the default branch, so the `main`
+An orphan branch written only by workflows: `insights.yml` (consumer snapshots, events,
+`CATALOGUE.md`) and `release.yml` (score history). It isn't the default branch, so the `main`
 ruleset doesn't apply to it.
 
 ## Scheduled workflows
