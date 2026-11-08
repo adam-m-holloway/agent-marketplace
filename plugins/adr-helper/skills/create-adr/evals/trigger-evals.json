@@ -1,0 +1,22 @@
+[
+  {"query": "we decided in the arch review to move the billing service from REST to gRPC because of the payload sizes, can you write that up as an ADR? options were REST+gzip, gRPC, and GraphQL", "should_trigger": true},
+  {"query": "Please create a new architecture decision record for adopting OpenTelemetry instead of our custom metrics lib in pkg/telemetry. We compared it against Datadog's agent-only approach and just keeping the custom code.", "should_trigger": true},
+  {"query": "can u document why we chose postgres over mongo for the orders db? we went with postgres for transactions, me and Sam decided last week", "should_trigger": true},
+  {"query": "add the next ADR in docs/adr for dropping Redux in favour of Zustand in the web app, status accepted", "should_trigger": true},
+  {"query": "I want to record the decision that all new services use Go 1.23 with the standard library router rather than gin or echo. Make it MADR format please.", "should_trigger": true},
+  {"query": "log a decision record: we're switching the monorepo from npm to pnpm workspaces because installs take 6 minutes in CI. yarn berry was the other option.", "should_trigger": true},
+  {"query": "The team agreed yesterday to use feature flags via LaunchDarkly rather than env vars for rollouts. Can you capture that decision in the repo so new joiners know why?", "should_trigger": true},
+  {"query": "write an adr for the message queue choice", "should_trigger": true},
+  {"query": "we're proposing to split the auth module out of the monolith into its own service - can you draft a proposed ADR for it so we can discuss in Thursday's review? alternatives are keeping it in-process or using Auth0", "should_trigger": true},
+  {"query": "need a new MADR file for our decision to deploy on ECS Fargate instead of EKS, the reasoning is we don't have anyone to run kubernetes", "should_trigger": true},
+  {"query": "update the README to explain how to run the service locally with docker compose and mention the new env vars", "should_trigger": false},
+  {"query": "write a design doc for the new public API: endpoints, auth, pagination and rate limits, so the frontend team can start building against it", "should_trigger": false},
+  {"query": "explain what an ADR is and when a team should bother writing one, I'm trying to convince my manager", "should_trigger": false},
+  {"query": "can you review docs/adr/0004-use-kafka.md and tell me if the reasoning holds up? I think the cons section is too thin", "should_trigger": false},
+  {"query": "fix the typo in docs/adr/0002-use-postgresql.md, it says 'Postgress' in the title", "should_trigger": false},
+  {"query": "compare Kafka, RabbitMQ and SQS for our order events use case - throughput is about 2k msgs/sec. which would you pick?", "should_trigger": false},
+  {"query": "write the CHANGELOG entry for v2.3.0, we added the bulk export endpoint and fixed the timezone bug", "should_trigger": false},
+  {"query": "draft an RFC for the platform team proposing we standardise on Terraform modules, with a rollout plan and open questions section", "should_trigger": false},
+  {"query": "draw an architecture diagram of how the order, inventory and billing services talk to each other, mermaid is fine", "should_trigger": false},
+  {"query": "add godoc comments to every exported function in internal/orders so the package docs make sense", "should_trigger": false}
+]
