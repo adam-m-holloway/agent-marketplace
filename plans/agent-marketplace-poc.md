@@ -1276,6 +1276,12 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
 | 13:38 | Supply chain (GH #33 + team-a #6, team-b #11): OpenSSF Scorecard (first score **4.7/10**), grouped Dependabot in all 3 repos, SECURITY.md disclosure SLA, CODEOWNERS + `scripts/apply-code-owner-review.mjs` (prepared, **not enabled** — needs a second reviewer) | ✅ |
 | 13:52 | **Compact cards + detail pages + trend charts** (GH #34): small summary cards (3/2/1 grid) → `#/plugin/<name>` with rendered README/CHANGELOG, timeline, score + adoption charts; `scripts/browser-check.mjs` (20 checks) — live 20/20 light + dark | ✅ |
 | 13:58 | **`npm run eval`** (GH #35, Slice S1): first real `claude plugin eval` run on typescript-conventions 1.0.1 — 17/25 vs 13/25 baseline, $1.36 | ✅ (method caveat below) |
+| — | **Round 4 (user's choices: code-owner review stays off; fix eval fixtures + re-run; merge Dependabot actions, review TS 7; raise Scorecard; a 4th real plugin)** | |
+| 14:05 | Dependabot: actions bumps merged (team-a #7, team-b #12); TypeScript 5.9.3 → **7.0.2** verified locally (tsc clean, 13/13 tests, build) and shipped as team-b #14 (Dependabot #13 closed as superseded) | ✅ |
+| 14:30 | `.git`-file fix in tree diffing (GH #37); taxonomy tags `git`/`commits`/`conventional-commits` in their own PR (GH #38) | ✅ |
+| 14:35 | **`conventional-commits` through the full staged flow:** scaffold (similarity: none) → `sandbox` (GH #39, excluded from catalogues) → `npm run stage … incubating` (all gates PASS; GH #40 status-only, no bump) → listed in **latest only** as "Incubating:"; a sandbox → published jump is refused | ✅ staged approval proven on a real plugin |
+| 14:40 | **Scorecard uplift** (GH #41): CodeQL SAST; Claude Code CLI installed with `npm ci` from a committed lockfile (sha512 for the wrapper + 8 platform packages; pr-gate installs from base); SECURITY.md links; "known and accepted" table | ✅ (expected ~4.7 → ~6) |
+| 16:35 | **Professional minimal UI** (GH #42): minimal home grid; plugin pages lead with key facts + Install, then scores, then collapsed sections with one-line previews; browser check now 24 checks — live 24/24 light + dark; first gate run on the hash-pinned CLI passed | ✅ |
 
 ### Learnings during Slices 1–12
 
@@ -1400,4 +1406,16 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
 - **Code-owner review needs a second human:** GitHub never lets an author approve their own PR, so
   enabling it with one owner blocks every merge. It's two-step by design (CODEOWNERS PR first, then
   the rulesets) via `scripts/apply-code-owner-review.mjs --reviewer <user>`.
+- **Code-owner review: deliberately off** (user decision, 2026-11-08) until a second reviewer exists;
+  everything is prepared (`scripts/apply-code-owner-review.mjs`, CODEOWNERS placeholder).
+- **Never squash-merge a bot PR:** GitHub authors the squash commit as the PR author
+  (`dependabot[bot]`), breaking the single-author rule. Re-apply bot changes in our own PR and close
+  the bot PR. (team-a still carries one `dependabot[bot]` commit; its force-push fix was blocked by the
+  permission check — commands handed to the user.)
+- **Launch isolated agents from the target repo:** three agents started while the shell was in
+  `team-b` got `team-b` worktrees; they detected it (remote check) and stopped without changes.
+  Briefs now start with `git remote get-url origin` verification.
+- **Scorecard and npm pinning:** Scorecard treats every `npm install` as unpinned; only `npm ci`
+  (lockfile) passes. The Claude Code npm tarball is a thin wrapper — the real binary is a
+  per-platform optional dependency, so a lockfile (not a tarball hash) is what actually pins it.
 
