@@ -1194,9 +1194,9 @@ minor versions, not patch").
 | Score | How it's computed |
 |---|---|
 | Security (0–100) | 100 − 40 per HIGH − 10 per MEDIUM from our hidden-content + pattern rules, capped at 100 − SkillSpector risk (`--no-llm`) |
-| Quality (0–100) | 7 weighted criteria: evals ≥3, trigger set ≥8/≥8, description what/when/triggers/not-for, SKILL.md ≤500 lines, compatibility, README + CHANGELOG, on-taxonomy keywords |
-| Evals | Measured runs in `evals/results.json` (timestamped; with skill vs baseline; flagged when measured on an earlier version) |
-| Adoption | Active consumer repos from insights |
+| Quality (0–100) | **Since GH #56 (static tools):** 55% skill linters (mean of skill-check and skillscore), 25% Anthropic best-practice rules (our checker, `scripts/lib/best-practice.mjs`), 20% docs hygiene (markdownlint-cli2, lychee offline, cspell; `round(100 × e^(−0.1 × findings per 100 lines))`). A tool that did not run is "not run" and the rest re-weighted. The old presence criteria (evals ≥3, trigger set, README + CHANGELOG, …) are `npm run check` gates, not points. *(Before GH #56: 7 presence criteria, so every plugin scored 100.)* |
+| Evals | Measured runs in `evals/results.json` (timestamped; native `claude plugin eval` since GH #57: overall score with the plugin + mean delta vs without; flagged when measured on an earlier version) |
+| Installs (was "Adoption") | Team repos whose committed settings install the plugin, from insights; **not usage** (telemetry deferred, see Round 6) |
 
 - **When recorded:** every plugin PR gets an informational "Score changes" table in the gate;
   every release writes scores to the `data` branch (`scores/year=…/month=…/<day>.ndjson` +
@@ -1210,6 +1210,8 @@ minor versions, not patch").
   100 / 100 / 86.4% (+13.7, plugin eval, offline); typescript-conventions **82** (SkillSpector risk
   18) / 100 / 76% (+8, plugin eval, offline deps); conventional-commits 100 / 100 / no eval yet.
   Quality is 100 for all four — see the ranked review: its criteria overlap the gate's hard checks.
+  **Update (GH #56):** quality now comes from static tools — adr-helper 86, conventional-commits 87,
+  go-conventions 84, typescript-conventions 85.
 - **Deferred:** no aggregate score (deliberate — separate scores with visible inputs); evals
   aren't re-measured automatically on each release (no model calls in CI, Q32).
 
@@ -1290,6 +1292,34 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
 | 17:10 | **Offline evals** (GH #45): npm deps cached outside the eval sandbox, Go local toolchain; recorded typescript-conventions 19/25 vs 17/25 ($1.12), go-conventions 19/22 vs 16/22 ($1.06); adr-helper re-run stalled (API) twice — not recorded | ✅ (adr-helper rerun outstanding) |
 | 17:15 | Inconsistencies from the ranked review fixed (GH #46) | ✅ |
 | 17:25 | **Gate safety & structure** (GH #47): scan every plugin text file + backslash-continued lines (3 verified bypasses now HIGH); placeholders and missing `references/`/`scripts/`/`assets/` paths are errors; new capabilities annotated on the PR | ✅ |
+| — | **Round 5b (site polish from user feedback)** | |
+| 18:30 | GH #49–#53: "Agent Marketplace" as the H1, tag pills on cards (teams kept on the plugin page only, GH #50), brighter palette + Create & use guide + About TL;DR pages (GH #51), SVG favicon (GH #52), every link in the header menu (GH #53) | ✅ |
+| 20:40 | GH #54: search shows only plugins whose name or description contains every word typed ("adr" → adr-helper only; it used to fuzzy-match tags and skill text at threshold 0.4, so everything matched); strict fuzzy only as a typo fallback. About links every tool and explains how and when the stats are generated | ✅ live 39/39 light + dark |
+| — | **Round 6 (architecture review; user chose: telemetry not yet, static-tool quality, native evals locally, maintenance quick wins + Playwright)** | |
+| 21:00 | GH #55: browser checks moved to **Playwright** (`.github/playwright`, lockfile-pinned, the one npm-deps exception) and run in `pages.yml` before deploy; custom action-pin script removed (zizmor `unpinned-uses` covers it — proven; gap: `docker://` tags without digest, none used); code-owner script → ruleset snippet in `docs/repo-setup.md` | ✅ CI 78/78 |
+| 21:10 | GH #56: **quality from static tools** (see the scores table above). Live: adr-helper 86, conventional-commits 87, go-conventions 84, typescript-conventions 85 (were all 100) | ✅ |
+| 21:45 | GH #57 + #58: **native `claude plugin eval` cases** (116 cases, mostly deterministic graders; `scripts/eval.mjs` 499 → 178 lines). Split in two PRs because the gate runs the *base* branch's rules: #57 kept the old files so main's rules passed, #58 deleted them under the new rules | ✅ (one plugin run for real, capped at $1; full TS/Go/ADR runs outstanding) |
+| — | **Round 7 (user: Scoring page unclear; explain the stages; check all pages for duplication and naming)** | |
+| 21:50 | GH #59: **Scoring page** rewritten (overview table; per score: tools tagged our code / third-party / Claude Code with links, how the number is worked out, a worked example from live data, the code); new **Lifecycle page** (`#/lifecycle`); one name per idea (Installs, Installed by, teams installing); guide and About link out instead of repeating; thresholds fed from code via `data.json` `rules`. Changelog stubs get a blank line after headings (markdownlint caught it) | ✅ CI + live 86/86 (43 checks × 2 schemes) |
+
+### Learnings from rounds 5b–7
+
+- **The gate's base-branch rules make format migrations two PRs.** `pull_request_target` judges a
+  PR with main's rules, so a PR that changes the rules *and* the data they check fails until the
+  rules land. Ship rules that accept the new format first (keeping the old data valid), then
+  remove the old data in a follow-up (GH #57 → #58).
+- **Presence checks make poor scores.** Anything every listed plugin must have is a gate, not
+  points; scoring it only flattens the spread (every plugin was 100). Real tools spread 84–87 on
+  day one and immediately caught changelog formatting from our own bump template.
+- **Telemetry deferred, wording fixed.** Claude Code's `claude_code.skill_activated` OpenTelemetry
+  event has skill + plugin names, but redacts non-official marketplace names unless
+  `OTEL_LOG_TOOL_DETAILS=1`, can only be enabled org-wide (managed settings), and needs a
+  collector. Until then the site says **Installs**, never usage.
+- **Fuzzy search across tags and skill text matches everything** in a small catalogue; exact
+  name/description substring first, strict fuzzy only as a fallback.
+- **Supply-chain caveat (accepted):** the quality tools are pinned by version, but `npx`/`dart pub`
+  resolve their transitive deps unpinned (lychee is sha256-checked). They only affect scores, never
+  merges.
 
 ### Learnings during Slices 1–12
 
