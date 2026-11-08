@@ -12,11 +12,10 @@
   <a class="skip" href="#results">Skip to plugins</a>
   <header class="site-header">
     <div class="wrap">
-      <p class="eyebrow">Claude Code plugin catalogue</p>
-      <h1>Agent Marketplace</h1>
-      <p class="lede">Plugins for our teams, on two channels: <strong>latest</strong> tracks
-        <code>main</code>, <strong>stable</strong> gets reviewed promotions.
-        <a href="https://github.com/adam-m-holloway/agent-marketplace/blob/main/docs/consuming-plugins.md">How consuming works</a></p>
+      <p class="eyebrow"><a href="#">Agent Marketplace</a></p>
+      <h1>Claude Code plugins for our teams</h1>
+      <p class="lede">Two channels: <strong>latest</strong> tracks <code>main</code>, <strong>stable</strong> gets
+        reviewed promotions. <a href="https://github.com/adam-m-holloway/agent-marketplace/blob/main/docs/consuming-plugins.md">How consuming works</a></p>
       <dl id="stats" class="stats" aria-label="Catalogue at a glance"></dl>
     </div>
   </header>
@@ -24,52 +23,51 @@
   <main class="wrap">
     <p id="stale" class="stale" role="status" hidden></p>
     <div id="catalogue">
-    <section aria-label="Search and filters" class="controls">
-      <div class="field field-search">
-        <label for="q">Search plugins</label>
-        <input id="q" type="search" autocomplete="off" spellcheck="false"
-               placeholder="e.g. adr, go tests, typescript" aria-describedby="count">
-      </div>
-      <div class="field">
-        <label for="f-category">Category</label>
-        <select id="f-category"><option value="">All</option></select>
-      </div>
-      <div class="field">
-        <label for="f-stage">Stage</label>
-        <select id="f-stage"><option value="">All</option></select>
-      </div>
-      <div class="field">
-        <label for="f-language">Language</label>
-        <select id="f-language"><option value="">All</option></select>
-      </div>
-    </section>
+      <section aria-label="Search and filters" class="controls">
+        <div class="field field-search">
+          <label for="q">Search</label>
+          <input id="q" type="search" autocomplete="off" spellcheck="false"
+                 placeholder="Search plugins, e.g. adr, go tests" aria-describedby="count">
+        </div>
+        <div class="field">
+          <label for="f-category">Category</label>
+          <select id="f-category"><option value="">All</option></select>
+        </div>
+        <div class="field">
+          <label for="f-stage">Stage</label>
+          <select id="f-stage"><option value="">All</option></select>
+        </div>
+        <div class="field">
+          <label for="f-language">Language</label>
+          <select id="f-language"><option value="">All</option></select>
+        </div>
+      </section>
 
-    <div class="results-bar">
-      <p id="count" class="count" role="status" aria-live="polite">Loading catalogue…</p>
-      <button type="button" id="clear" class="link-button" hidden>Clear search and filters</button>
-    </div>
-    <div id="focus-bar" class="focus-bar" hidden></div>
-    <div id="request" class="request" hidden></div>
+      <div class="results-bar">
+        <p id="count" class="count" role="status" aria-live="polite">Loading catalogue…</p>
+        <button type="button" id="clear" class="link-button" hidden>Clear search and filters</button>
+      </div>
+      <div id="focus-bar" class="notice" hidden></div>
+      <div id="request" class="notice request" hidden></div>
 
-    <section id="results" class="cards" aria-label="Plugins" tabindex="-1"></section>
+      <section id="results" class="cards" aria-label="Plugins" tabindex="-1"></section>
+
+      <div class="home-more">
+        <details id="sandbox" class="sec" hidden>
+          <summary><span class="sec-title">Sandbox</span><span class="sec-preview" id="sandbox-count"></span></summary>
+          <div class="sec-body">
+            <p class="muted">These plugins are in the repo but not listed. Try one from a clone of the repo without installing it.</p>
+            <div id="sandbox-list"></div>
+          </div>
+        </details>
+        <details id="how-scores" class="sec">
+          <summary><span class="sec-title">How scores are calculated</span><span class="sec-preview">security, quality, evals and adoption, and when each is recorded</span></summary>
+          <div class="sec-body" id="how-scores-body"></div>
+        </details>
+      </div>
     </div>
 
     <article id="detail" class="detail" aria-labelledby="detail-title" hidden></article>
-
-    <section id="how-scores" class="explain" aria-labelledby="how-scores-h" tabindex="-1">
-      <h2 id="how-scores-h">How scores are calculated</h2>
-      <p class="muted">Current scores are computed when this catalogue is built, from each plugin's
-        own files and this repo's rules; the history comes from records written at each release.
-        The page fetches nothing from other sites.</p>
-      <div id="how-scores-body"></div>
-    </section>
-
-    <section id="sandbox" class="sandbox" aria-labelledby="sandbox-h" hidden>
-      <h2 id="sandbox-h">Sandbox (not listed)</h2>
-      <p>These plugins are in the repo but not in either catalogue. Try one from a clone of the
-        repo without installing it:</p>
-      <div id="sandbox-list"></div>
-    </section>
   </main>
 
   <footer class="site-footer">
