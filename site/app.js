@@ -312,6 +312,189 @@
       h('div', { class: 'explain-page' }, explainBody()));
   }
 
+  // ---------- static pages: #/guide and #/about (TL;DR style) ----------
+  var GH = 'https://github.com/adam-m-holloway/agent-marketplace';
+  function ghLink(path, text) { return h('a', { href: GH + '/blob/main/' + path, text: text || path }); }
+  function code(t) { return h('code', { text: t }); }
+  function backLink() { return h('p', { class: 'back' }, h('a', { href: '#' }, h('span', { 'aria-hidden': 'true', text: '← ' }), 'All plugins')); }
+  function pageHead(title, desc) {
+    return h('header', { class: 'detail-head' },
+      h('h2', { id: 'detail-title', tabindex: '-1', text: title }),
+      h('p', { class: 'detail-desc' }, desc));
+  }
+  /** A numbered step: a short title, then any number of lines / code blocks. */
+  function step(title) {
+    var body = Array.prototype.slice.call(arguments, 1);
+    return h('li', { class: 'step' }, h('h4', { class: 'step-title', text: title }), h('div', { class: 'step-body' }, body));
+  }
+  function line() { return h('p', null, Array.prototype.slice.call(arguments)); }
+  function hint() { return h('p', { class: 'hint' }, Array.prototype.slice.call(arguments)); }
+  function part(id, title, sub, steps, more) {
+    return h('section', { class: 'tldr-part', id: id, 'aria-labelledby': id + '-h' },
+      h('h3', { class: 'part-title', id: id + '-h', text: title }),
+      h('p', { class: 'muted part-sub', text: sub }),
+      h('ol', { class: 'steps' }, steps),
+      more ? h('p', { class: 'part-more' }, more) : null);
+  }
+
+  function guidePage() {
+    var L = marketplaceName('latest'), S = marketplaceName('stable');
+    var P = '<plugin>';
+    var use = part('use', 'Use a plugin', 'Swap ' + P + ' for a name from the catalogue. Each plugin\'s page shows these commands ready-filled.', [
+      step('Pick a channel',
+        h('ul', { class: 'tight' },
+          h('li', null, h('strong', { text: 'latest' }), ' (', code(L), '): tracks ', code('main'), '. New versions as soon as they merge.'),
+          h('li', null, h('strong', { text: 'stable' }), ' (', code(S), '): the ', code('stable'), ' branch. Reviewed promotions only.')),
+        hint('A channel serves every plugin from one commit: you pick a channel, not a version per plugin.')),
+      step('Just me',
+        line('Latest, one step (Claude Code 2.1.292+):'),
+        codeBlock('claude plugin install ' + P + ' --marketplace ' + data.repo, 'latest install command', true),
+        line('Stable: add this to your user settings (', code('~/.claude/settings.json'), '), restart, then install:'),
+        codeBlock(settingsSnippet(P, 'stable', false), 'stable marketplace user settings'),
+        codeBlock('/plugin install ' + P + '@' + S, 'stable slash install command'),
+        hint('User settings only: not committed, not counted by insights.')),
+      step("My team's repo",
+        line('Commit one of these as ', code('.claude/settings.json'), '. Latest:'),
+        codeBlock(settingsSnippet(P, 'latest', true), 'latest team settings snippet'),
+        line('Stable:'),
+        codeBlock(settingsSnippet(P, 'stable', true), 'stable team settings snippet')),
+      step('Trust the folder',
+        line('Claude Code reads ', code('extraKnownMarketplaces'), ' only after you trust the folder. Teammates are then prompted to install.')),
+      step('Update',
+        line('Auto-update is off by default. When a new version lands on your channel:'),
+        codeBlock('claude plugin marketplace update ' + L, 'marketplace update command', true),
+        codeBlock('claude plugin update ' + P + '@' + L, 'plugin update command', true),
+        hint('On stable use ', code(S), '. Restart Claude Code afterwards.')),
+      step('Headless runs (claude -p, CI)',
+        line(code('-p'), ' skips the folder-trust dialog, so pass the committed settings:'),
+        codeBlock('claude -p --settings .claude/settings.json "…"', 'headless command', true)),
+      step("If a plugin doesn't load",
+        line('Install it once per machine:'),
+        codeBlock('claude plugin install ' + P + '@' + L + ' --scope project', 'project-scope install command', true),
+        hint('It may reorder keys in .claude/settings.json: discard that diff (git checkout -- .claude/settings.json).')),
+      step('Get counted by insights',
+        line('Open a PR adding your repo to ', ghLink('insights/consumers.json'), ':'),
+        codeBlock('{ "repo": "<owner>/<repo>", "team": "<team>" }', 'consumers entry')),
+    ], h('span', null, 'Full detail: ', ghLink('docs/consuming-plugins.md'), '.'));
+
+    var create = part('create', 'Create a plugin', 'Every change goes through a feature branch and a pull request.', [
+      step('Scaffold',
+        codeBlock('npm run new-plugin my-plugin -- --skill my-skill --languages any --description "One sentence on what it helps with"', 'new-plugin command', true),
+        hint('It lists the 3 most similar plugins first and asks continue anyway? [y/N] (--yes skips). Stubs fail npm run check until filled in.')),
+      step('Author with /skill-creator',
+        h('ul', { class: 'tight' },
+          h('li', null, code('SKILL.md'), ' description: what it does, when to use it, trigger phrases, what it is not for (≤1024 chars).'),
+          h('li', null, code('evals/evals.json'), ': at least 3 cases.'),
+          h('li', null, 'Trigger set: ≥8 should-trigger and ≥8 should-not. Save it (it exports to ', code('~/Downloads'), ') to ', code('evals/trigger-evals.json'), '.'))),
+      step('Check',
+        codeBlock('npm run sync', 'sync command', true),
+        codeBlock('npm run check', 'check command', true),
+        hint('No TODO/TBD/FIXME placeholders; every references/, scripts/ or assets/ path SKILL.md names must exist. npm run check -- --full adds tests, claude plugin validate and installed scanners.')),
+      step('Open a PR',
+        line('The plugin starts at ', code('sandbox'), ': in the repo, not listed. One plugin per PR; Conventional Commit title.')),
+      step('List it (one stage per PR)',
+        codeBlock('npm run stage my-plugin incubating', 'stage incubating command', true),
+        codeBlock('npm run stage my-plugin published', 'stage published command', true),
+        h('ul', { class: 'tight hint' },
+          h('li', null, '→ incubating: every skill has evals + trigger set, owner set, no HIGH findings.'),
+          h('li', null, '→ published: ≥14 days at incubating or ≥2 active consumers, plus a CHANGELOG entry.'),
+          h('li', null, 'One step at a time; the PR changes only status.json and the generated catalogues.'))),
+      step('Change it',
+        codeBlock('npm run bump my-plugin patch', 'bump command', true),
+        hint('patch | minor | major. Fill in the CHANGELOG entry: changing plugin files without a bump fails CI. On merge, release.yml tags and publishes a GitHub Release.')),
+      step('Measure it (local)',
+        codeBlock('npm run eval my-plugin -- --max-cost-usd 3 --record', 'eval command', true),
+        hint('Runs with and without the plugin via claude plugin eval on your own Claude plan. CI never runs it.')),
+      step('Promote to stable (maintainers)',
+        codeBlock('npm run promote', 'promote command', true),
+        hint('Opens chore(stable): promote main@<sha>; the gate checks the tree equals that main commit.')),
+    ], h('span', null, 'Full detail: ', ghLink('CONTRIBUTING.md'), '.'));
+
+    return h('div', { class: 'detail-page' }, backLink(),
+      pageHead('Create & use plugins', 'The short version: install a plugin for yourself or your team, or build and ship a new one.'),
+      h('div', { class: 'tldr-grid' }, use, create));
+  }
+
+  /** A TL;DR group: small heading + short items (each a term and 1–3 short lines). */
+  function group(title, items, wide) {
+    return h('section', { class: 'tldr-group' + (wide ? ' wide' : '') },
+      h('h3', { class: 'group-title', text: title }),
+      h('dl', { class: 'tldr-list' }, items.map(function (it) {
+        return h('div', { class: 'tldr-item' }, h('dt', null, it[0]), h('dd', null, it.slice(1)));
+      })));
+  }
+  function wf(name) { return ghLink('.github/workflows/' + name, name); }
+
+  function evalsTable() {
+    var rows = data.plugins.map(function (p) {
+      var e = p.scores && p.scores.evals;
+      return h('tr', null,
+        h('th', { scope: 'row' }, detailLink(p.name)),
+        h('td', null, p.skills.map(function (x) { return x.name; }).join(', ') || '—'),
+        h('td', { text: e ? fmtNum(e.pass_rate) + '%' : 'not measured' }),
+        h('td', { text: e ? e.passed + '/' + e.total + ' vs ' + e.baseline_passed + '/' + e.total + ' (' + (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' pts)' : '—' }),
+        h('td', { text: e ? 'v' + e.measured_version + ' · ' + (e.measured_at || '').slice(0, 10) : '—' }));
+    });
+    return h('div', { class: 'table-scroll' }, h('table', null,
+      h('caption', { class: 'offscreen', text: 'Latest eval results per plugin' }),
+      h('thead', null, h('tr', null, ['Plugin', 'Skills', 'Pass rate', 'With skill vs baseline', 'Measured'].map(function (t) { return h('th', { scope: 'col', text: t }); }))),
+      h('tbody', null, rows)));
+  }
+
+  function aboutPage() {
+    return h('div', { class: 'detail-page' }, backLink(),
+      pageHead('About the Agent Marketplace', 'TL;DR of the whole system: what it is, how it works, what CI runs, how plugins are evaluated and scored, and how usage is measured.'),
+      h('div', { class: 'tldr-groups' },
+        group('What it is', [
+          ['Plugin marketplace monorepo', 'Claude Code plugins for our teams, in one repo: publish once, version it, see who uses what.'],
+          ['Two channels', h('strong', { text: 'latest' }), ' (', code('agent-marketplace'), ', tracks main) and ', h('strong', { text: 'stable' }), ' (', code('agent-marketplace-stable'), ', reviewed promotions).'],
+          ['Generated catalogues', 'Both catalogues are generated from the plugin folders, never hand-edited.'],
+        ]),
+        group('How it works', [
+          ['Source → catalogues', code('plugins/'), ' → ', code('npm run sync'), ' → ', code('.claude-plugin/marketplace.json'), ' + ', code('marketplace-stable.json'), '.'],
+          ['Stages', code('sandbox'), ' → ', code('incubating'), ' → ', code('published'), ' → ', code('deprecated'), ' → ', code('retired'), '. Sandbox and retired are not listed; incubating is latest only.'],
+          ['Stable', 'Moves only by a reviewed promotion PR of a main commit; the gate checks the tree equals that commit.'],
+          ['Releases', 'Every change bumps the version + CHANGELOG; merging to main tags ', code('<plugin>--v<version>'), '.'],
+        ]),
+        group('CI: what runs and when', [
+          [wf('pr-gate.yml'), 'Every PR to main and stable. pull_request_target: runs the base branch\'s definitions, reads the PR as data only. Four jobs:'],
+          [h('span', { class: 'job' }, 'plugins'), 'validate --strict, catalogues up to date, version bump + changelog, names, frontmatter, evals/trigger set, SKILL.md ≤500 lines, schemas/taxonomy, placeholders & referenced files, stage gate, one plugin per PR, promotion check, score-change preview, triage + capability annotations.'],
+          [h('span', { class: 'job' }, 'security'), 'Hidden content, dangerous/injection patterns on all text files, gitleaks, SkillSpector --no-llm (risk >50 fails).'],
+          [h('span', { class: 'job' }, 'workflows'), 'actionlint, zizmor, every action SHA-pinned.'],
+          [h('span', { class: 'job' }, 'title'), 'PR title is a Conventional Commit.'],
+          [wf('release.yml'), 'Push to main: tests → tag + GitHub Release per new version → score history to the data branch.'],
+          [wf('pages.yml'), 'Push to main or stable (and after insights): builds this site, including a SkillSpector scan.'],
+          [wf('insights.yml'), 'Nightly at 03:17 UTC: usage scan (below).'],
+          [wf('codeql.yml'), 'CodeQL on pushes and PRs to main, and weekly.'],
+          [wf('scorecard.yml'), 'OpenSSF Scorecard, weekly and on push to main.'],
+          ['Dependabot', 'Weekly, grouped bumps for action pins and the pinned Claude Code CLI.'],
+        ], true),
+        group('Evals', [
+          ['What each plugin has', 'Per skill: ', code('evals/evals.json'), ' (≥3 cases with expectations) and ', code('evals/trigger-evals.json'), ' (≥8 should / ≥8 should-not trigger).'],
+          ['How they run', code('npm run eval <plugin>'), ' → ', code('claude plugin eval'), ' with and without the skill; dependencies installed offline first.'],
+          ['Not in CI', 'Local only, on the author\'s Claude plan ($0 CI policy). ', code('--record'), ' appends to ', code('evals/results.json'), '.'],
+          ['Latest results', evalsTable()],
+        ], true),
+        group('Scores', [
+          ['Security', 'Our rule findings, capped by 100 − SkillSpector risk when it ran.'],
+          ['Quality', 'Weighted criteria from the plugin\'s own files (description, evals, docs…).'],
+          ['Evals', 'Pass rate of the latest recorded run at or before this version, vs baseline.'],
+          ['Adoption', 'Active team repos that commit the plugin.'],
+          ['More', h('a', { href: '#/scores', text: 'How scores are calculated' })],
+        ]),
+        group('Insights', [
+          ['What', 'Each consumer repo\'s committed ', code('.claude/settings.json'), ' → channel, plugin, version, versions behind, since, status. Committed intent, not laptops.'],
+          ['How', 'Nightly scan of the repos in ', ghLink('insights/consumers.json'), ' via the GitHub API with ', code('GITHUB_TOKEN'), '.'],
+          ['Where', 'The ', code('data'), ' branch: ', code('consumers/'), ' + ', code('events/'), ' ndjson by year/month, ', code('latest/consumers.json'), ', ', code('scores/'), ', ', h('a', { href: GH + '/blob/data/CATALOGUE.md', text: 'CATALOGUE.md' }), '.'],
+          ['Surfaced', 'A pinned "Plugin usage report" issue, one "Behind: …" issue per lagging plugin, and each plugin page\'s Used by section.'],
+        ]),
+        group('Security & governance', [
+          ['Rulesets', 'No direct commits to main or stable; squash merge only.'],
+          ['Review', 'Code-owner review is off until a second reviewer exists; today the owner reviews and merges.'],
+          ['Scanning', 'CodeQL and OpenSSF Scorecard; see ', ghLink('docs/security-scanning.md'), '.'],
+        ])));
+  }
+
   function notFound(name) {
     return h('div', { class: 'detail-page' },
       h('p', { class: 'back' }, h('a', { href: '#' }, h('span', { 'aria-hidden': 'true', text: '← ' }), 'All plugins')),
@@ -739,25 +922,40 @@
   function safeDecode(s) { try { return decodeURIComponent(s); } catch (e) { return s; } }
 
   // Routes: #/plugin/<name> = detail page; #plugin=<name> = catalogue filtered to one plugin;
-  // #/scores = how scores are calculated; anything else = the catalogue.
+  // #/scores, #/guide, #/about = static pages; anything else = the catalogue.
+  var STATIC_PAGES = {
+    '#/scores': { title: 'How scores are calculated', build: scoresPage },
+    '#/guide': { title: 'Create & use plugins', build: guidePage },
+    '#/about': { title: 'About', build: aboutPage },
+  };
+  /** Mark the header nav link for the current page (aria-current); '' marks none. */
+  function setNav(hash) {
+    document.querySelectorAll('.site-nav a').forEach(function (a) {
+      if (a.getAttribute('href') === hash) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    });
+  }
   var catalogueScroll = 0;
   var inDetail = false;
   function onHash() {
     var d = location.hash.match(/^#\/plugin\/(.+)$/);
     charts = [];
-    if (location.hash === '#/scores') {
+    var page = STATIC_PAGES[location.hash];
+    if (page) {
       if (!inDetail) catalogueScroll = window.scrollY;
       inDetail = true;
       var sv = $('detail');
       sv.textContent = '';
-      sv.appendChild(scoresPage());
+      sv.appendChild(page.build());
       $('catalogue').hidden = true;
       sv.hidden = false;
-      document.title = 'How scores are calculated · Agent Marketplace';
+      document.title = page.title + ' · Agent Marketplace';
+      setNav(location.hash);
       window.scrollTo(0, 0);
       $('detail-title').focus({ preventScroll: true });
       return;
     }
+    setNav(d ? '' : '#');
     if (d) {
       if (!inDetail) catalogueScroll = window.scrollY;
       inDetail = true;
@@ -820,7 +1018,7 @@
     });
     window.addEventListener('hashchange', onHash);
     // The site title always returns to the clean home page: catalogue, no search, no filters.
-    document.querySelectorAll('.home-link').forEach(function (a) {
+    document.querySelectorAll('.home-link, [data-home]').forEach(function (a) {
       a.addEventListener('click', function (ev) {
         ev.preventDefault();
         state.q = state.category = state.stage = state.language = state.only = '';
