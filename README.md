@@ -4,8 +4,14 @@ A [Claude Code plugin marketplace](https://code.claude.com/docs/en/plugin-market
 our teams: publish a plugin once, version it, let each team choose a release channel, and see
 who uses what.
 
-- **Catalogue site:** <https://adam-m-holloway.github.io/agent-marketplace/> — fuzzy search,
-  install commands, versions per channel, and who consumes each plugin.
+- **Catalogue site:** <https://adam-m-holloway.github.io/agent-marketplace/> — fuzzy search over
+  a grid of compact plugin cards (versions per channel, stage, scores, who consumes it, install).
+  Each card links to a detail page (`#/plugin/<name>`) with the score breakdown and history,
+  score and adoption trend charts, the rendered README and full CHANGELOG, the release timeline,
+  skills, the used-by table and related plugins. `#plugin=<name>` still filters the grid to one
+  plugin. README/CHANGELOG are rendered at build time by `scripts/build-site.mjs` (a small
+  Markdown subset; raw HTML is escaped); adoption comes from the `data` branch's daily
+  `consumers/` snapshots.
 - **Usage report:** [`CATALOGUE.md` on the `data` branch](https://github.com/adam-m-holloway/agent-marketplace/blob/data/CATALOGUE.md)
   (written nightly by `insights.yml`).
 - **OpenSSF Scorecard:** [scorecard.dev viewer](https://scorecard.dev/viewer/?uri=github.com/adam-m-holloway/agent-marketplace)
