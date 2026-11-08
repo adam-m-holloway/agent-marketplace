@@ -32,7 +32,7 @@ Enterprise Cloud by changing the owner and auth, not by redesigning.
 - Replace `insights/consumers.json` with **org code search** for `.claude/settings.json` files
   that reference the marketplace.
 - Use a **GitHub App** (installation token, read-only Contents + Metadata) instead of
-  `GITHUB_TOKEN`, which can't read private repos in other repos.
+  `GITHUB_TOKEN`, which can't read other private repos.
 - Optionally ship the Athena-ready `data` branch layout to S3 + Athena.
 
 ## Deferred items to pick up

@@ -798,7 +798,7 @@ network panel shows only same-origin requests.
 
 ### Slice 7: The two language plugins (one PR #3, `multi-plugin` label) (M)
 
-- [ ] **Complete**
+- [x] **Complete** (GH #8 merged 11:13; `go-conventions--v1.0.0` + `typescript-conventions--v1.0.0` released)
 
 **Acceptance criteria:**
 1. **`go-conventions` 1.0.0** (languages `["go"]`, compatibility "Requires the Go
@@ -840,7 +840,7 @@ tags.
 
 ### Slice 9: Docs checklist (shipped inside each PR, not a separate PR) (S)
 
-- [ ] **Complete**
+- [x] **Complete** (all 8 items present; fresh-eyes audit fixed 6 inaccuracies + 2 missing learnings)
 
 **Acceptance criteria:**
 1. **`README.md`:**
@@ -959,7 +959,7 @@ matches.
 
 ### Slice 13: Usage insights (PR #6, merged, then a live run) (M)
 
-- [ ] **Complete**
+- [x] **Complete** (GH #11 merged 11:16; live run: both consumers recorded; same-day-removal fix GH #13)
 
 **Path:**
 - `insights/consumers.json`, `scan.mjs` (injectable `fetch`), `report.mjs`, and the schemas.
@@ -993,7 +993,7 @@ run summary link.
 
 ### Slice 14: `adr-helper` 1.1.0 on the latest channel (PR #7) (M)
 
-- [ ] **Complete**
+- [x] **Complete** (GH #12 merged 11:25; `adr-helper--v1.1.0`; insights + site + CATALOGUE.md showed team-b 1 behind)
 
 **Path:**
 1. `skills/supersede-adr/` via `/skill-creator`.
@@ -1015,7 +1015,7 @@ run summary link.
 
 ### Slice 15: End-to-end proof (M)
 
-- [ ] **Complete** — in progress: step 2 ADRs done for both repos (team-a GH #4, team-b GH #6)
+- [x] **Complete** (steps 1–5 done; see Build log and Learnings)
 
 **Steps (each needs approval where it touches GitHub or your login):**
 1. **Isolated check** (scratch `CLAUDE_CONFIG_DIR` + `HOME`, both channels on one
@@ -1166,7 +1166,7 @@ These reuse `similar.mjs`, the gate and the insights data.
 | 6 | `GITHUB_TOKEN` reads other public repos | **proven** | `spike-token` run 42466387539: team-a Contents 200, Commits 200, missing settings 404; `x-ratelimit-limit: 5000`. **No PAT needed.** |
 | 7 | Names not reserved; `evals/` passes strict | **proven** | `validate --strict` on empty catalogues named `agent-marketplace` / `agent-marketplace-stable` reports only "no plugins defined" (no reserved-name error). `hello-skill` with `skills/hello/evals/evals.json` passes `validate --strict` and installed. |
 | 9 | Two consecutive squash promotions | **proven** | PR #1 and PR #2 (`spike/promote-1`, `spike/promote-2`, each cut from `spike/stable` + `git read-tree -u --reset <latest>`) squash-merged cleanly with an overlapping line changed between them; a fresh stable consumer then resolved 1.2.0 @729c36f = `spike/stable` head. **Squash-only stays everywhere.** |
-| 10 | One-step install for stable | **gap** | `claude plugin marketplace add owner/repo@stable` reads the *default* `marketplace.json`, so it registers the **latest** name. `--marketplace`/`add` have no `path` flag: stable "Just me" installs use `/plugin marketplace add` of the settings snippet, documented in `docs/consuming-plugins.md`. |
+| 10 | One-step install for stable | **gap** | `claude plugin marketplace add owner/repo@stable` reads the *default* `marketplace.json`, so it registers the **latest** name. `--marketplace`/`add` have no `path` flag: stable "Just me" = add the stable snippet to **user** settings, restart, then `/plugin install <p>@agent-marketplace-stable` (shown on the site and in `docs/consuming-plugins.md`). |
 | 3, 5, 8, 11 | Update path, ref move, SkillSpector, eval usage | **deferred** | Recorded opportunistically in later slices (non-blocking per Q34). |
 
 Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are labels, not real numbers.
@@ -1187,6 +1187,19 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
 | 10:25 | `stable` created at `main`, ruleset + Pages env; team-a + team-b ADR 0001 merged (real `claude -p`) | ✅ Slice 10, Slice 15 step 2 |
 | 10:49 | GH #5 (go-install fallback, all scanners always report) merged | ✅ |
 | 10:56 | **Site merged** (GH #4) and live; zizmor caught over-broad Pages permissions first | ✅ Slice 6 (target 13:30) |
+| 11:13 | Language plugins merged (GH #8), both tagged + released | ✅ Slice 7 (target 14:15) |
+| 11:15 | Promotion GH #10 (`promote/*`, tree == `main@e3c2ad8`) → `stable` has all three at 1.0.0 | ✅ |
+| 11:16 | **Insights merged** (GH #11); first live run created `data`; both teams recorded | ✅ Slice 13 (target 16:30) |
+| 11:20 | Live site verified in headless Chrome: 12/12 checks (search, filters, request link, install toggles, no off-origin requests) | ✅ |
+| 11:25 | **adr-helper 1.1.0** merged (GH #12) + released; insights/site/CATALOGUE.md: **team-b 1 behind** | ✅ Slice 14 (target 17:15) |
+| 11:35 | Brand palette + related-plugins threshold (GH #14) | ✅ |
+| 11:40 | Removal demo: team-b active → removed ("removed on 2026-11-08") → active (team-b GH #8–#10); same-day bug fixed (GH #13) | ✅ Slice 15 step 3 |
+| 11:42 | Isolated check, both channels on one machine: team-a 1.1.0 (+supersede-adr) + go; team-b 1.0.0 (create-adr only) + ts | ✅ Slice 15 step 1 |
+| 11:43 | **Promotion GH #15** → stable 1.1.0; team-b resolves 1.1.0 via update commands; insights behind 0; site stable 1.1.0 | ✅ Slice 15 step 4 — **core demo complete** |
+| 11:45 | UI redesign (GH #16): stats hero, card grid, progressive disclosure; live browser check 12/12 light + dark | ✅ |
+| 11:46 | adr-helper evals: with skill 22/22, baseline 17/22 (+22.7 pts) | ✅ Slice 15 step 5 (1 of 3) |
+| 11:52 | go-conventions evals 22/22 vs 19/22; typescript-conventions 23/25 vs 20/25 | ✅ Slice 15 step 5 — **Slice 15 complete** |
+| 11:55 | Docs audit (Slice 9): 8/8 items present; 6 inaccuracies + 2 missing learnings fixed | ✅ Slice 9 — **all slices complete** |
 
 ### Learnings during Slices 1–12
 
@@ -1253,3 +1266,43 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
 - **Auto-mode permission checks** blocked force-pushes, branch deletions, PR closes and a
   ruleset-pause merge (CI bypass). The user added scoped allow rules for the 3 repos
   (to be removed 2026-11-10); the CI-bypass merge stayed refused, so we waited for GitHub.
+- **Insights same-day removal bug (fixed, GH #13):** row status was computed only against the
+  previous *day's* snapshot, so a plugin added and removed on the same day vanished instead of
+  showing `removed`. Rows now start from the latest known state; events still diff against the
+  previous day (same-day re-runs stay byte-identical).
+- **Related plugins were noise with 3 plugins:** top-3 always listed the others. TF-IDF scores were
+  0.002–0.008 for unrelated pairs vs 0.114 for the two convention plugins → minimum 0.05.
+- **Browser verification without the Chrome extension:** the session had no Claude-in-Chrome tools,
+  so a zero-dependency Node script drives the installed Google Chrome headless over the DevTools
+  protocol (search, filters, request link, install toggles, network origin, console errors,
+  screenshots in light + dark).
+- **adr-helper eval (skill-creator method, by hand — the installed skill-creator ships no
+  scripts):** 3 cases × with/without. With skill 22/22, baseline 17/22. The skill matters for MADR
+  structure in a repo with no ADRs, the index, and asking for the problem. Watch item: to satisfy
+  "every option has a pro or con" it invented pros for rejected options (flagged as assumptions) —
+  conflicts with "no invented rationale"; candidate for 1.2.0. Case 3 discriminates weakly.
+- **Evals (all three plugins, skill-creator method by hand, 1 run per configuration):**
+
+  | Plugin | With skill | Baseline | Where the skill mattered |
+  |---|---|---|---|
+  | adr-helper (create-adr) | 22/22 | 17/22 | MADR in a repo with no ADRs; the index; asking for the problem |
+  | go-conventions | 22/22 | 19/22 | ran `gofmt -l`; one slice-of-structs table for 204/404/400 |
+  | typescript-conventions | 23/25 | 20/25 | `it.each` tables; return types; running the repo's test command |
+
+  Follow-ups: several "fix X" / "is it done?" cases score full marks either way (sharpen their
+  fixtures); typescript-conventions kept a boolean+optional result and `list[0]!` when asked to
+  "keep exports working" (guidance gap); adr-helper invented pros for rejected options to satisfy
+  its own rule (flagged as assumptions — conflicts with "no invented rationale"). Harness lessons:
+  pass `</dev/null` to `claude -p` in loops (it reads stdin), and keep transcripts outside the
+  workspace.
+- **Docs audit follow-up not done:** the three plugin READMEs' "Just me" sections don't say the
+  one-step command is latest-only. Fixing them means a patch release per plugin (our own
+  version-bump rule), so it's deferred to their next real change.
+- **Open items for the user (not blocking the POC):** (1) team-b's repo-page Contributors box is a
+  stale GitHub cache still showing `adam-beyond-evergreen` (API and history are clean); the only
+  in-our-control fix is delete + recreate team-b, which needs the `delete_repo` scope;
+  (2) remove the temporary push/ruleset/PR-close allow rules from
+  `.claude/settings.local.json` on 2026-11-10; (3) `data` branch commits are authored by
+  `github-actions[bot]` (kept: a bot shouldn't impersonate a person, and the branch isn't the
+  default branch, so it doesn't affect Contributors).
+

@@ -12,10 +12,12 @@
   <a class="skip" href="#results">Skip to plugins</a>
   <header class="site-header">
     <div class="wrap">
+      <p class="eyebrow">Claude Code plugin catalogue</p>
       <h1>Agent Marketplace</h1>
-      <p class="lede">Claude Code plugins for our teams. Two channels: <strong>latest</strong> tracks
-        <code>main</code>; <strong>stable</strong> gets reviewed promotions.
+      <p class="lede">Plugins for our teams, on two channels: <strong>latest</strong> tracks
+        <code>main</code>, <strong>stable</strong> gets reviewed promotions.
         <a href="https://github.com/adam-m-holloway/agent-marketplace/blob/main/docs/consuming-plugins.md">How consuming works</a></p>
+      <dl id="stats" class="stats" aria-label="Catalogue at a glance"></dl>
     </div>
   </header>
 
@@ -40,7 +42,10 @@
       </div>
     </section>
 
-    <p id="count" class="count" role="status" aria-live="polite">Loading catalogue…</p>
+    <div class="results-bar">
+      <p id="count" class="count" role="status" aria-live="polite">Loading catalogue…</p>
+      <button type="button" id="clear" class="link-button" hidden>Clear search and filters</button>
+    </div>
     <div id="focus-bar" class="focus-bar" hidden></div>
     <div id="request" class="request" hidden></div>
 
