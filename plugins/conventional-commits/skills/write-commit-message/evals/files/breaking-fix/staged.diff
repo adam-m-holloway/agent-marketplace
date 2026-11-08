@@ -1,0 +1,43 @@
+diff --git a/src/dates/parse.ts b/src/dates/parse.ts
+index 1a2b3c4..5d6e7f8 100644
+--- a/src/dates/parse.ts
++++ b/src/dates/parse.ts
+@@ -1,6 +1,16 @@
++import { zoneOffsetMs } from './zones';
++
+ /**
+- * Parse an ISO-8601 timestamp such as "2026-03-29T01:30:00".
++ * Parse an ISO-8601 timestamp such as "2026-03-29T01:30:00" in the given IANA time zone.
++ *
++ * Timestamps without an offset used to be read in the server's local time zone, so the
++ * same input gave different instants on different servers and was off by an hour around
++ * DST changes.
+  */
+-export function parseDate(input: string): Date {
+-  return new Date(input);
++export function parseDate(input: string, timeZone: string): Date {
++  if (/([zZ]|[+-]\d\d:\d\d)$/.test(input)) return new Date(input);
++  const asUtc = new Date(`${input}Z`);
++  return new Date(asUtc.getTime() - zoneOffsetMs(asUtc, timeZone));
+ }
+diff --git a/src/dates/parse.test.ts b/src/dates/parse.test.ts
+index 9f8e7d6..0c1b2a3 100644
+--- a/src/dates/parse.test.ts
++++ b/src/dates/parse.test.ts
+@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
+ import { parseDate } from './parse';
+
+ describe('parseDate', () => {
+   it('parses timestamps with an offset', () => {
+-    expect(parseDate('2026-01-01T00:00:00Z').toISOString()).toBe('2026-01-01T00:00:00.000Z');
++    expect(parseDate('2026-01-01T00:00:00Z', 'UTC').toISOString()).toBe('2026-01-01T00:00:00.000Z');
++  });
++
++  it('gives the same instant whatever the server time zone', () => {
++    expect(parseDate('2026-03-29T00:30:00', 'Europe/London').toISOString()).toBe('2026-03-29T00:30:00.000Z');
++  });
++
++  it('applies the zone offset after a DST change', () => {
++    expect(parseDate('2026-03-29T03:30:00', 'Europe/London').toISOString()).toBe('2026-03-29T02:30:00.000Z');
+   });
+ });

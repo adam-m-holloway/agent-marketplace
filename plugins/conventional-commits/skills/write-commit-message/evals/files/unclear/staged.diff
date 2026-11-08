@@ -1,0 +1,15 @@
+diff --git a/src/search/config.ts b/src/search/config.ts
+index 4e5f6a7..8b9c0d1 100644
+--- a/src/search/config.ts
++++ b/src/search/config.ts
+@@ -1,8 +1,6 @@
+ export const searchConfig = {
+-  resultsPerPage: 50,
+-  fuzzy: true,
+-  fuzzyDistance: 2,
++  resultsPerPage: 20,
++  fuzzy: false,
+   highlight: true,
+-  timeoutMs: 800,
++  timeoutMs: 300,
+ };

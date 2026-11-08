@@ -1,0 +1,22 @@
+[
+  {"query": "I've staged my changes to the billing module, can you write a commit message for them?", "should_trigger": true},
+  {"query": "what should I commit this as? it's the retry logic for the webhook sender, already git added", "should_trigger": true},
+  {"query": "give me a conventional commit message for the staged diff, our commitlint is strict about scopes", "should_trigger": true},
+  {"query": "commit msg for whats staged pls", "should_trigger": true},
+  {"query": "Write a commit message and a PR title for my staged changes. I removed the deprecated v1 /users endpoint so I think it's breaking?", "should_trigger": true},
+  {"query": "is this a feat or a fix? I changed how the cart rounds discounts, it's staged. need the commit message", "should_trigger": true},
+  {"query": "suggest a PR title for the changes I've got staged on this branch, we squash merge so it becomes the commit subject", "should_trigger": true},
+  {"query": "here's my git diff --cached output, can you turn it into a proper feat/fix style commit message with a body?\n\ndiff --git a/src/cli/flags.ts b/src/cli/flags.ts\n+  '--dry-run': Boolean,", "should_trigger": true},
+  {"query": "Write the commit message for the staged changes and then go ahead and commit them", "should_trigger": true},
+  {"query": "I bumped the eslint config and fixed the lint errors it threw, staged everything. How should the conventional commit look?", "should_trigger": true},
+  {"query": "Write a PR description for this branch explaining the changes and how to test them", "should_trigger": false},
+  {"query": "write an ADR for our decision to switch from REST to gRPC", "should_trigger": false},
+  {"query": "summarise this diff for me, what does it actually change?", "should_trigger": false},
+  {"query": "generate release notes for v2.3.0 from the commits since the last tag", "should_trigger": false},
+  {"query": "squash my last 5 commits into one and clean up the history before I push", "should_trigger": false},
+  {"query": "set up commitlint and a husky commit-msg hook in this repo", "should_trigger": false},
+  {"query": "review the staged changes and tell me if there are any bugs", "should_trigger": false},
+  {"query": "update CHANGELOG.md with an entry for the new export feature", "should_trigger": false},
+  {"query": "explain what the Conventional Commits spec says about scopes", "should_trigger": false},
+  {"query": "fix the failing test in src/cart/discount.test.ts", "should_trigger": false}
+]
