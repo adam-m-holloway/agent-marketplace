@@ -70,8 +70,17 @@ jobs:
           install() { npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"; }
           install || { sleep 10; install; }
           claude --version
+      - name: Insights consumers for the stage gate (data only; optional)
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          curl -fsSL --retry 1 -o consumers.json "https://raw.githubusercontent.com/${REPO}/data/latest/consumers.json" \
+            || echo "::notice::no insights data yet; the stage gate falls back to the 14-day rule"
       - name: Repo checks (plugins)
-        run: node base/scripts/check.mjs --root pr --base base --pr pr.json --only plugins
+        run: |
+          args=(--root pr --base base --pr pr.json --only plugins)
+          if [ -s consumers.json ]; then args+=(--consumers consumers.json); fi
+          node base/scripts/check.mjs "${args[@]}"
       - name: Triage (similar plugins + capability diff; informational)
         if: ${{ !cancelled() }}
         continue-on-error: true
