@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-08T11:39:45.681Z",
+  "generated_at": "2026-11-08T11:42:36.393Z",
   "scan_date": "2026-11-08",
   "rows": [
     {
@@ -38,9 +38,9 @@
       "marketplace": "agent-marketplace-stable",
       "plugin": "adr-helper",
       "ref": "stable",
-      "sha": "e35f764715bd96a887ca3570915182f88813049a",
-      "version": "1.0.0",
-      "versions_behind": 1,
+      "sha": "1cd75111dd988de44755a43edc102a87ccd89415",
+      "version": "1.1.0",
+      "versions_behind": 0,
       "first_seen": "2026-11-08",
       "status": "active"
     },
@@ -52,7 +52,7 @@
       "marketplace": "agent-marketplace-stable",
       "plugin": "typescript-conventions",
       "ref": "stable",
-      "sha": "e35f764715bd96a887ca3570915182f88813049a",
+      "sha": "1cd75111dd988de44755a43edc102a87ccd89415",
       "version": "1.0.0",
       "versions_behind": 0,
       "first_seen": "2026-11-08",

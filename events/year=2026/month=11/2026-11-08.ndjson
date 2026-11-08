@@ -1,4 +1,4 @@
 {"date":"2026-11-08","type":"added","consumer":"adam-m-holloway/team-a","team":"team-a","channel":"latest","plugin":"adr-helper","from_version":null,"to_version":"1.1.0"}
 {"date":"2026-11-08","type":"added","consumer":"adam-m-holloway/team-a","team":"team-a","channel":"latest","plugin":"go-conventions","from_version":null,"to_version":"1.0.0"}
-{"date":"2026-11-08","type":"added","consumer":"adam-m-holloway/team-b","team":"team-b","channel":"stable","plugin":"adr-helper","from_version":null,"to_version":"1.0.0"}
+{"date":"2026-11-08","type":"added","consumer":"adam-m-holloway/team-b","team":"team-b","channel":"stable","plugin":"adr-helper","from_version":null,"to_version":"1.1.0"}
 {"date":"2026-11-08","type":"added","consumer":"adam-m-holloway/team-b","team":"team-b","channel":"stable","plugin":"typescript-conventions","from_version":null,"to_version":"1.0.0"}
