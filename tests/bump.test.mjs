@@ -25,7 +25,7 @@ test('bump updates plugin.json and inserts a dated stub at the top', () => {
   assert.equal(version(root), '1.1.0');
   const cl = changelog(root);
   assert.deepEqual(listVersions(cl).map((v) => [v.version, v.date]), [['1.1.0', '2026-11-08'], ['1.0.0', '2026-11-01']]);
-  assert.equal(getSection(cl, '1.1.0'), '### Changed\n- TODO');
+  assert.equal(getSection(cl, '1.1.0'), '### Changed\n\n- TODO');
   assert.match(cl, /^# Changelog\n/);
 });
 
@@ -50,7 +50,7 @@ test('bump rejects unknown plugin and bad level', () => {
 
 test('insertChangelogStub appends after the title when there are no versions', () => {
   assert.equal(insertChangelogStub('# Changelog\n', '1.0.1', '2026-11-08'),
-    '# Changelog\n\n## [1.0.1] - 2026-11-08\n\n### Changed\n- TODO\n');
+    '# Changelog\n\n## [1.0.1] - 2026-11-08\n\n### Changed\n\n- TODO\n');
 });
 
 test('CLI refuses an unreleased bump with exit 1 (no tags in a non-git dir)', () => {

@@ -12,8 +12,11 @@ import { compare, parse } from './lib/semver.mjs';
 import { related, RELATED_MIN_SCORE } from './similar.mjs';
 import {
   SCORES_EXPLAINED, QUALITY_CRITERIA, isTracked, lastTrackedVersion, parseNdjson, readEvalsResults,
-  readQualityReports, readSkillspector, scoreChange, scorePlugin,
+  readQualityReports, readSkillspector, scoreChange, scorePlugin, SECURITY_PENALTY, DOCS_K,
 } from './scores.mjs';
+import { BEST_PRACTICE_RULES } from './lib/best-practice.mjs';
+import { MIN_CASES, MIN_TRIGGER_EACH } from './lib/rules/evals.mjs';
+import { NEXT, MIN_DAYS, MIN_CONSUMERS, RETIRE_LABEL } from './lib/rules/stage-gate.mjs';
 
 export const PAGES_URL = 'https://adam-m-holloway.github.io/agent-marketplace/';
 export const CONSUMERS_NOTE = 'Committed intent per repo, not what each laptop has installed';
@@ -341,6 +344,19 @@ export function buildData(repo, {
     skillspector_ran: !!skillspector,
     quality_tools_ran: !!qualityReports,
     scores_explained: { ...SCORES_EXPLAINED, quality_criteria: QUALITY_CRITERIA.map(({ id, label, weight }) => ({ id, label, weight })) },
+    // The thresholds the code enforces, so the Scoring and Lifecycle pages quote them exactly.
+    rules: {
+      security_penalty: SECURITY_PENALTY,
+      skillspector_fail_over: 50,
+      docs_k: DOCS_K,
+      best_practice_rules: BEST_PRACTICE_RULES.map((r) => r.label),
+      min_cases: MIN_CASES,
+      min_trigger_each: MIN_TRIGGER_EACH,
+      stage_next: NEXT,
+      min_days: MIN_DAYS,
+      min_consumers: MIN_CONSUMERS,
+      retire_label: RETIRE_LABEL,
+    },
   };
 }
 
