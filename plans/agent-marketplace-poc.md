@@ -1048,7 +1048,7 @@ exactly as they happened.
 
 ### Slice S1 — CUT for the overnight build (Q34); post-POC: `npm run eval` from skill-creator files (S)
 
-- [ ] **Complete**
+- [x] **Complete** (GH #35, built after the POC; first real run recorded — see Learnings)
 
 **Path:** convert each `evals.json` case into `.eval-build/<skill>-<id>/`:
 - a `prompt.md` with only the allowed frontmatter;
@@ -1272,6 +1272,10 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
 | 13:15 | **Plugin scores + history + palette** (GH #30): security/quality/evals/adoption, PR score preview, release-time history (major/minor only), cream + blue site; history backfilled to `data` | ✅ |
 | 13:20 | Whole-system verification (fresh read-only agent): Done-when 0–13 PASS; found gitleaks scanned only `plugins/`, and `latest/scores.json` ignoring SkillSpector for backfilled entries — both fixed (GH #31) and re-verified (data now ts security 82) | ✅ |
 | 13:22 | Live site re-checked in headless Chrome: 12/12 checks, light + dark | ✅ |
+| — | **Round 3 (user's choices: detail pages, trend charts, npm run eval, code-owner review, supply-chain hygiene; team-b cache: wait 48h)** | |
+| 13:38 | Supply chain (GH #33 + team-a #6, team-b #11): OpenSSF Scorecard (first score **4.7/10**), grouped Dependabot in all 3 repos, SECURITY.md disclosure SLA, CODEOWNERS + `scripts/apply-code-owner-review.mjs` (prepared, **not enabled** — needs a second reviewer) | ✅ |
+| 13:52 | **Compact cards + detail pages + trend charts** (GH #34): small summary cards (3/2/1 grid) → `#/plugin/<name>` with rendered README/CHANGELOG, timeline, score + adoption charts; `scripts/browser-check.mjs` (20 checks) — live 20/20 light + dark | ✅ |
+| 13:58 | **`npm run eval`** (GH #35, Slice S1): first real `claude plugin eval` run on typescript-conventions 1.0.1 — 17/25 vs 13/25 baseline, $1.36 | ✅ (method caveat below) |
 
 ### Learnings during Slices 1–12
 
@@ -1381,4 +1385,19 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
   missed (gitleaks scope, a same-version upgrade rule) — keep doing independent checks after
   feature work. Local actionlint needs shellcheck (`uvx --from shellcheck-py`) to match CI.
   Agent briefs that share files (pr-gate.yml) need a "rebase onto main before finishing" step.
+- **OpenSSF Scorecard baseline 4.7/10 (2026-11-08):** strong on Token-Permissions, Vulnerabilities,
+  Binary-Artifacts, Dependency-Update-Tool, License (10 each), CI-Tests 9, Pinned-Dependencies 8
+  (npm-installed Claude Code CLI is version- not hash-pinned). Low on Code-Review 0 and
+  Branch-Protection 4 (no second approver yet), Dangerous-Workflow 0 (flags our deliberate
+  data-only `pull_request_target` — documented and proven by the tamper demo), Maintained 0 (repo <
+  90 days old), SAST 0, Fuzzing 0, Best-Practices badge 0, Security-Policy 4.
+- **`claude plugin eval` has no network in its sandbox:** cases can't `npm install`, so
+  expectations that need `tsc`/`vitest` output can't pass. typescript-conventions 1.0.1: 17/25 vs
+  13/25 (plugin eval) against 23/25 vs 20/25 earlier (hand-run skill-creator method with deps). The
+  methods aren't comparable; each record names its `method`, and the Evals score now shows the
+  latest (lower) run. The CLI also rejects dot-directories and paths outside the plugin, so the
+  suite is staged into `plugins/<p>/eval-build/` only for the run.
+- **Code-owner review needs a second human:** GitHub never lets an author approve their own PR, so
+  enabling it with one owner blocks every merge. It's two-step by design (CODEOWNERS PR first, then
+  the rulesets) via `scripts/apply-code-owner-review.mjs --reviewer <user>`.
 
