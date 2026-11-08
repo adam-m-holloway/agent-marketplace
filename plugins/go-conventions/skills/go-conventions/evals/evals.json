@@ -5,11 +5,6 @@
       "id": 1,
       "prompt": "Add a PATCH /orders/{id}/status endpoint to the orders package. The body is JSON like {\"status\": \"shipped\"}. Return 204 on success, 404 if the order doesn't exist, 400 for a bad body. MemoryStore already has SetStatus.",
       "expected_output": "A new handler registered on the existing ServeMux using the Go 1.22+ pattern \"PATCH /orders/{id}/status\", depending on a small consumer-side interface rather than *MemoryStore, mapping ErrNotFound with errors.Is, plus a table-driven test with t.Run subtests and httptest covering success, not found and bad body. gofmt -l ., go vet ./... and go test ./... are run and their output reported.",
-      "files": [
-        "evals/files/add-endpoint/go.mod",
-        "evals/files/add-endpoint/orders/orders.go",
-        "evals/files/add-endpoint/orders/http.go"
-      ],
       "expectations": [
         "The route is registered with the standard library ServeMux (no new third-party router or module is added to go.mod)",
         "The handler uses r.Context() and passes it as the first argument to the store call",
@@ -25,10 +20,6 @@
       "id": 2,
       "prompt": "Can you fix the error handling in main.go? The 404s never fire and when the JSON file is broken we just return an empty list.",
       "expected_output": "main.go is fixed so that errors are wrapped with %w (not %v or %s), the json.Unmarshal error is checked and wrapped, Get no longer both logs and returns, the not-found error wraps ErrNotFound so the handler can use errors.Is instead of comparing err.Error() strings, the strconv.Atoi error yields a 400, and internal errors are not leaked to clients. A table-driven test is added or proposed, and gofmt, go vet and go test are run with output reported.",
-      "files": [
-        "evals/files/fix-error-handling/go.mod",
-        "evals/files/fix-error-handling/main.go"
-      ],
       "expectations": [
         "Every fmt.Errorf call that wraps an error in main.go uses %w",
         "The error from json.Unmarshal is checked and returned (wrapped), not ignored",
@@ -44,11 +35,6 @@
       "id": 3,
       "prompt": "I added ApplyDiscount and a test for it in the pricing package. Is it done? Can I open the PR?",
       "expected_output": "The assistant runs gofmt -l ., go vet ./... and go test ./... in the module and reports their actual output: gofmt lists discount.go (it is indented with spaces) and go test fails on the 'half price odd pence' case (999 * 50 / 100 is 499, not 500). It says the work is not done yet, explains both problems, and does not claim it is ready for a PR.",
-      "files": [
-        "evals/files/is-it-done/go.mod",
-        "evals/files/is-it-done/discount.go",
-        "evals/files/is-it-done/discount_test.go"
-      ],
       "expectations": [
         "The assistant runs gofmt -l . (or gofmt -l on the package) and reports that discount.go is listed",
         "The assistant runs go vet ./...",

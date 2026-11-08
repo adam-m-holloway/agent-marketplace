@@ -125,7 +125,7 @@ defect('changelog-entry', 'version without a CHANGELOG section fails', async () 
   assert.match(fs[0].message, /\[1\.1\.0\]/);
 });
 
-defect('name-consistency', 'folder/manifest mismatch, reserved prefix and skill_name mismatch fail', async () => {
+defect('name-consistency', 'folder/manifest mismatch and reserved prefix fail', async () => {
   let fs = await run('name-consistency', tree((d) => editJson(d, `${P}/.claude-plugin/plugin.json`, (v) => { v.name = 'other-plugin'; })));
   assert.ok(fs.some((x) => /must equal folder/.test(x.message)));
   fs = await run('name-consistency', tree((d) => {
@@ -133,8 +133,6 @@ defect('name-consistency', 'folder/manifest mismatch, reserved prefix and skill_
     editJson(d, 'plugins/claude-demo/.claude-plugin/plugin.json', (v) => { v.name = 'claude-demo'; });
   }));
   assert.ok(fs.some((x) => /reserved prefix "claude-"/.test(x.message)));
-  fs = await run('name-consistency', tree((d) => editJson(d, `${S}/evals/evals.json`, (v) => { v.skill_name = 'wrong'; })));
-  assert.ok(fs.some((x) => /skill_name "wrong"/.test(x.message)));
 });
 
 defect('skill-frontmatter', 'missing description fails', async () => {
@@ -144,36 +142,56 @@ defect('skill-frontmatter', 'missing description fails', async () => {
   assert.equal(fs[0].line, 1);
 });
 
-defect('evals', 'too few cases, placeholders, missing files, duplicate ids fail', async () => {
-  const fs = await run('evals', tree((d) => editJson(d, `${S}/evals/evals.json`, (v) => {
-    v.evals[0].expected_output = 'TODO';
-    v.evals[1].files = ['evals/files/nope.md'];
-    v.evals[2].id = 1;
-    v.evals.push({ id: 4, prompt: 'p', expected_output: 'o', expectations: [] });
-  })));
+const E = `${P}/evals/demo-skill`;
+defect('evals', 'bad frontmatter, unknown keys, placeholders, bad graders and missing scaffold fail', async () => {
+  const fs = await run('evals', tree((d) => {
+    edit(d, `${E}/record-postgres/prompt.md`, (s) => s.replace('max_turns: 30', 'max_turns: 30\nturns: 5').replace('Record a decision', 'TODO record a decision'));
+    writeFileSync(join(d, E, 'record-postgres/graders/bad.md'), '---\ntype: magic\n---\n');
+    writeFileSync(join(d, E, 'record-postgres/graders/re.md'), '---\ntype: regex\npattern: \'(unclosed\'\n---\n');
+    writeFileSync(join(d, E, 'record-postgres/graders/judge.md'), '---\ntype: llm\n---\n');
+    writeFileSync(join(d, E, 'rest-over-grpc/graders/broken.md'), 'no frontmatter\n');
+    rmSync(join(d, E, 'second-adr-numbering/scaffold.sh'));
+    mkdirSync(join(d, E, 'empty-case'));
+    writeFileSync(join(d, E, 'empty-case/prompt.md'), '---\ntags: [demo-skill]\n---\n\nDo it.\n');
+  }));
   const msgs = errors(fs).map((x) => x.message).join('\n');
+  assert.match(msgs, /unknown frontmatter key "turns"/);
   assert.match(msgs, /placeholder "TODO"/);
-  assert.match(msgs, /does not exist/);
-  assert.match(msgs, /duplicate id/);
-  assert.match(msgs, /at least one expectation/);
-  const few = await run('evals', tree((d) => editJson(d, `${S}/evals/evals.json`, (v) => { v.evals.length = 2; })));
-  assert.ok(few.some((x) => /2 eval cases \(min 3\)/.test(x.message)));
+  assert.match(msgs, /unknown grader type "magic"/);
+  assert.match(msgs, /not a valid JavaScript regex/);
+  assert.match(msgs, /llm grader needs criteria/);
+  assert.match(msgs, /frontmatter: missing frontmatter/);
+  assert.match(msgs, /scaffold_script "scaffold.sh" does not exist/);
+  assert.match(msgs, /no graders/);
 });
 
-test('evals: trigger-evals need 8 true + 8 false and no duplicates', async () => {
-  const fs = await run('evals', tree((d) => editJson(d, `${S}/evals/trigger-evals.json`, (v) => {
-    v[0].should_trigger = false;
-    v[1].query = v[2].query;
-  })));
+test('evals: per skill >= 3 behaviour cases and 8 should / 8 should-not trigger cases; no suite fails', async () => {
+  const fs = await run('evals', tree((d) => {
+    rmSync(join(d, E, 'rest-over-grpc'), { recursive: true });
+    rmSync(join(d, E, 'trigger-1'), { recursive: true });
+    // should-trigger turned into should-not-trigger (max: 0) + a duplicate prompt
+    edit(d, `${E}/trigger-2/graders/skill-fired.md`, (s) => s.replace('---\n', '---\nmin: 0\nmax: 0\n').replace(/\n---\n$/, '\nmin: 0\nmax: 0\n---\n'));
+    writeFileSync(join(d, E, 'trigger-3/prompt.md'), readFileSync(join(d, E, 'trigger-4/prompt.md'), 'utf8'));
+  }));
   const msgs = fs.map((x) => x.message).join('\n');
-  assert.match(msgs, /7 should-trigger and 9 should-not-trigger/);
-  assert.match(msgs, /duplicate query/);
+  assert.match(msgs, /demo-skill: 2 behaviour cases \(min 3\)/);
+  assert.match(msgs, /demo-skill: 6 should-trigger and 9 should-not-trigger cases \(min 8 each\)/);
+  assert.match(msgs, /duplicate trigger prompt/);
+  const none = await run('evals', tree((d) => rmSync(join(d, P, 'evals'), { recursive: true })));
+  assert.match(none[0].message, /no eval cases/);
 });
 
-test('evals: schema violations are reported when scripts/lib/schema.mjs exists', async (t) => {
-  if (!HAS_SCHEMA) return t.skip('scripts/lib/schema.mjs not available yet');
-  const fs = await run('evals', tree((d) => editJson(d, `${S}/evals/evals.json`, (v) => { v.extra = true; })));
-  assert.ok(fs.some((x) => x.severity === 'ERROR' && /^schema:/.test(x.message)));
+test('evals: a case for an unknown skill fails; flat init-style cases count via their Skill grader', async () => {
+  const fs = await run('evals', tree((d) => {
+    mkdirSync(join(d, P, 'evals/stray/graders'), { recursive: true });
+    writeFileSync(join(d, P, 'evals/stray/prompt.md'), '---\nmax_turns: 3\n---\n\nHello.\n');
+    writeFileSync(join(d, P, 'evals/stray/graders/r.md'), '---\ntype: regex\npattern: hi\n---\n');
+    cpSync(join(d, E, 'trigger-1'), join(d, P, 'evals/flat-trigger'), { recursive: true });
+    edit(d, `${P}/evals/flat-trigger/prompt.md`, (s) => s.replace('tags: [demo-skill, trigger]', 'tags: [trigger]').replace('Kafka', 'NATS'));
+  }));
+  const msgs = errors(fs).map((x) => `${x.file} ${x.message}`).join('\n');
+  assert.match(msgs, /evals\/stray\/prompt\.md case belongs to no skill/);
+  assert.doesNotMatch(msgs, /flat-trigger/);
 });
 
 defect('skill-length', 'a 501-line SKILL.md fails', async () => {
@@ -304,16 +322,16 @@ test('stage-gate: a stage-change PR may change only status.json + generated cata
   assert.match(m, /taxonomy\.json/);
 });
 
-test('stage-gate: sandbox → incubating needs evals + trigger set, an owner and no HIGH findings', async () => {
+test('stage-gate: sandbox → incubating needs behaviour + trigger eval cases, an owner and no HIGH findings', async () => {
   const from = { stage: 'sandbox', since: '2026-01-01' };
   const to = { stage: 'incubating', since: TODAY };
   assert.deepEqual(await gate(...stagePair(from, to)), []);
   const m = msgs(await gate(...stagePair(from, to, (d) => {
-    rmSync(join(d, S, 'evals/trigger-evals.json'));
+    for (let i = 1; i <= 8; i++) rmSync(join(d, P, `evals/demo-skill/no-trigger-${i}`), { recursive: true });
     editJson(d, `${P}/catalogue.json`, (v) => { v.owner = ' '; });
     cpSync(join(MAL, 'pipe-to-shell.md'), join(d, S, 'setup.md'));
   })));
-  assert.match(m, /ERROR .*trigger-evals\.json/);
+  assert.match(m, /ERROR .*demo-skill \(should-not-trigger cases/);
   assert.match(m, /ERROR .*owner/);
   assert.match(m, /ERROR .*HIGH finding.*setup\.md:5/);
 });

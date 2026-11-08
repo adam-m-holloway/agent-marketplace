@@ -2,10 +2,10 @@ node_modules/
 .DS_Store
 site/data.json
 _site/
-.eval-build/
 *.log
 .claude/settings.local.json
 .claude/worktrees/
 eval-build/
 .github/playwright/test-results/
 .github/playwright/playwright-report/
+plugins/*/evals/results/

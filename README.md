@@ -83,7 +83,7 @@ Read [`CONTRIBUTING.md`](CONTRIBUTING.md). Short version:
 
 ```sh
 npm run new-plugin my-plugin   # scaffold
-/skill-creator                  # in Claude Code: draft SKILL.md, evals and the trigger set
+/skill-creator                  # in Claude Code: draft SKILL.md; then eval cases in evals/<skill>/
 npm run check                   # the plugin checks CI runs (CI also compares against main)
 ```
 

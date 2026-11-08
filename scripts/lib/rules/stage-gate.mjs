@@ -5,6 +5,7 @@ import { hasEntry } from '../changelog.mjs';
 import { f, diffFiles, readText, readPluginText } from './_util.mjs';
 import { loadPatterns, scanText as scanPatterns } from './patterns.mjs';
 import { scanText as scanHidden } from './hidden-content.mjs';
+import { loadSuite, suiteCounts } from '../plugin-evals.mjs';
 
 const ID = 'stage-gate';
 /** Allowed single steps. deprecated is also reachable straight from incubating. */
@@ -71,11 +72,12 @@ export function gateChecks({ root, plugin, fromStatus, to, consumers = null, tod
   if (to === 'incubating') {
     const missing = [];
     if (!plugin.skills.length) missing.push(`${plugin.path}/skills/ (no skills)`);
-    for (const s of plugin.skills) {
-      if (!s.evals) missing.push(`${s.path}/evals/evals.json`);
-      if (!s.triggerEvals) missing.push(`${s.path}/evals/trigger-evals.json`);
+    const counts = suiteCounts(loadSuite(root, plugin.path), plugin.skills.map((s) => s.name));
+    for (const [s, n] of Object.entries(counts)) {
+      const lack = [n.behaviour ? null : 'behaviour', n.trigger ? null : 'should-trigger', n.noTrigger ? null : 'should-not-trigger'].filter(Boolean);
+      if (lack.length) missing.push(`${s} (${lack.join(', ')} cases in ${plugin.path}/evals/)`);
     }
-    add('evals', !missing.length, missing.length ? `evals + trigger set required; missing: ${missing.join(', ')}` : 'evals + trigger set present');
+    add('evals', !missing.length, missing.length ? `eval cases + trigger cases required; missing: ${missing.join('; ')}` : 'eval cases + trigger cases present');
     const owner = plugin.catalogue?.owner;
     const hasOwner = typeof owner === 'string' && owner.trim() !== '';
     add('owner', hasOwner, hasOwner ? `owner: ${owner}` : 'catalogue.json `owner` must name an owner', `${plugin.path}/catalogue.json`);

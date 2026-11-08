@@ -1,5 +1,5 @@
 {
-  "$comment": "Measured skill-creator style benchmarks: each case run with the skill and without it (baseline), 1 run per configuration. Append a new run object for each re-measurement; never edit old runs. measured_at is UTC.",
+  "$comment": "Measured eval runs, appended by npm run eval (scripts/eval.mjs); never edit old runs. measured_at is UTC. Runs with overall_score are native claude plugin eval suites (mean case score and mean with-minus-without delta, 0..1). Older runs (with_skill/baseline) count passed expectations: skill-creator style benchmarks, or converted skill-creator evals.",
   "runs": [
     {
       "plugin": "adr-helper",

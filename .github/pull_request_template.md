@@ -14,5 +14,5 @@
 
 - [ ] One plugin per PR (or the `multi-plugin` label is applied with a reason)
 - [ ] Does this overlap an existing plugin? If yes, which one and why a new plugin:
-- [ ] Skills authored or updated with `/skill-creator` (evals in `skills/<skill>/evals/`)
+- [ ] Skills authored or updated with `/skill-creator` (eval cases in `plugins/<plugin>/evals/<skill>/`)
 - [ ] Version bumped in `plugin.json` and a matching `CHANGELOG.md` entry added

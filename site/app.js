@@ -383,8 +383,8 @@
       step('Author with /skill-creator',
         h('ul', { class: 'tight' },
           h('li', null, code('SKILL.md'), ' description: what it does, when to use it, trigger phrases, what it is not for (≤1024 chars).'),
-          h('li', null, code('evals/evals.json'), ': at least 3 cases.'),
-          h('li', null, 'Trigger set: ≥8 should-trigger and ≥8 should-not. Save it (it exports to ', code('~/Downloads'), ') to ', code('evals/trigger-evals.json'), '.'))),
+          h('li', null, 'Eval cases (', code('claude plugin eval'), ' format) in ', code('evals/<skill>/<case>/'), ': ', code('prompt.md'), ' + ', code('graders/*.md'), '. ', code('claude plugin eval init'), ' can draft them.'),
+          h('li', null, 'Per skill: ≥3 behaviour cases, ≥8 should-trigger and ≥8 should-not-trigger cases (a ', code('tool_used: Skill'), ' grader; ', code('max: 0'), ' for should-not).'))),
       step('Check',
         codeBlock('npm run sync', 'sync command', true),
         codeBlock('npm run check', 'check command', true),
@@ -395,7 +395,7 @@
         codeBlock('npm run stage my-plugin incubating', 'stage incubating command', true),
         codeBlock('npm run stage my-plugin published', 'stage published command', true),
         h('ul', { class: 'tight hint' },
-          h('li', null, '→ incubating: every skill has evals + trigger set, owner set, no HIGH findings.'),
+          h('li', null, '→ incubating: every skill has behaviour and trigger eval cases, owner set, no HIGH findings.'),
           h('li', null, '→ published: ≥14 days at incubating or ≥2 active consumers, plus a CHANGELOG entry.'),
           h('li', null, 'One step at a time; the PR changes only status.json and the generated catalogues.'))),
       step('Change it',
@@ -449,7 +449,9 @@
         h('th', { scope: 'row' }, detailLink(p.name)),
         h('td', null, p.skills.map(function (x) { return x.name; }).join(', ') || '—'),
         h('td', { text: e ? fmtNum(e.pass_rate) + '%' : 'not measured' }),
-        h('td', { text: e ? e.passed + '/' + e.total + ' vs ' + e.baseline_passed + '/' + e.total + ' (' + (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' pts)' : '—' }),
+        h('td', { text: !e ? '—' : (e.baseline_passed == null
+          ? e.passed + '/' + e.total + ' cases passed'
+          : e.passed + '/' + e.total + ' vs ' + e.baseline_passed + '/' + e.total) + (e.delta == null ? '' : ' (' + (e.delta >= 0 ? '+' : '') + fmtNum(e.delta) + ' pts)') }),
         h('td', { text: e ? 'v' + e.measured_version + ' · ' + (e.measured_at || '').slice(0, 10) : '—' }));
     });
     return h('div', { class: 'table-scroll' }, h('table', null,
@@ -475,7 +477,7 @@
         ]),
         group('CI: what runs and when', [
           [wf('pr-gate.yml'), 'Every PR to main and stable. pull_request_target: runs the base branch\'s definitions, reads the PR as data only. Four jobs:'],
-          [h('span', { class: 'job' }, 'plugins'), 'validate --strict, catalogues up to date, version bump + changelog, names, frontmatter, evals/trigger set, SKILL.md ≤500 lines, schemas/taxonomy, placeholders & referenced files, stage gate, one plugin per PR, promotion check, score-change preview, triage + capability annotations.'],
+          [h('span', { class: 'job' }, 'plugins'), 'validate --strict, catalogues up to date, version bump + changelog, names, frontmatter, eval cases, SKILL.md ≤500 lines, schemas/taxonomy, placeholders & referenced files, stage gate, one plugin per PR, promotion check, score-change preview, triage + capability annotations.'],
           [h('span', { class: 'job' }, 'security'), 'Hidden content, dangerous/injection patterns on all text files, ', L.gitleaks(), ', ', L.skillspector(), ' --no-llm (risk >50 fails).'],
           [h('span', { class: 'job' }, 'workflows'), L.actionlint(), ', ', L.zizmor(), ', every action SHA-pinned.'],
           [h('span', { class: 'job' }, 'title'), 'PR title follows ', L.cc(), '.'],
@@ -487,9 +489,9 @@
           [L.dependabot(), 'Weekly, grouped bumps for action pins and the pinned Claude Code CLI.'],
         ], true),
         group('Evals', [
-          ['What each plugin has', 'Per skill: ', code('evals/evals.json'), ' (≥3 cases with expectations) and ', code('evals/trigger-evals.json'), ' (≥8 should / ≥8 should-not trigger).'],
-          ['How they run', code('npm run eval <plugin>'), ' → ', code('claude plugin eval'), ' with and without the skill; dependencies installed offline first. Authored with ', ext('https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator', 'skill-creator'), '.'],
-          ['Not in CI', 'Local only, on the author\'s Claude plan ($0 CI policy). ', code('--record'), ' appends to ', code('evals/results.json'), '.'],
+          ['What each plugin has', 'Native ', ext('https://code.claude.com/docs/en/plugin-evals', 'claude plugin eval'), ' cases in ', code('plugins/<p>/evals/<skill>/'), ': per skill ≥3 behaviour cases (regex, tool and file graders; a few judge-model ones) and ≥8 should / ≥8 should-not trigger cases.'],
+          ['How they run', code('npm run eval <plugin>'), ' → ', code('claude plugin eval'), ' with and without the plugin, pinned models and a cost ceiling. Score = mean case score; delta = with minus without.'],
+          ['Not in CI', 'Local only, on the author\'s Claude plan ($0 CI policy). Each full run appends to ', code('evals/results.json'), '.'],
           ['Latest results', evalsTable()],
         ], true),
         group('Scores', [
