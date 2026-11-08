@@ -24,3 +24,15 @@ updates:
     groups:
       claude-code:
         patterns: ["@anthropic-ai/*"]
+  # Playwright (site browser checks in pages.yml), pinned by hash in .github/playwright/package-lock.json.
+  - package-ecosystem: npm
+    directory: /.github/playwright
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      playwright:
+        patterns: ["@playwright/*", "playwright", "playwright-core"]

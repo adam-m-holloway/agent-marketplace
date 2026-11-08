@@ -39,6 +39,19 @@ gh api -X POST repos/adam-m-holloway/agent-marketplace/environments/github-pages
 Click path: **Settings → Environments → github-pages → Deployment branches and tags → Add
 deployment branch rule → `stable`**.
 
+### Browser checks
+
+`pages.yml` runs the Playwright suite in `.github/playwright/` (chromium, light and dark color
+schemes) against the built `_site`, served on `127.0.0.1:4173`, before it uploads the artifact;
+a failure blocks the deploy. Locally:
+
+```sh
+npm run build-site                      # writes _site/ (reads origin/stable and origin/data if fetched)
+cd .github/playwright && npm ci && npx playwright install chromium
+npx playwright test                     # built site, served by python3 -m http.server
+BASE_URL=https://adam-m-holloway.github.io/agent-marketplace/ npx playwright test   # live site
+```
+
 ## Rulesets
 
 Applied straight after each branch's first merge. Bypass is off for everyone.

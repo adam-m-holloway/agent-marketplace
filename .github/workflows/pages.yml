@@ -21,7 +21,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15 # + Playwright install and browser checks
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -73,6 +73,19 @@ jobs:
           args=(--out _site)
           if [ -s skillspector.json ] && [ "$(tr -d ' \n' < skillspector.json)" != "{}" ]; then args+=(--skillspector skillspector.json); fi
           node scripts/build-site.mjs "${args[@]}"
+
+      # Browser checks (Playwright, chromium, light + dark) against _site served on 127.0.0.1 by
+      # python3 -m http.server (see .github/playwright/playwright.config.mjs). A failure stops the
+      # job before the artifact upload, so nothing is deployed.
+      - name: Install Playwright + chromium (pinned by lockfile)
+        working-directory: .github/playwright
+        # `npm ci` verifies every package against .github/playwright/package-lock.json. One retry.
+        run: |
+          install() { npm ci --no-audit --no-fund && npx playwright install --with-deps chromium; }
+          install || { sleep 10; install; }
+      - name: Browser checks
+        working-directory: .github/playwright
+        run: npx playwright test
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
