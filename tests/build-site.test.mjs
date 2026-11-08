@@ -116,3 +116,24 @@ test('vendored Fuse (UMD) finds adr-helper for "adr helpr" with the site options
   const res = new Fuse(docs, FUSE_OPTIONS).search('adr helpr');
   assert.equal(res[0]?.item.name, 'adr-helper');
 });
+
+test('buildData carries consumers_generated_at from latest/consumers.json (null without data)', () => {
+  assert.equal(buildData(good, { now: NOW }).consumers_generated_at, null);
+  const doc = { generated_at: '2026-11-07T03:17:00.000Z', scan_date: '2026-11-07', rows: [] };
+  assert.equal(buildData(good, { consumersDoc: doc, now: NOW }).consumers_generated_at, '2026-11-07T03:17:00.000Z');
+  assert.equal(buildData(good, { consumersDoc: { rows: [] }, now: NOW }).consumers_generated_at, null);
+});
+
+test('site staleMessage: banner only when usage data is older than 36 hours', () => {
+  const ctx = vm.createContext({});
+  vm.runInContext(readFileSync(join(ROOT, 'site/stale.js'), 'utf8'), ctx);
+  const { staleMessage, STALE_HOURS } = ctx;
+  assert.equal(STALE_HOURS, 36);
+  const now = Date.parse('2026-11-08T12:00:00Z');
+  assert.equal(staleMessage(null, now), null);
+  assert.equal(staleMessage('not a date', now), null);
+  assert.equal(staleMessage('2026-11-08T03:17:00Z', now), null); // 9 h
+  assert.equal(staleMessage('2026-11-07T00:00:01Z', now), null); // just under 36 h
+  assert.equal(staleMessage('2026-11-06T12:00:00Z', now),
+    'Usage data is 48 hours old — the nightly insights run may have stopped.');
+});

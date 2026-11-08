@@ -356,6 +356,8 @@
     });
     window.addEventListener('hashchange', onHash);
     $('generated').textContent = 'Catalogue built ' + d.generated_at + '.';
+    var stale = window.staleMessage ? window.staleMessage(d.consumers_generated_at, Date.now()) : null;
+    if (stale) { $('stale').textContent = stale; $('stale').hidden = false; }
     renderStats();
     renderSandbox();
     onHash();
