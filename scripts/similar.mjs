@@ -1,5 +1,6 @@
 // Related plugins: zero-dependency TF-IDF + cosine similarity. Deterministic.
 // Text = name + description + tags + category + skill descriptions.
+import { parseFrontmatter } from './lib/frontmatter.mjs';
 
 const STOPWORDS = new Set(
   'a an and are as at be by for from in into is it its of on or the this to use when with you your not no can'.split(' '),
@@ -64,4 +65,31 @@ export function related(plugins, { top = 3, minScore = 0, withScores = false } =
       .map((x) => (withScores ? { name: x.name, score: Math.round(x.s * 1000) / 1000 } : x.name));
   });
   return out;
+}
+
+/** loadRepo() plugins → similarity docs (works on broken plugins: missing fields become ''). */
+export function docsFromRepo(repo) {
+  return repo.plugins.map((p) => ({
+    name: p.dir,
+    description: p.manifest?.description ?? '',
+    tags: [...(p.manifest?.keywords ?? [])],
+    category: p.catalogue?.category ?? '',
+    skills: (p.skills ?? []).map((s) => ({
+      name: s.name,
+      description: (s.skillMd ? parseFrontmatter(s.skillMd).data?.description : '') ?? '',
+    })),
+  }));
+}
+
+/**
+ * Plugins most similar to a candidate (a new plugin, a request) that is not in `docs`.
+ * @param candidate {name, description, tags?, category?, skills?}
+ * @returns [{name, score}] top-N with score ≥ minScore (default RELATED_MIN_SCORE)
+ */
+export function similarTo(candidate, docs, { top = 3, minScore = RELATED_MIN_SCORE } = {}) {
+  const key = '\u0000'; // tokenizes to nothing, so the key adds no terms; the real name goes in the text
+  const others = docs.filter((d) => d.name !== candidate.name);
+  const doc = { ...candidate, name: key, description: `${candidate.name ?? ''} ${candidate.description ?? ''}` };
+  const r = related([...others, doc], { top, minScore, withScores: true });
+  return r[key] ?? [];
 }

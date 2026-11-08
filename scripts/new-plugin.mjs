@@ -1,11 +1,15 @@
 #!/usr/bin/env node
-// npm run new-plugin <name> [--skill <s>] [--languages go,ts] [--category <c>] [--root <dir>]
+// npm run new-plugin <name> [--description "…"] [--yes] [--skill <s>] [--languages go,ts] [--category <c>] [--root <dir>]
 // Scaffolds plugins/<name>/ with stubs that FAIL `npm run check` until the author fills them in.
+// With --description, first lists the 3 most similar existing plugins and asks "continue anyway?"
+// (--yes skips the question, for scripts and CI).
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { NAME_RE, RESERVED_PREFIXES, OWNER, stableJson } from './lib/plugins.mjs';
+import { createInterface } from 'node:readline/promises';
+import { NAME_RE, RESERVED_PREFIXES, OWNER, loadRepo, stableJson } from './lib/plugins.mjs';
+import { docsFromRepo, similarTo } from './similar.mjs';
 
 export const today = () => {
   const d = new Date();
@@ -32,10 +36,29 @@ export function validateName(root, name) {
 
 const q = (s) => JSON.stringify(s);
 
+/** Existing plugins most similar to a proposed name + description: [{name, score}] (top 3, ≥ RELATED_MIN_SCORE). */
+export function similarPlugins(root, name, description) {
+  return similarTo({ name, description }, docsFromRepo(loadRepo(root)));
+}
+
+/** Ask a yes/no question on stdin; EOF or anything but y/yes is No. */
+async function confirm(question) {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const answer = await new Promise((resolve) => {
+      rl.once('close', () => resolve(''));
+      rl.question(question).then(resolve, () => resolve(''));
+    });
+    return /^y(es)?$/i.test(answer.trim());
+  } finally {
+    rl.close();
+  }
+}
+
 /**
  * Create the plugin skeleton. Throws on an invalid name. Returns repo-relative paths written.
  * @param {string} root
- * @param {{name:string, skill?:string, languages?:string[], category?:string, today?:string}} opts
+ * @param {{name:string, description?:string, skill?:string, languages?:string[], category?:string, today?:string}} opts
  */
 export function scaffold(root, opts) {
   const { name } = opts;
@@ -53,7 +76,7 @@ export function scaffold(root, opts) {
     [`${base}/.claude-plugin/plugin.json`]: stableJson({
       name,
       version: '1.0.0',
-      description: 'TODO: one sentence on what this plugin helps with',
+      description: opts.description || 'TODO: one sentence on what this plugin helps with',
       author: { name: OWNER.name },
       keywords: [],
       license: 'MIT',
@@ -98,7 +121,7 @@ export function scaffold(root, opts) {
   return Object.keys(files);
 }
 
-function main(argv) {
+async function main(argv) {
   const { values, positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
@@ -106,17 +129,39 @@ function main(argv) {
       skill: { type: 'string' },
       languages: { type: 'string' },
       category: { type: 'string' },
+      description: { type: 'string' },
+      yes: { type: 'boolean', default: false },
       root: { type: 'string', default: process.cwd() },
     },
   });
   const name = positionals[0];
   const languages = values.languages?.split(',').map((s) => s.trim()).filter(Boolean);
+  const usage = 'usage: npm run new-plugin <name> [--description "…"] [--yes] [--skill <s>] [--languages go,ts] [--category <c>]';
+  const nameErr = validateName(values.root, name);
+  if (nameErr) {
+    console.error(`new-plugin: ${nameErr}`);
+    console.error(usage);
+    process.exit(1);
+  }
+  if (values.description) {
+    const similar = similarPlugins(values.root, name, values.description);
+    if (!similar.length) {
+      console.log('No similar plugins found.');
+    } else {
+      console.log('Similar existing plugins (could you extend one of these instead?):');
+      for (const s of similar) console.log(`  ${s.name} (score ${s.score.toFixed(3)})`);
+      if (!values.yes && !(await confirm('continue anyway? [y/N] '))) {
+        console.error('new-plugin: aborted; nothing was created');
+        process.exit(1);
+      }
+    }
+  }
   let files;
   try {
-    files = scaffold(values.root, { name, skill: values.skill, languages, category: values.category });
+    files = scaffold(values.root, { name, description: values.description, skill: values.skill, languages, category: values.category });
   } catch (e) {
     console.error(`new-plugin: ${e.message}`);
-    console.error('usage: npm run new-plugin <name> [--skill <s>] [--languages go,ts] [--category <c>]');
+    console.error(usage);
     process.exit(1);
   }
   const skill = values.skill ?? name;
@@ -128,4 +173,4 @@ Next steps:
   plugins/${name}/skills/${skill}/evals/trigger-evals.json; then npm run check`);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) main(process.argv.slice(2));
+if (process.argv[1] === fileURLToPath(import.meta.url)) await main(process.argv.slice(2));
