@@ -49,6 +49,22 @@ record yet), install it once per machine:
 claude plugin install adr-helper@agent-marketplace-stable --scope project
 ```
 
+This can rewrite `.claude/settings.json` with its keys in a different order. Nothing changes
+in meaning, so discard that diff (`git checkout -- .claude/settings.json`) rather than
+committing it.
+
+**Headless runs (`claude -p`, CI, scripts).** `-p` doesn't show the folder-trust dialog, so a
+folder you've never opened interactively won't register its `extraKnownMarketplaces`. Pass the
+committed settings explicitly:
+
+```sh
+claude -p --settings .claude/settings.json "…"
+```
+
+That registers the channel (including stable's `ref` + `path`) for the run, after which the
+`--scope project` install above works. Verified on 2026-11-08 with Claude Code 2.1.319 in both
+team repos.
+
 ## 3. Just me (not committed)
 
 ```sh
