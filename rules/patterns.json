@@ -1,7 +1,20 @@
 {
   "version": 1,
   "description": "Dangerous-pattern and prompt-injection rules for files under plugins/. Each pattern is a JavaScript RegExp source, matched per line. HIGH fails the security job; MEDIUM is reported only.",
-  "extensions": [".md", ".json", ".yml", ".yaml", ".sh", ".bash", ".js", ".mjs", ".cjs", ".ts", ".py", ".txt"],
+  "extensions": [
+    ".md",
+    ".json",
+    ".yml",
+    ".yaml",
+    ".sh",
+    ".bash",
+    ".js",
+    ".mjs",
+    ".cjs",
+    ".ts",
+    ".py",
+    ".txt"
+  ],
   "rules": [
     {
       "id": "pipe-to-shell",
@@ -12,12 +25,92 @@
       "flags": "i"
     },
     {
+      "id": "destructive-rm",
+      "severity": "HIGH",
+      "category": "destructive",
+      "description": "Recursive force delete of / or the home directory",
+      "pattern": "\\brm\\s+(-[a-z]*(rf|fr)[a-z]*|-r\\s+-f|-f\\s+-r|--recursive\\s+--force|--force\\s+--recursive)\\s+(--no-preserve-root\\s+)?[\"']?(\\/|~\\/?|\\$HOME\\/?|\\$\\{HOME\\}\\/?)\\*?[\"']?(\\s|;|&|\\||$)",
+      "flags": "i"
+    },
+    {
+      "id": "decode-and-execute",
+      "severity": "HIGH",
+      "category": "remote-code-execution",
+      "description": "Decodes an encoded payload and executes it",
+      "pattern": "\\bbase64\\s+(-d|-D|--decode)\\b[^\\n]*\\|\\s*(sudo\\s+)?(ba|z|da|k)?sh\\b|\\b(eval|Function|exec)\\s*\\(\\s*(atob|Buffer\\.from|base64\\.b64decode|codecs\\.decode)\\s*\\(",
+      "flags": "i"
+    },
+    {
+      "id": "remote-eval",
+      "severity": "HIGH",
+      "category": "remote-code-execution",
+      "description": "Evaluates code fetched from the network",
+      "pattern": "\\beval\\b\\s*\\(?\\s*[\"'\\x60]?\\$\\(\\s*(curl|wget)\\b|\\b(ba|z|da|k)?sh\\s+(-c\\s+)?[\"']?[$<]\\(\\s*(curl|wget)\\b|\\b(eval|exec|Function)\\s*\\(\\s*(await\\s+)?(fetch|requests\\.get|urllib\\.request\\.urlopen)\\s*\\(|\\b(iex|Invoke-Expression)\\b[^\\n]*\\b(iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString)\\b",
+      "flags": "i"
+    },
+    {
+      "id": "credential-file-read",
+      "severity": "HIGH",
+      "category": "credential-access",
+      "description": "Reads SSH keys, cloud credentials or .netrc",
+      "pattern": "(~|\\$HOME|\\$\\{HOME\\}|\\/home\\/[^\\/\\s]+|\\/Users\\/[^\\/\\s]+|\\/root)\\/\\.ssh\\b|\\.aws\\/credentials\\b|\\.netrc\\b|\\bid_(rsa|dsa|ecdsa|ed25519)\\b",
+      "flags": ""
+    },
+    {
+      "id": "secret-over-network",
+      "severity": "HIGH",
+      "category": "exfiltration",
+      "description": "Sends a token, key or password variable to the network",
+      "pattern": "\\b(curl|wget|nc|ncat|netcat|socat|Invoke-WebRequest|Invoke-RestMethod)\\b[^\\n]*\\$\\{?[A-Z0-9_]*(TOKEN|SECRET|PASSWORD|PASSWD|_KEY|CREDENTIALS?)\\b",
+      "flags": ""
+    },
+    {
+      "id": "env-dump-to-network",
+      "severity": "HIGH",
+      "category": "exfiltration",
+      "description": "Pipes or posts the whole environment to the network",
+      "pattern": "\\b(env|printenv)(\\s+-\\w+)*\\s*\\|(\\s*[\\w.\\/-]+(\\s+-[\\w-]+)*\\s*\\|)*\\s*(sudo\\s+)?(curl|wget|nc|ncat|netcat|socat)\\b|\\b(curl|wget|nc)\\b[^\\n]*\\$\\(\\s*(env|printenv)\\s*\\)",
+      "flags": ""
+    },
+    {
       "id": "ignore-previous-instructions",
       "severity": "HIGH",
       "category": "prompt-injection",
       "description": "Classic instruction-override phrase",
       "pattern": "\\b(ignore|disregard|forget)\\b.{0,20}\\b(all\\s+)?(previous|prior|above|earlier)\\b.{0,20}\\b(instructions|rules|guidance|prompts?)\\b",
       "flags": "i"
+    },
+    {
+      "id": "do-not-tell-user",
+      "severity": "HIGH",
+      "category": "prompt-injection",
+      "description": "Instructs the agent to hide actions from the user",
+      "pattern": "\\b(do\\s+not|don'?t|never)\\s+(tell|inform|notify|alert|warn)\\s+the\\s+user\\b|\\bwithout\\s+(telling|informing|notifying|alerting)\\s+the\\s+user\\b|\\b(hide|conceal|keep)\\s+(this|it)\\s+(secret\\s+)?from\\s+the\\s+user\\b",
+      "flags": "i"
+    },
+    {
+      "id": "unpinned-mcp-launcher",
+      "severity": "HIGH",
+      "category": "supply-chain",
+      "description": "npx/uvx MCP launcher without a pinned @version",
+      "pattern": "\\b(npx|bunx)\\s+(--?[\\w-]+\\s+)*?(-y|--yes)\\s+(--?[\\w-]+\\s+)*(@[a-z0-9][\\w.-]*\\/)?[a-z0-9][\\w.-]*(?![\\w.\\/@-])|\\b(npx|uvx|bunx)\\s+(--?[\\w-]+\\s+)*(@[a-z0-9][\\w.-]*\\/)?[\\w.-]*mcp[\\w.-]*(?![\\w.\\/@-])|\"args\"\\s*:\\s*\\[\\s*\"(-y|--yes)\"\\s*,\\s*\"(@[a-z0-9][\\w.-]*\\/)?[a-z0-9][\\w.-]*\"",
+      "flags": "i"
+    },
+    {
+      "id": "raw-ip-url",
+      "severity": "MEDIUM",
+      "category": "network",
+      "description": "URL with a raw IP address instead of a hostname",
+      "pattern": "\\b(https?|ftp|wss?):\\/\\/(?!127\\.|0\\.0\\.0\\.0)(\\d{1,3}\\.){3}\\d{1,3}\\b",
+      "flags": "i"
+    },
+    {
+      "id": "dotenv-read",
+      "severity": "MEDIUM",
+      "category": "credential-access",
+      "description": "Reads a .env file",
+      "pattern": "(^|[\\s\"'(\\/=<])\\.env(\\.(local|production|development|prod|dev))?(?![\\w.])",
+      "flags": ""
     }
   ]
 }
