@@ -8,3 +8,7 @@ updates:
       default-days: 7
     commit-message:
       prefix: chore(deps)
+    # One PR for all action pin bumps (SHA + version comment), not one per action.
+    groups:
+      actions:
+        patterns: ["*"]
