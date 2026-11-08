@@ -3,10 +3,9 @@
 # >>> SECOND REVIEWER PLACEHOLDER <<<
 # Code-owner review is prepared, not enabled. GitHub never lets an author approve their own PR,
 # so requiring code-owner review with a single owner would block every merge. When a second
-# reviewer (user or team, with write access) exists, run:
-#   node scripts/apply-code-owner-review.mjs --reviewer <@user-or-@org/team> --dry-run
-# then without --dry-run. It adds the reviewer to every line below and turns on code-owner
-# review in the main and stable rulesets (see docs/repo-setup.md, "Turn on code-owner review").
+# reviewer (user or team, with write access) exists, add them to every line below, merge that,
+# then turn on code-owner review in the main and stable rulesets (see docs/repo-setup.md,
+# "Turn on code-owner review").
 
 * @adam-m-holloway
 
