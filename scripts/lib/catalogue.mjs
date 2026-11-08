@@ -6,6 +6,8 @@ import { validate } from './schema.mjs';
 
 export const MARKETPLACE_SCHEMA = 'https://json.schemastore.org/claude-code-marketplace-manifest.json';
 export const MAX_NAME = 64;
+/** Stages each channel lists (default LISTED_STAGES). Stable never lists incubating (Q28). */
+export const CHANNEL_STAGES = { stable: ['published', 'deprecated'] };
 
 // Schemas come from the harness (this checkout), never from the tree being judged.
 const loadSchema = (n) => JSON.parse(readFileSync(new URL(`../../schema/${n}.schema.json`, import.meta.url), 'utf8'));
@@ -63,6 +65,7 @@ export function buildCatalogues(repo) {
       continue;
     }
     entries.push({
+      stage: p.status.stage,
       name: p.dir,
       source: `./plugins/${p.dir}`,
       description: prefix(p.status.stage, p.catalogue) + p.manifest.description,
@@ -81,7 +84,9 @@ export function buildCatalogues(repo) {
       name: c.name,
       description: c.description,
       owner: { ...OWNER },
-      plugins: entries.map((e) => ({ ...e, tags: [...e.tags] })),
+      plugins: entries
+        .filter((e) => (CHANNEL_STAGES[c.id] ?? LISTED_STAGES).includes(e.stage))
+        .map(({ stage, ...e }) => ({ ...e, tags: [...e.tags] })),
     },
   }));
   return { catalogues, excluded };

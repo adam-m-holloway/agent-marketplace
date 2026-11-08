@@ -52,13 +52,16 @@ test('--check detects missing and stale catalogues and writes nothing', (t) => {
   assert.deepEqual(staleFiles(dir), []);
   assert.equal(run('--root', dir, '--check').status, 0);
 
-  // a source change makes the latest catalogue stale
+  // sandbox → incubating changes only latest (stable lists published + deprecated only)
   const st = join(dir, 'plugins/alpha-sandbox/status.json');
   writeFileSync(st, readFileSync(st, 'utf8').replace('sandbox', 'incubating'));
   const stale = run('--root', dir, '--check');
   assert.equal(stale.status, 1);
   assert.match(stale.stdout, /^stale \.claude-plugin\/marketplace\.json/m);
-  assert.match(stale.stdout, /^stale \.claude-plugin\/marketplace-stable\.json/m);
+  assert.doesNotMatch(stale.stdout, /marketplace-stable/);
+  // incubating → published reaches stable too
+  writeFileSync(st, readFileSync(st, 'utf8').replace('incubating', 'published'));
+  assert.deepEqual(staleFiles(dir), CHANNELS.map((c) => c.file));
 
   // a hand edit to one generated file is detected for that file only
   assert.equal(run('--root', dir).status, 0);
