@@ -6,7 +6,6 @@
   var WEAK_SCORE = 0.3; // Fuse score: 0 = exact, 1 = no match. Best above this = weak result.
 
   var data = null;
-  var fuse = null;
   var state = { q: '', category: '', stage: '', language: '', only: '' };
   var channelFor = {}; // plugin name -> 'latest' | 'stable'
 
@@ -146,7 +145,7 @@
     return 0;
   }
   function stableLags(p) { return !!p.versions.stable && cmpVersion(p.versions.latest, p.versions.stable) > 0; }
-  function teamsOf(p) { return uniq(p.consumers.map(function (c) { return c.team || c.consumer; }).filter(Boolean)); }
+  function teamsOf(p) { return uniq(p.consumers.filter(function (c) { return c.status !== 'removed'; }).map(function (c) { return c.team || c.consumer; }).filter(Boolean)); }
   function plural(n, word, many) { return n + ' ' + (n === 1 ? word : (many || word + 's')); }
   function stageBadge(p) { return badge(p.stage, 'stage stage-' + p.stage); }
   function langText(p) { return p.languages.join(', ') || 'any'; }
@@ -424,6 +423,18 @@
       })));
   }
   function wf(name) { return ghLink('.github/workflows/' + name, name); }
+  /** External link to a tool or standard the marketplace uses (plain link; the site fetches nothing). */
+  function ext(href, text) { return h('a', { href: href, text: text, rel: 'noopener' }); }
+  var L = {
+    cc: function () { return ext('https://www.conventionalcommits.org/', 'Conventional Commits'); },
+    skillspector: function () { return ext('https://github.com/NVIDIA/skillspector', 'SkillSpector'); },
+    gitleaks: function () { return ext('https://github.com/gitleaks/gitleaks', 'gitleaks'); },
+    actionlint: function () { return ext('https://github.com/rhysd/actionlint', 'actionlint'); },
+    zizmor: function () { return ext('https://docs.zizmor.sh/', 'zizmor'); },
+    codeql: function () { return ext('https://codeql.github.com/', 'CodeQL'); },
+    scorecard: function () { return ext('https://scorecard.dev/viewer/?uri=github.com/adam-m-holloway/agent-marketplace', 'OpenSSF Scorecard'); },
+    dependabot: function () { return ext('https://docs.github.com/en/code-security/dependabot', 'Dependabot'); },
+  };
 
   function evalsTable() {
     var rows = data.plugins.map(function (p) {
@@ -459,28 +470,37 @@
         group('CI: what runs and when', [
           [wf('pr-gate.yml'), 'Every PR to main and stable. pull_request_target: runs the base branch\'s definitions, reads the PR as data only. Four jobs:'],
           [h('span', { class: 'job' }, 'plugins'), 'validate --strict, catalogues up to date, version bump + changelog, names, frontmatter, evals/trigger set, SKILL.md ≤500 lines, schemas/taxonomy, placeholders & referenced files, stage gate, one plugin per PR, promotion check, score-change preview, triage + capability annotations.'],
-          [h('span', { class: 'job' }, 'security'), 'Hidden content, dangerous/injection patterns on all text files, gitleaks, SkillSpector --no-llm (risk >50 fails).'],
-          [h('span', { class: 'job' }, 'workflows'), 'actionlint, zizmor, every action SHA-pinned.'],
-          [h('span', { class: 'job' }, 'title'), 'PR title is a Conventional Commit.'],
+          [h('span', { class: 'job' }, 'security'), 'Hidden content, dangerous/injection patterns on all text files, ', L.gitleaks(), ', ', L.skillspector(), ' --no-llm (risk >50 fails).'],
+          [h('span', { class: 'job' }, 'workflows'), L.actionlint(), ', ', L.zizmor(), ', every action SHA-pinned.'],
+          [h('span', { class: 'job' }, 'title'), 'PR title follows ', L.cc(), '.'],
           [wf('release.yml'), 'Push to main: tests → tag + GitHub Release per new version → score history to the data branch.'],
-          [wf('pages.yml'), 'Push to main or stable (and after insights): builds this site, including a SkillSpector scan.'],
+          [wf('pages.yml'), 'Push to main or stable (and after insights): builds this site, including a ', L.skillspector(), ' scan.'],
           [wf('insights.yml'), 'Nightly at 03:17 UTC: usage scan (below).'],
-          [wf('codeql.yml'), 'CodeQL on pushes and PRs to main, and weekly.'],
-          [wf('scorecard.yml'), 'OpenSSF Scorecard, weekly and on push to main.'],
-          ['Dependabot', 'Weekly, grouped bumps for action pins and the pinned Claude Code CLI.'],
+          [wf('codeql.yml'), L.codeql(), ' on pushes and PRs to main, and weekly.'],
+          [wf('scorecard.yml'), L.scorecard(), ', weekly and on push to main.'],
+          [L.dependabot(), 'Weekly, grouped bumps for action pins and the pinned Claude Code CLI.'],
         ], true),
         group('Evals', [
           ['What each plugin has', 'Per skill: ', code('evals/evals.json'), ' (≥3 cases with expectations) and ', code('evals/trigger-evals.json'), ' (≥8 should / ≥8 should-not trigger).'],
-          ['How they run', code('npm run eval <plugin>'), ' → ', code('claude plugin eval'), ' with and without the skill; dependencies installed offline first.'],
+          ['How they run', code('npm run eval <plugin>'), ' → ', code('claude plugin eval'), ' with and without the skill; dependencies installed offline first. Authored with ', ext('https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator', 'skill-creator'), '.'],
           ['Not in CI', 'Local only, on the author\'s Claude plan ($0 CI policy). ', code('--record'), ' appends to ', code('evals/results.json'), '.'],
           ['Latest results', evalsTable()],
         ], true),
         group('Scores', [
-          ['Security', 'Our rule findings, capped by 100 − SkillSpector risk when it ran.'],
+          ['Security', 'Our rule findings, capped by 100 − ', L.skillspector(), ' risk when it ran.'],
           ['Quality', 'Weighted criteria from the plugin\'s own files (description, evals, docs…).'],
           ['Evals', 'Pass rate of the latest recorded run at or before this version, vs baseline.'],
           ['Adoption', 'Active team repos that commit the plugin.'],
           ['More', h('a', { href: '#/scores', text: 'How scores are calculated' })],
+        ]),
+        group('Stats: how and when they\'re generated', [
+          ['Where they come from', 'This page is static: the numbers are baked into ', code('data.json'), ' each time ', wf('pages.yml'), ' builds the site; your browser fetches nothing else.'],
+          ['When they refresh', 'On every merge to main or stable, after every promotion, and after each nightly insights run (03:17 UTC), which re-runs the site build. The footer shows when this copy was built.'],
+          ['Plugins', 'Plugins listed in the latest catalogue (stage incubating, published or deprecated).'],
+          ['Teams consuming', 'Distinct team repos with an active entry in the insights snapshot (', code('latest/consumers.json'), ' on the data branch) — committed settings, not laptop installs.'],
+          ['On stable', 'Plugins whose ', code('plugin.json'), ' exists on the ', code('stable'), ' branch.'],
+          ['Stable behind latest', 'Plugins whose stable version is lower than the version on main.'],
+          ['Scores', 'Recomputed at each build from the plugin files, ', code('evals/results.json'), ' and a fresh ', L.skillspector(), ' scan; history is written to the data branch at each major/minor release.'],
         ]),
         group('Insights', [
           ['What', 'Each consumer repo\'s committed ', code('.claude/settings.json'), ' → channel, plugin, version, versions behind, since, status. Committed intent, not laptops.'],
@@ -488,10 +508,18 @@
           ['Where', 'The ', code('data'), ' branch: ', code('consumers/'), ' + ', code('events/'), ' ndjson by year/month, ', code('latest/consumers.json'), ', ', code('scores/'), ', ', h('a', { href: GH + '/blob/data/CATALOGUE.md', text: 'CATALOGUE.md' }), '.'],
           ['Surfaced', 'A pinned "Plugin usage report" issue, one "Behind: …" issue per lagging plugin, and each plugin page\'s Used by section.'],
         ]),
+        group('Tools & standards used', [
+          ['Plugins', ext('https://code.claude.com/docs/en/plugins', 'Claude Code plugins'), ' and ', ext('https://code.claude.com/docs/en/plugin-marketplaces', 'plugin marketplaces'), '; skills follow the ', ext('https://agentskills.io/', 'Agent Skills'), ' format.'],
+          ['Authoring & evals', ext('https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator', 'skill-creator'), ' and ', code('claude plugin eval'), '.'],
+          ['Commits & ADRs', L.cc(), ' for commits and PR titles; ', ext('https://adr.github.io/madr/', 'MADR'), ' for ADRs (adr-helper).'],
+          ['Security scanning', L.skillspector(), ', ', L.gitleaks(), ', ', L.codeql(), ', ', L.scorecard(), '.'],
+          ['Workflow checks', L.actionlint(), ', ', L.zizmor(), ', ', L.dependabot(), '.'],
+          ['Hosting & search', ext('https://pages.github.com/', 'GitHub Pages'), ', ', ext('https://docs.github.com/en/actions', 'GitHub Actions'), ' and ', ext('https://www.fusejs.io/', 'Fuse.js'), ' (vendored, served from this site).'],
+        ]),
         group('Security & governance', [
           ['Rulesets', 'No direct commits to main or stable; squash merge only.'],
           ['Review', 'Code-owner review is off until a second reviewer exists; today the owner reviews and merges.'],
-          ['Scanning', 'CodeQL and OpenSSF Scorecard; see ', ghLink('docs/security-scanning.md'), '.'],
+          ['Scanning', L.codeql(), ' and ', L.scorecard(), '; see ', ghLink('docs/security-scanning.md'), '.'],
         ])));
   }
 
@@ -842,8 +870,7 @@
   function searchDocs() {
     return data.plugins.map(function (p) {
       return {
-        name: p.name, description: p.description, tags: p.tags,
-        skills: p.skills.map(function (s) { return s.name + ' ' + s.description; }),
+        name: p.name, description: p.description,
       };
     });
   }
@@ -854,7 +881,7 @@
     if (state.only) {
       list = data.plugins.filter(function (p) { return p.name === state.only; });
     } else if (state.q.trim()) {
-      var res = fuse.search(state.q.trim());
+      var res = window.searchPlugins(searchDocs(), state.q, window.Fuse);
       best = res.length ? res[0].score : null;
       list = res.map(function (r) { return data.plugins[r.refIndex]; });
     } else {
@@ -996,7 +1023,6 @@
 
   function init(d) {
     data = d;
-    fuse = new window.Fuse(searchDocs(), window.FUSE_OPTIONS);
     fillSelect('f-category', uniq(d.plugins.map(function (p) { return p.category; })));
     fillSelect('f-stage', uniq(d.plugins.map(function (p) { return p.stage; })));
     fillSelect('f-language', uniq([].concat.apply([], d.plugins.map(function (p) { return p.languages; }))));
