@@ -16,12 +16,33 @@ chose Postgres") and it will:
   Decision Outcome and Consequences, plus the date and the deciders;
 - read the relevant code so the context names real modules and dependencies;
 - ask you for the problem, the options or the decision when they are missing, instead of
-  inventing them.
+  inventing them;
+- add the new ADR to the index (see below).
 
 It works with any language or toolchain. The template is in
 `skills/create-adr/references/madr-template.md`.
 
-Not covered in 1.0.0: superseding or editing existing ADRs, and an ADR index.
+### supersede-adr
+
+When a recorded decision is replaced ("supersede ADR 0002, we're moving to CockroachDB"),
+Claude will:
+
+- check that the ADR exists, and stop without changing anything if it does not;
+- ask for what changed, the options and the new decision when they are missing;
+- write the new decision as the next numbered MADR file, with
+  `Supersedes [ADR-0002](0002-use-postgresql.md)` in its Status section;
+- set the old ADR's status to `Superseded by [ADR-0003](0003-....md)` and leave the rest of
+  it as history;
+- update the index. Only those three files change.
+
+### The ADR index
+
+Both skills keep `docs/adr/README.md` up to date: a `| # | Title | Status | Date |` table
+with one row per ADR, sorted by number. It is created (listing every existing ADR) the
+first time either skill runs. The format is in `skills/create-adr/references/adr-index.md`.
+
+Not covered: editing the wording of an existing ADR, or deprecating one without a
+replacement.
 
 ## Install
 

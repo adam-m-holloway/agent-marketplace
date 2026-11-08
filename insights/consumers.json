@@ -1,0 +1,6 @@
+{
+  "consumers": [
+    { "repo": "adam-m-holloway/team-a", "team": "team-a" },
+    { "repo": "adam-m-holloway/team-b", "team": "team-b" }
+  ]
+}

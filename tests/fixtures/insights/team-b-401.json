@@ -1,0 +1,9 @@
+{
+  "/repos/adam-m-holloway/team-b/contents/.claude/settings.json": {
+    "status": 401,
+    "body": {
+      "message": "Bad credentials",
+      "status": "401"
+    }
+  }
+}

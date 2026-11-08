@@ -27,7 +27,9 @@ function docText(p) {
  * @param plugins [{name, description, tags?, category?, skills?:[{name?, description?}]}]
  * @returns {{[name:string]: string[]}} top-N most similar plugin names (score > 0), keys sorted
  */
-export function related(plugins, { top = 3 } = {}) {
+export const RELATED_MIN_SCORE = 0.05;
+
+export function related(plugins, { top = 3, minScore = 0, withScores = false } = {}) {
   const sorted = [...plugins].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   const tfs = sorted.map((p) => {
     const tf = new Map();
@@ -56,10 +58,10 @@ export function related(plugins, { top = 3 } = {}) {
   sorted.forEach((p, i) => {
     out[p.name] = sorted
       .map((q, j) => ({ name: q.name, s: i === j ? 0 : cos(vecs[i], vecs[j]) }))
-      .filter((x) => x.s > 1e-9)
+      .filter((x) => x.s > 1e-9 && x.s >= minScore)
       .sort((a, b) => b.s - a.s || (a.name < b.name ? -1 : 1))
       .slice(0, top)
-      .map((x) => x.name);
+      .map((x) => (withScores ? { name: x.name, score: Math.round(x.s * 1000) / 1000 } : x.name));
   });
   return out;
 }

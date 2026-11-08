@@ -43,3 +43,17 @@ test('related handles empty and single-plugin input', () => {
   assert.deepEqual(related([]), {});
   assert.deepEqual(related([plugins[0]]), { 'adr-helper': [] });
 });
+
+test('related: pairs below minScore are dropped, so unrelated plugins are not shown as related', async () => {
+  const { related, RELATED_MIN_SCORE } = await import('../scripts/similar.mjs');
+  const mk = (name, description, tags) => ({ name, description, tags, category: '', skills: [] });
+  const plugins = [
+    mk('adr-helper', 'Write architecture decision records in MADR format, grounded in your code and its tests', ['adr', 'architecture', 'documentation']),
+    mk('go-conventions', 'Go conventions: wrapped errors, table-driven tests, gofmt and go vet', ['go', 'conventions', 'testing']),
+    mk('typescript-conventions', 'TypeScript conventions: strict mode, no any, Vitest tests', ['typescript', 'conventions', 'testing']),
+  ];
+  const out = related(plugins, { top: 3, minScore: RELATED_MIN_SCORE });
+  assert.deepEqual(out['adr-helper'], []);
+  assert.deepEqual(out['go-conventions'], ['typescript-conventions']);
+  assert.deepEqual(out['typescript-conventions'], ['go-conventions']);
+});

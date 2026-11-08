@@ -1,0 +1,79 @@
+{
+  "/repos/adam-m-holloway/agent-marketplace/commits/main": {
+    "status": 200,
+    "body": {
+      "sha": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+    }
+  },
+  "/repos/adam-m-holloway/agent-marketplace/commits/stable": {
+    "status": 200,
+    "body": {
+      "sha": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+    }
+  },
+  "/repos/adam-m-holloway/agent-marketplace/tags?per_page=100": {
+    "status": 200,
+    "body": [
+      {
+        "name": "go-conventions--v1.0.0",
+        "commit": {
+          "sha": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+        }
+      },
+      {
+        "name": "adr-helper--v1.1.0",
+        "commit": {
+          "sha": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+        }
+      },
+      {
+        "name": "typescript-conventions--v1.0.0",
+        "commit": {
+          "sha": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+        }
+      },
+      {
+        "name": "adr-helper--v1.0.0",
+        "commit": {
+          "sha": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+        }
+      }
+    ]
+  },
+  "/repos/adam-m-holloway/agent-marketplace/contents/plugins/adr-helper/.claude-plugin/plugin.json?ref=a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1": {
+    "status": 200,
+    "body": {
+      "type": "file",
+      "encoding": "base64",
+      "path": "plugins/adr-helper/.claude-plugin/plugin.json",
+      "content": "ewogICJuYW1lIjogImFkci1oZWxwZXIiLAogICJ2ZXJzaW9uIjogIjEuMS4w\nIiwKICAiZGVzY3JpcHRpb24iOiAiYWRyLWhlbHBlciBwbHVnaW4iLAogICJh\ndXRob3IiOiB7CiAgICAibmFtZSI6ICJBZGFtIEhvbGxvd2F5IgogIH0sCiAg\nImxpY2Vuc2UiOiAiTUlUIgp9Cg=="
+    }
+  },
+  "/repos/adam-m-holloway/agent-marketplace/contents/plugins/go-conventions/.claude-plugin/plugin.json?ref=a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1": {
+    "status": 200,
+    "body": {
+      "type": "file",
+      "encoding": "base64",
+      "path": "plugins/go-conventions/.claude-plugin/plugin.json",
+      "content": "ewogICJuYW1lIjogImdvLWNvbnZlbnRpb25zIiwKICAidmVyc2lvbiI6ICIx\nLjAuMCIsCiAgImRlc2NyaXB0aW9uIjogImdvLWNvbnZlbnRpb25zIHBsdWdp\nbiIsCiAgImF1dGhvciI6IHsKICAgICJuYW1lIjogIkFkYW0gSG9sbG93YXki\nCiAgfSwKICAibGljZW5zZSI6ICJNSVQiCn0K"
+    }
+  },
+  "/repos/adam-m-holloway/agent-marketplace/contents/plugins/adr-helper/.claude-plugin/plugin.json?ref=b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2": {
+    "status": 200,
+    "body": {
+      "type": "file",
+      "encoding": "base64",
+      "path": "plugins/adr-helper/.claude-plugin/plugin.json",
+      "content": "ewogICJuYW1lIjogImFkci1oZWxwZXIiLAogICJ2ZXJzaW9uIjogIjEuMC4w\nIiwKICAiZGVzY3JpcHRpb24iOiAiYWRyLWhlbHBlciBwbHVnaW4iLAogICJh\ndXRob3IiOiB7CiAgICAibmFtZSI6ICJBZGFtIEhvbGxvd2F5IgogIH0sCiAg\nImxpY2Vuc2UiOiAiTUlUIgp9Cg=="
+    }
+  },
+  "/repos/adam-m-holloway/agent-marketplace/contents/plugins/typescript-conventions/.claude-plugin/plugin.json?ref=b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2": {
+    "status": 200,
+    "body": {
+      "type": "file",
+      "encoding": "base64",
+      "path": "plugins/typescript-conventions/.claude-plugin/plugin.json",
+      "content": "ewogICJuYW1lIjogInR5cGVzY3JpcHQtY29udmVudGlvbnMiLAogICJ2ZXJz\naW9uIjogIjEuMC4wIiwKICAiZGVzY3JpcHRpb24iOiAidHlwZXNjcmlwdC1j\nb252ZW50aW9ucyBwbHVnaW4iLAogICJhdXRob3IiOiB7CiAgICAibmFtZSI6\nICJBZGFtIEhvbGxvd2F5IgogIH0sCiAgImxpY2Vuc2UiOiAiTUlUIgp9Cg==\n"
+    }
+  }
+}
