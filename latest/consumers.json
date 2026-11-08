@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-08T11:25:23.870Z",
+  "generated_at": "2026-11-08T11:27:20.206Z",
   "scan_date": "2026-11-08",
   "rows": [
     {
@@ -27,20 +27,6 @@
       "sha": "406d12cb339535926f795bc9052fa9ec3638a47d",
       "version": "1.0.0",
       "versions_behind": 0,
-      "first_seen": "2026-11-08",
-      "status": "active"
-    },
-    {
-      "date": "2026-11-08",
-      "consumer": "adam-m-holloway/team-b",
-      "team": "team-b",
-      "channel": "stable",
-      "marketplace": "agent-marketplace-stable",
-      "plugin": "adr-helper",
-      "ref": "stable",
-      "sha": "e35f764715bd96a887ca3570915182f88813049a",
-      "version": "1.0.0",
-      "versions_behind": 1,
       "first_seen": "2026-11-08",
       "status": "active"
     },
