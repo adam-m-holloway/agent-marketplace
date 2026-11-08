@@ -1,0 +1,45 @@
+diff --git a/src/auth/session.ts b/src/auth/session.ts
+index 2c3d4e5..6f7a8b9 100644
+--- a/src/auth/session.ts
++++ b/src/auth/session.ts
+@@ -1,24 +1,19 @@
+ import { db } from '../db';
++import { isExpired } from './expiry';
+
+ export async function getSession(token: string) {
+   const session = await db.sessions.findByToken(token);
+   if (!session) return null;
+-  const now = Date.now();
+-  const idleLimit = session.lastSeenAt.getTime() + 30 * 60 * 1000;
+-  const hardLimit = session.createdAt.getTime() + 12 * 60 * 60 * 1000;
+-  if (now > idleLimit || now > hardLimit) return null;
++  if (isExpired(session, Date.now())) return null;
+   return session;
+ }
+
+ export async function refreshSession(token: string) {
+   const session = await db.sessions.findByToken(token);
+   if (!session) return null;
+   const now = Date.now();
+-  const idleLimit = session.lastSeenAt.getTime() + 30 * 60 * 1000;
+-  const hardLimit = session.createdAt.getTime() + 12 * 60 * 60 * 1000;
+-  if (now > idleLimit || now > hardLimit) return null;
++  if (isExpired(session, now)) return null;
+   return db.sessions.touch(session.id, new Date(now));
+ }
+diff --git a/src/auth/expiry.ts b/src/auth/expiry.ts
+new file mode 100644
+index 0000000..1d2e3f4
+--- /dev/null
++++ b/src/auth/expiry.ts
+@@ -0,0 +1,10 @@
++const IDLE_MS = 30 * 60 * 1000;
++const ABSOLUTE_MS = 12 * 60 * 60 * 1000;
++
++/** True when a session has been idle too long or is past its absolute lifetime. */
++export function isExpired(
++  session: { lastSeenAt: Date; createdAt: Date },
++  now: number,
++): boolean {
++  return now > session.lastSeenAt.getTime() + IDLE_MS || now > session.createdAt.getTime() + ABSOLUTE_MS;
++}

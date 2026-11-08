@@ -1,0 +1,64 @@
+diff --git a/src/invoices/pdf.ts b/src/invoices/pdf.ts
+new file mode 100644
+index 0000000..3b1f2c9
+--- /dev/null
++++ b/src/invoices/pdf.ts
+@@ -0,0 +1,18 @@
++import { renderTemplate } from '../templates/render';
++import type { Invoice } from './types';
++
++/** Render an invoice as a PDF buffer using the standard invoice template. */
++export async function renderInvoicePdf(invoice: Invoice): Promise<Buffer> {
++  const html = renderTemplate('invoice', {
++    number: invoice.number,
++    customer: invoice.customer.name,
++    lines: invoice.lines,
++    total: invoice.total,
++  });
++  return htmlToPdf(html);
++}
++
++async function htmlToPdf(html: string): Promise<Buffer> {
++  const { default: pdfLite } = await import('../vendor/pdf-lite');
++  return pdfLite(html, { format: 'A4' });
++}
+diff --git a/src/invoices/routes.ts b/src/invoices/routes.ts
+index 8c2d1e0..a41f7b3 100644
+--- a/src/invoices/routes.ts
++++ b/src/invoices/routes.ts
+@@ -1,5 +1,6 @@
+ import { Router } from 'express';
+ import { getInvoice, listInvoices } from './service';
++import { renderInvoicePdf } from './pdf';
+
+ export const invoiceRoutes = Router();
+
+@@ -12,3 +13,12 @@ invoiceRoutes.get('/invoices/:id', async (req, res) => {
+   const invoice = await getInvoice(req.user.id, req.params.id);
+   res.json(invoice);
+ });
++
++invoiceRoutes.get('/invoices/:id/pdf', async (req, res) => {
++  const invoice = await getInvoice(req.user.id, req.params.id);
++  if (!invoice) return res.sendStatus(404);
++  const pdf = await renderInvoicePdf(invoice);
++  res.type('application/pdf');
++  res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.number}.pdf"`);
++  res.send(pdf);
++});
+diff --git a/src/invoices/pdf.test.ts b/src/invoices/pdf.test.ts
+new file mode 100644
+index 0000000..77e0a1d
+--- /dev/null
++++ b/src/invoices/pdf.test.ts
+@@ -0,0 +1,10 @@
++import { describe, expect, it } from 'vitest';
++import { renderInvoicePdf } from './pdf';
++import { sampleInvoice } from './fixtures';
++
++describe('renderInvoicePdf', () => {
++  it('returns a PDF document', async () => {
++    const pdf = await renderInvoicePdf(sampleInvoice);
++    expect(pdf.subarray(0, 4).toString()).toBe('%PDF');
++  });
++});

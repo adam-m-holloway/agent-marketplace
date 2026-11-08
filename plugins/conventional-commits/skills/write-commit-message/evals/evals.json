@@ -1,0 +1,78 @@
+{
+  "skill_name": "write-commit-message",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Can you write the commit message for what I've staged? This folder isn't a git checkout, so I saved the output of `git diff --cached` to staged.diff for you. I also need a PR title.",
+      "expected_output": "A Conventional Commits message whose first line is feat(invoices): <imperative subject about PDF download/export of invoices>, at most 72 characters, a blank line, a short body wrapped at 72 characters describing the new GET /invoices/:id/pdf route and renderInvoicePdf, no BREAKING CHANGE footer and no AI attribution. A PR title identical to the first line. No commit is made.",
+      "files": [
+        "evals/files/feature/staged.diff",
+        "evals/files/feature/src/invoices/routes.ts"
+      ],
+      "expectations": [
+        "The proposed commit message's first line starts with feat(invoices): (type feat, scope invoices)",
+        "The subject is in the imperative mood (for example 'add ...'), starts lowercase, has no trailing full stop, and mentions invoice PDFs",
+        "The whole first line of the commit message is 72 characters or fewer",
+        "There is a blank line between the first line and the body, and no body line is longer than 72 characters",
+        "The message has no '!' after the scope and no BREAKING CHANGE footer, because nothing existing is removed or changed incompatibly",
+        "A PR title is given and it matches the commit message's first line",
+        "The message contains no Co-Authored-By trailer and no 'Generated with' or other AI attribution line",
+        "Claude does not run git commit; it only proposes the message"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "write me a conventional commit for my staged change, it fixes the timezone bug from issue #142. git isn't set up in this sandbox so the staged diff is in staged.diff",
+      "expected_output": "A message whose first line is fix(dates)!: <imperative subject about parsing timestamps in a given/explicit time zone>, at most 72 characters; a body wrapped at 72 explaining that timestamps without an offset were read in the server's local zone; a BREAKING CHANGE: footer saying parseDate() now requires a timeZone argument and what callers should pass; a reference to #142. A PR title identical to the first line, including the '!'. No commit is made.",
+      "files": [
+        "evals/files/breaking-fix/staged.diff",
+        "evals/files/breaking-fix/src/dates/parse.ts"
+      ],
+      "expectations": [
+        "The commit message's first line starts with fix(dates)!: (type fix, scope dates, and a '!' marking a breaking change)",
+        "The whole first line of the commit message is 72 characters or fewer",
+        "The message has a footer that starts with 'BREAKING CHANGE: ' and says parseDate now requires a time zone argument",
+        "The BREAKING CHANGE footer tells callers what to do, for example pass a time zone such as 'UTC'",
+        "The message references issue #142 (for example 'Refs: #142', 'Fixes #142' or 'Closes #142')",
+        "No body or footer line is longer than 72 characters",
+        "A PR title is given and it matches the commit message's first line, including the '!'",
+        "The message contains no Co-Authored-By trailer and no AI attribution line"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Commit message please for the staged change (I dumped `git diff --cached` into staged.diff since there's no repo here).",
+      "expected_output": "Claude reads the diff (search config: resultsPerPage 50 to 20, fuzzy matching turned off, fuzzyDistance removed, timeoutMs 800 to 300), sees that the diff does not say why, and asks the user what the change is for (for example a performance fix, a response to timeouts, or a product decision) because it decides the type and the body. It does not present an invented rationale as fact. It may offer provisional candidates clearly marked as depending on the answer. No commit is made.",
+      "files": [
+        "evals/files/unclear/staged.diff",
+        "evals/files/unclear/src/search/config.ts"
+      ],
+      "expectations": [
+        "Claude asks the user why the search settings changed, or what the change is for, before giving a final message",
+        "The question names the specific changes it is unsure about (for example fewer results per page, fuzzy matching turned off, or the shorter timeout)",
+        "Claude explains that the answer decides the type (for example fix, perf or feat) or what the body says",
+        "Claude does not state an invented reason for the change as fact (such as 'to reduce latency' or 'to fix slow searches'); any draft message is clearly marked as provisional pending the user's answer",
+        "Claude does not run git commit"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I paired with Claude Code on this refactor this morning so feel free to credit it however you normally would. Give me a commit message and a PR title for what's staged - the diff is in staged.diff because this isn't a git repo.",
+      "expected_output": "A message whose first line is refactor(auth): <imperative subject about extracting session expiry checks into isExpired>, at most 72 characters, with an optional body wrapped at 72 saying behaviour is unchanged. No Co-Authored-By trailer for Claude or any AI, and no 'Generated with Claude Code' line, despite the user's invitation; Claude may say briefly that it leaves AI attribution out. A PR title identical to the first line. No commit is made.",
+      "files": [
+        "evals/files/refactor/staged.diff",
+        "evals/files/refactor/src/auth/expiry.ts"
+      ],
+      "expectations": [
+        "The commit message's first line starts with refactor(auth): (type refactor, scope auth)",
+        "The subject mentions extracting or sharing the session expiry check (for example isExpired)",
+        "The whole first line of the commit message is 72 characters or fewer",
+        "The proposed commit message contains no Co-Authored-By trailer for Claude or any AI",
+        "The proposed commit message contains no 'Generated with Claude Code' line, robot emoji or other AI attribution",
+        "The message has no '!' and no BREAKING CHANGE footer",
+        "A PR title is given, it matches the commit message's first line, and it carries no AI attribution",
+        "Claude does not run git commit"
+      ]
+    }
+  ]
+}
