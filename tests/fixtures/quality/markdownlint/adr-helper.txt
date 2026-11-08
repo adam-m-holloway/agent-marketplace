@@ -1,0 +1,10 @@
+markdownlint-cli2 v0.24.0 (markdownlint v0.42.0)
+Finding: plugins/adr-helper/**/*.md !plugins/adr-helper/**/evals/**
+Linting: 8 files
+Summary: 6 issues in 6 files
+plugins/adr-helper/README.md:84 error MD040/fenced-code-language Fenced code blocks should have a language specified [Context: "```"]
+plugins/adr-helper/skills/create-adr/references/adr-index.md:19:26 error MD038/no-space-in-code Spaces inside code span elements [Context: "`# `"]
+plugins/adr-helper/skills/create-adr/references/madr-template.md:4:19 error MD034/no-bare-urls Bare URL used [Context: "https://adr.github.io/madr/"]
+plugins/adr-helper/skills/create-adr/SKILL.md:30 error MD032/blanks-around-lists Lists should be surrounded by blank lines [Context: "> - which alternatives you con..."]
+plugins/adr-helper/skills/supersede-adr/references/adr-index.md:19:26 error MD038/no-space-in-code Spaces inside code span elements [Context: "`# `"]
+plugins/adr-helper/skills/supersede-adr/references/madr-template.md:4:19 error MD034/no-bare-urls Bare URL used [Context: "https://adr.github.io/madr/"]

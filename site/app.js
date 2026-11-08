@@ -269,7 +269,7 @@
       ? plural(teamsOf(p).length, 'team') + ' (' + p.consumers.map(function (c) { return (c.team || c.consumer) + ' ' + (c.channel || ''); }).join(', ') + ')'
       : 'no team repos yet';
     var relPreview = rel.length ? plural(rel.length, 'release') + ', latest ' + rel[0].version + (rel[0].date ? ' on ' + rel[0].date : '') : 'no releases yet';
-    var trendPreview = 'score history over ' + plural(hist.length, 'tracked version') + ' · adoption over ' + plural(adopt.length, 'day');
+    var trendPreview = 'score history over ' + plural(hist.length, 'tracked version') + ' · installs over ' + plural(adopt.length, 'day');
 
     return h('div', { class: 'detail-page' },
       h('p', { class: 'back' }, h('a', { href: '#' }, h('span', { 'aria-hidden': 'true', text: '← ' }), 'All plugins')),
@@ -307,7 +307,7 @@
       h('p', { class: 'back' }, h('a', { href: '#' }, h('span', { 'aria-hidden': 'true', text: '← ' }), 'All plugins')),
       h('header', { class: 'detail-head' },
         h('h2', { id: 'detail-title', tabindex: '-1', text: 'How scores are calculated' }),
-        h('p', { class: 'detail-desc', text: 'Security, quality, evals and adoption: what each score means, how it is computed and when it is recorded.' })),
+        h('p', { class: 'detail-desc', text: 'Security, quality, evals and adoption (installs): what each score means, how it is computed and when it is recorded.' })),
       h('div', { class: 'explain-page' }, explainBody()));
   }
 
@@ -434,6 +434,12 @@
     codeql: function () { return ext('https://codeql.github.com/', 'CodeQL'); },
     scorecard: function () { return ext('https://scorecard.dev/viewer/?uri=github.com/adam-m-holloway/agent-marketplace', 'OpenSSF Scorecard'); },
     dependabot: function () { return ext('https://docs.github.com/en/code-security/dependabot', 'Dependabot'); },
+    skillcheck: function () { return ext('https://github.com/thedaviddias/skill-check', 'skill-check'); },
+    skillscore: function () { return ext('https://github.com/sayed3li97/skillscore', 'skillscore'); },
+    bestPractices: function () { return ext('https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices', 'Anthropic best-practice'); },
+    markdownlint: function () { return ext('https://github.com/DavidAnson/markdownlint-cli2', 'markdownlint-cli2'); },
+    lychee: function () { return ext('https://github.com/lycheeverse/lychee', 'lychee'); },
+    cspell: function () { return ext('https://github.com/streetsidesoftware/cspell', 'cspell'); },
   };
 
   function evalsTable() {
@@ -454,7 +460,7 @@
 
   function aboutPage() {
     return h('div', { class: 'detail-page' }, backLink(),
-      pageHead('About the Agent Marketplace', 'TL;DR of the whole system: what it is, how it works, what CI runs, how plugins are evaluated and scored, and how usage is measured.'),
+      pageHead('About the Agent Marketplace', 'TL;DR of the whole system: what it is, how it works, what CI runs, how plugins are evaluated and scored, and how installs are counted.'),
       h('div', { class: 'tldr-groups' },
         group('What it is', [
           ['Plugin marketplace monorepo', 'Claude Code plugins for our teams, in one repo: publish once, version it, see who uses what.'],
@@ -474,8 +480,8 @@
           [h('span', { class: 'job' }, 'workflows'), L.actionlint(), ', ', L.zizmor(), ', every action SHA-pinned.'],
           [h('span', { class: 'job' }, 'title'), 'PR title follows ', L.cc(), '.'],
           [wf('release.yml'), 'Push to main: tests → tag + GitHub Release per new version → score history to the data branch.'],
-          [wf('pages.yml'), 'Push to main or stable (and after insights): builds this site, including a ', L.skillspector(), ' scan.'],
-          [wf('insights.yml'), 'Nightly at 03:17 UTC: usage scan (below).'],
+          [wf('pages.yml'), 'Push to main or stable (and after insights): builds this site, including a ', L.skillspector(), ' scan and the quality tools (', L.skillcheck(), ', ', L.skillscore(), ', ', L.markdownlint(), ', ', L.lychee(), ', ', L.cspell(), ').'],
+          [wf('insights.yml'), 'Nightly at 03:17 UTC: install scan (below).'],
           [wf('codeql.yml'), L.codeql(), ' on pushes and PRs to main, and weekly.'],
           [wf('scorecard.yml'), L.scorecard(), ', weekly and on push to main.'],
           [L.dependabot(), 'Weekly, grouped bumps for action pins and the pinned Claude Code CLI.'],
@@ -488,9 +494,9 @@
         ], true),
         group('Scores', [
           ['Security', 'Our rule findings, capped by 100 − ', L.skillspector(), ' risk when it ran.'],
-          ['Quality', 'Weighted criteria from the plugin\'s own files (description, evals, docs…).'],
+          ['Quality', '55% skill linters (', L.skillcheck(), ' and ', L.skillscore(), ', averaged), 25% ', L.bestPractices(), ' rules (our own checker), 20% docs hygiene (', L.markdownlint(), ', ', L.lychee(), ', ', L.cspell(), '). A tool that did not run shows as "not run" and the rest are re-weighted.'],
           ['Evals', 'Pass rate of the latest recorded run at or before this version, vs baseline.'],
-          ['Adoption', 'Active team repos that commit the plugin.'],
+          ['Adoption', 'Team repos that install the plugin (listed in their ', code('.claude/settings.json'), '); not how often its skills are used.'],
           ['More', h('a', { href: '#/scores', text: 'How scores are calculated' })],
         ]),
         group('Stats: how and when they\'re generated', [
@@ -513,6 +519,7 @@
           ['Authoring & evals', ext('https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator', 'skill-creator'), ' and ', code('claude plugin eval'), '.'],
           ['Commits & ADRs', L.cc(), ' for commits and PR titles; ', ext('https://adr.github.io/madr/', 'MADR'), ' for ADRs (adr-helper).'],
           ['Security scanning', L.skillspector(), ', ', L.gitleaks(), ', ', L.codeql(), ', ', L.scorecard(), '.'],
+          ['Quality scoring', L.skillcheck(), ', ', L.skillscore(), ', ', L.bestPractices(), ' rules, ', L.markdownlint(), ', ', L.lychee(), ' and ', L.cspell(), '.'],
           ['Workflow checks', L.actionlint(), ', ', L.zizmor(), ', ', L.dependabot(), '.'],
           ['Hosting & search', ext('https://pages.github.com/', 'GitHub Pages'), ', ', ext('https://docs.github.com/en/actions', 'GitHub Actions'), ' and ', ext('https://www.fusejs.io/', 'Fuse.js'), ' (vendored, served from this site).'],
         ]),
@@ -670,7 +677,7 @@
 
   function adoptionChart(p) {
     var a = p.adoption_history || [];
-    if (!a.length) return h('div', { class: 'chart chart-empty' }, h('p', { class: 'chart-title', text: 'Adoption over time' }), h('p', { class: 'muted', text: 'No usage snapshots yet (the nightly insights run writes one per day).' }));
+    if (!a.length) return h('div', { class: 'chart chart-empty' }, h('p', { class: 'chart-title', text: 'Adoption over time' }), h('p', { class: 'muted', text: 'No install snapshots yet (the nightly insights run writes one per day).' }));
     var t = a.map(function (r) { return Date.parse(r.date + 'T00:00:00Z'); });
     var span = t[t.length - 1] - t[0];
     var max = Math.max.apply(null, a.map(function (r) { return r.active; }));
@@ -678,7 +685,7 @@
     var yMax = Math.max(step, Math.ceil(max / step) * step);
     var ticks = []; for (var v = 0; v <= yMax; v += step) ticks.push(v);
     return lineChart({
-      title: 'Adoption over time', sub: 'active team repos per day',
+      title: 'Adoption over time', sub: 'team repos that install it, per day',
       desc: 'Number of team repos with ' + p.name + ' committed and active, per daily scan: ' +
         a.map(function (r) { return r.date + ' ' + r.active; }).join('; ') + '.',
       xs: span ? t.map(function (x) { return (x - t[0]) / span; }) : evenXs(a.length),
@@ -687,7 +694,7 @@
       xTitle: 'Scan date (UTC)', yTitle: 'Active team repos', yMax: yMax, yTicks: ticks,
       fmt: function (v) { return String(v); },
       series: [{ label: 'Active team repos', cls: 'series-1', shape: 'circle', values: a.map(function (r) { return r.active; }) }],
-      sparseNote: 'Only ' + plural(a.length, 'day') + ' of usage recorded so far, so points are shown without a line: the trend appears as more days are recorded.',
+      sparseNote: 'Only ' + plural(a.length, 'day') + ' of installs recorded so far, so points are shown without a line: the trend appears as more days are recorded.',
     });
   }
 
@@ -739,7 +746,7 @@
       meter('Evals', e ? e.pass_rate : null, e ? fmtNum(e.pass_rate) + '%' : 'not measured', c.evals, vs),
       h('li', { class: 'score score-count' },
         h('span', { class: 'score-label', text: 'Adoption' }),
-        h('span', { class: 'score-value' }, h('strong', { text: String(n) }), h('span', { class: 'score-band', text: n === 1 ? 'team repo' : 'team repos' }))),
+        h('span', { class: 'score-value' }, h('strong', { text: String(n) }), h('span', { class: 'score-band', text: n === 1 ? 'team repo installs it' : 'team repos install it' }))),
     ];
     var sc = p.scored || {};
     var when = 'Scored ' + fmtDateTime(sc.at) + ' · v' + (sc.version || '?') +
@@ -764,12 +771,13 @@
     wrap.appendChild(h('p', { class: 'hint' }, sec.inputs ? sec.inputs + '. ' : '',
       data.skillspector_ran && sec.skillspector_risk != null ? 'SkillSpector risk ' + sec.skillspector_risk + '/100.' : 'SkillSpector: not run.'));
     if (s.quality) {
-      var passed = s.quality.criteria.filter(function (x) { return x.passed; }).length;
-      wrap.appendChild(h('h3', { class: 'sub', text: 'Quality · ' + passed + ' of ' + s.quality.criteria.length + ' criteria' }));
-      wrap.appendChild(h('ul', { class: 'criteria' }, s.quality.criteria.map(function (c) {
-        return h('li', { class: c.passed ? 'pass' : 'fail' },
-          h('span', { class: 'mark', 'aria-hidden': 'true', text: c.passed ? '✓' : '✗' }),
-          h('span', null, h('span', { class: 'offscreen', text: c.passed ? 'Passed: ' : 'Failed: ' }), c.label + ' (' + c.weight + ')',
+      var crit = s.quality.criteria || [];
+      var ran = crit.filter(function (x) { return x.ran; }).length;
+      wrap.appendChild(h('h3', { class: 'sub', text: 'Quality · ' + ran + ' of ' + crit.length + ' criteria ran' }));
+      wrap.appendChild(h('ul', { class: 'criteria' }, crit.map(function (c) {
+        return h('li', { class: c.ran && bandOf(c.score) !== 'poor' ? 'pass' : 'fail' },
+          h('span', { class: 'mark num', text: c.ran ? String(c.score) : '—' }),
+          h('span', null, c.label + ' (' + c.weight + '%' + (c.ran ? '' : ', not run') + ')',
             h('span', { class: 'skill-desc', text: ' — ' + c.detail })));
       })));
     }
@@ -807,9 +815,15 @@
       h('p', { class: 'muted', text: 'Current scores are computed when this catalogue is built, from each plugin\'s own files and this repo\'s rules; the history comes from records written at each release. ' + (x.bands || '') }),
       h('div', { class: 'explain-grid' },
         list('Security (0–100)', x.security),
-        list('Quality (0–100)', (x.quality_criteria || []).map(function (c) { return c.label + ' — ' + c.weight + ' points'; })),
+        h('div', { class: 'explain-col' }, h('h3', { text: 'Quality (0–100)' }),
+          h('ul', null, (x.quality || []).map(function (l) { return h('li', { text: l }); })),
+          (x.quality_tools || []).length ? h('p', { class: 'muted' }, 'Tools: ', (x.quality_tools || []).reduce(function (acc, t, i) {
+            if (i) acc.push(', ');
+            acc.push(ext(t.url, t.name));
+            return acc;
+          }, []), '.') : null),
         list('Evals', x.evals),
-        list('Adoption', x.adoption),
+        list('Adoption (installs)', x.adoption),
         list('Which versions are tracked', x.tracking),
         list('When scores are recorded', x.recording)));
   }

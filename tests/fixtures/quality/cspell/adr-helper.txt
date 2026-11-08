@@ -1,0 +1,13 @@
+plugins/adr-helper/CHANGELOG.md:7:232 - Unknown word (gofmt)
+plugins/adr-helper/README.md:18:41 - Unknown word (gofmt)
+plugins/adr-helper/README.md:23:29 - Unknown word (gofmt)
+plugins/adr-helper/skills/adr-helper/references/examples.md:39:9 - Unknown word (verr)
+plugins/adr-helper/skills/adr-helper/references/examples.md:41:26 - Unknown word (verr)
+plugins/adr-helper/skills/adr-helper/references/examples.md:42:23 - Unknown word (verr)
+plugins/adr-helper/skills/adr-helper/references/examples.md:143:3 - Unknown word (gofmt)
+plugins/adr-helper/skills/adr-helper/SKILL.md:3:324 - Unknown word (gofmt)
+plugins/adr-helper/skills/adr-helper/SKILL.md:4:44 - Unknown word (gofmt)
+plugins/adr-helper/skills/adr-helper/SKILL.md:140:12 - Unknown word (gofmt)
+plugins/adr-helper/skills/adr-helper/SKILL.md:153:5 - Unknown word (gofmt)
+plugins/adr-helper/skills/adr-helper/SKILL.md:153:63 - Unknown word (gofmt)
+CSpell: Files checked: 4, Issues found: 12 in 4 files.

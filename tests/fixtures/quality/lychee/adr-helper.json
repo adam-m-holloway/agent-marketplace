@@ -1,0 +1,76 @@
+{
+  "total": 5,
+  "unique": 3,
+  "successful": 2,
+  "unknown": 0,
+  "unsupported": 0,
+  "timeouts": 0,
+  "redirects": 0,
+  "remaps": 0,
+  "excludes": 3,
+  "errors": 0,
+  "cached": 0,
+  "success_map": {},
+  "error_map": {},
+  "timeout_map": {},
+  "suggestion_map": {},
+  "redirect_map": {},
+  "excluded_map": {
+    "plugins/adr-helper/skills/supersede-adr/references/madr-template.md": [
+      {
+        "url": "https://adr.github.io/madr/",
+        "status": {
+          "text": "Excluded",
+          "details": "This is due to your 'exclude' values"
+        },
+        "span": {
+          "line": 4,
+          "column": 19
+        },
+        "duration": {
+          "secs": 0,
+          "nanos": 458
+        }
+      }
+    ],
+    "plugins/adr-helper/README.md": [
+      {
+        "url": "https://adr.github.io/madr/",
+        "status": {
+          "text": "Excluded",
+          "details": "This is due to your 'exclude' values"
+        },
+        "span": {
+          "line": 3,
+          "column": 47
+        },
+        "duration": {
+          "secs": 0,
+          "nanos": 583
+        }
+      }
+    ],
+    "plugins/adr-helper/skills/create-adr/references/madr-template.md": [
+      {
+        "url": "https://adr.github.io/madr/",
+        "status": {
+          "text": "Excluded",
+          "details": "This is due to your 'exclude' values"
+        },
+        "span": {
+          "line": 4,
+          "column": 19
+        },
+        "duration": {
+          "secs": 0,
+          "nanos": 1542
+        }
+      }
+    ]
+  },
+  "duration": {
+    "secs": 0,
+    "nanos": 5177291
+  },
+  "detailed_stats": false
+}

@@ -1,0 +1,98 @@
+{
+  "summary": {
+    "skillCount": 2,
+    "errorCount": 0,
+    "warningCount": 5
+  },
+  "diagnostics": [
+    {
+      "ruleId": "description.use_when_phrase",
+      "severity": "warn",
+      "message": "description should contain \"Use when\" phrasing",
+      "file": "plugins/adr-helper/skills/create-adr/SKILL.md",
+      "line": 1,
+      "column": 1,
+      "suggestion": "Start description with \"Use when\" to help agents match this skill to user intent."
+    },
+    {
+      "ruleId": "description.use_when_phrase",
+      "severity": "warn",
+      "message": "description should contain \"Use when\" phrasing",
+      "file": "plugins/adr-helper/skills/supersede-adr/SKILL.md",
+      "line": 1,
+      "column": 1,
+      "suggestion": "Start description with \"Use when\" to help agents match this skill to user intent."
+    },
+    {
+      "ruleId": "links.local_markdown_resolves",
+      "severity": "warn",
+      "message": "broken local link: NNNN-old-slug.md",
+      "file": "plugins/adr-helper/skills/supersede-adr/SKILL.md",
+      "line": 73,
+      "column": 50,
+      "suggestion": "Create the file at NNNN-old-slug.md or fix the link path."
+    },
+    {
+      "ruleId": "links.local_markdown_resolves",
+      "severity": "warn",
+      "message": "broken local link: MMMM-new-slug.md",
+      "file": "plugins/adr-helper/skills/supersede-adr/SKILL.md",
+      "line": 86,
+      "column": 54,
+      "suggestion": "Create the file at MMMM-new-slug.md or fix the link path."
+    },
+    {
+      "ruleId": "links.local_markdown_resolves",
+      "severity": "warn",
+      "message": "broken local link: MMMM-new-slug.md",
+      "file": "plugins/adr-helper/skills/supersede-adr/SKILL.md",
+      "line": 87,
+      "column": 62,
+      "suggestion": "Create the file at MMMM-new-slug.md or fix the link path."
+    }
+  ],
+  "metadata": {
+    "roots": [
+      "plugins/adr-helper"
+    ],
+    "include": [
+      "**/SKILL.md"
+    ],
+    "exclude": [
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/.next/**",
+      "**/coverage/**",
+      "**/fixtures/**"
+    ],
+    "format": "json"
+  },
+  "scores": [
+    {
+      "skillId": "adr-helper/create-adr",
+      "relativePath": "plugins/adr-helper/skills/create-adr/SKILL.md",
+      "score": 85,
+      "breakdown": {
+        "frontmatter": 30,
+        "description": 15,
+        "body": 20,
+        "links": 10,
+        "file": 10
+      }
+    },
+    {
+      "skillId": "adr-helper/supersede-adr",
+      "relativePath": "plugins/adr-helper/skills/supersede-adr/SKILL.md",
+      "score": 75,
+      "breakdown": {
+        "frontmatter": 30,
+        "description": 15,
+        "body": 20,
+        "links": 0,
+        "file": 10
+      }
+    }
+  ]
+}
