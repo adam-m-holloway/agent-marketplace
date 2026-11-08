@@ -1,0 +1,10 @@
+{
+  "name": "typescript-conventions",
+  "version": "1.0.0",
+  "description": "TypeScript house conventions: strict mode, no any, explicit return types on exports, discriminated unions and table-driven Vitest tests, checked with tsc and the test suite before done.",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": ["typescript", "javascript", "conventions", "strict-mode", "vitest", "testing"],
+  "license": "MIT"
+}

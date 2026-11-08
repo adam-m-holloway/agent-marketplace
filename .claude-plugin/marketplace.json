@@ -18,6 +18,34 @@
         "madr",
         "decision-records"
       ]
+    },
+    {
+      "name": "go-conventions",
+      "source": "./plugins/go-conventions",
+      "description": "Go house conventions: wrapped errors with %w, table-driven tests, small consumer-side interfaces, and gofmt, go vet and go test before calling work done.",
+      "category": "language-conventions",
+      "tags": [
+        "go",
+        "golang",
+        "conventions",
+        "error-handling",
+        "table-driven-tests",
+        "testing"
+      ]
+    },
+    {
+      "name": "typescript-conventions",
+      "source": "./plugins/typescript-conventions",
+      "description": "TypeScript house conventions: strict mode, no any, explicit return types on exports, discriminated unions and table-driven Vitest tests, checked with tsc and the test suite before done.",
+      "category": "language-conventions",
+      "tags": [
+        "typescript",
+        "javascript",
+        "conventions",
+        "strict-mode",
+        "vitest",
+        "testing"
+      ]
     }
   ]
 }
