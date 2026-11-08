@@ -1285,6 +1285,11 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
 | 14:35 | **`conventional-commits` through the full staged flow:** scaffold (similarity: none) → `sandbox` (GH #39, excluded from catalogues) → `npm run stage … incubating` (all gates PASS; GH #40 status-only, no bump) → listed in **latest only** as "Incubating:"; a sandbox → published jump is refused | ✅ staged approval proven on a real plugin |
 | 14:40 | **Scorecard uplift** (GH #41): CodeQL SAST; Claude Code CLI installed with `npm ci` from a committed lockfile (sha512 for the wrapper + 8 platform packages; pr-gate installs from base); SECURITY.md links; "known and accepted" table | ✅ (expected ~4.7 → ~6) |
 | 16:35 | **Professional minimal UI** (GH #42): minimal home grid; plugin pages lead with key facts + Install, then scores, then collapsed sections with one-line previews; browser check now 24 checks — live 24/24 light + dark; first gate run on the hash-pinned CLI passed | ✅ |
+| — | **Round 5 (user feedback on the site; ranked review; user chose items 1, 2, 10 + inconsistencies)** | |
+| 16:45 | Site (GH #44): "How scores are calculated" on its own page (`#/scores`); no install content on home; Install in the plugin page's main block above the scores; separate collapsed Changelog; clickable site title → clean home. 26/26 live browser checks | ✅ |
+| 17:10 | **Offline evals** (GH #45): npm deps cached outside the eval sandbox, Go local toolchain; recorded typescript-conventions 19/25 vs 17/25 ($1.12), go-conventions 19/22 vs 16/22 ($1.06); adr-helper re-run stalled (API) twice — not recorded | ✅ (adr-helper rerun outstanding) |
+| 17:15 | Inconsistencies from the ranked review fixed (GH #46) | ✅ |
+| 17:25 | **Gate safety & structure** (GH #47): scan every plugin text file + backslash-continued lines (3 verified bypasses now HIGH); placeholders and missing `references/`/`scripts/`/`assets/` paths are errors; new capabilities annotated on the PR | ✅ |
 
 ### Learnings during Slices 1–12
 
@@ -1421,4 +1426,17 @@ Note: spike PRs took GitHub PR numbers #1 and #2, so the plan's "PR #1…#7" are
 - **Scorecard and npm pinning:** Scorecard treats every `npm install` as unpinned; only `npm ci`
   (lockfile) passes. The Claude Code npm tarball is a thin wrapper — the real binary is a
   per-platform optional dependency, so a lockfile (not a tarball hash) is what actually pins it.
+- **Ranked review (2026-11-08, fresh read-only agent), still open — in rank order:** (3) make the
+  Quality score measure things that vary (it's 100 everywhere; six of seven criteria duplicate gate
+  errors); (4) one eval method for all plugins with the delta as the headline (re-run adr-helper and
+  conventional-commits); (5) `published` requires a current-version eval; (6) insights clarity — a
+  "get counted" step, unused plugins shown as "no consumers", trigger insights after releases and
+  promotions; (7) contributing docs for tooling/docs/taxonomy changes and scores; (8) `npm run
+  check` defaults `--base` to origin/main, and `--help` works on every script; (9) one canonical
+  install page linked from the site; (11) MEDIUM finding for unscoped `allowed-tools: Bash`.
+  Over-engineering, deliberately not planned: skill-usage telemetry, an aggregate score, LLM review
+  or evals in CI, automatic consumer discovery, a PR-comment bot, fuzzing/badges for Scorecard, a
+  docs site.
+- **Pattern scanning by extension was a real gap:** an extensionless `bin/setup` or a `.zsh` file
+  with `curl … | sh` passed. Scan by content (non-binary), not by extension.
 
