@@ -1,6 +1,6 @@
 ---
 name: create-adr
-description: Write a new Architecture Decision Record (ADR) in MADR format as docs/adr/NNNN-kebab-title.md, numbered after the highest existing ADR, with the context grounded in the repo's code. Use this whenever the user wants to record, document, capture or write up a technical or architectural decision, even if they never say "ADR" - for example "write down why we chose Postgres", "log the decision to move to gRPC", "add a decision record for dropping Redux", or "we agreed on X, document it". Also use it when the user asks for a new MADR file or the next ADR in docs/adr. Not for editing, superseding or deprecating an existing ADR, building an ADR index, explaining what ADRs are, or writing general docs such as READMEs, design docs, RFCs, runbooks or changelogs.
+description: Write a new Architecture Decision Record (ADR) in MADR format as docs/adr/NNNN-kebab-title.md, numbered after the highest existing ADR, with the context grounded in the repo's code, and adds it to the docs/adr/README.md index. Use this whenever the user wants to record, document, capture or write up a technical or architectural decision, even if they never say "ADR" - for example "write down why we chose Postgres", "log the decision to move to gRPC", "add a decision record for dropping Redux", or "we agreed on X, document it". Also use it when the user asks for a new MADR file or the next ADR in docs/adr. Not for superseding or replacing an existing ADR (use supersede-adr), editing or deprecating an existing ADR, explaining what ADRs are, or writing general docs such as READMEs, design docs, RFCs, runbooks or changelogs.
 ---
 
 # Create an ADR
@@ -87,14 +87,23 @@ the metadata lines (status, date, deciders) and what belongs in each section.
   Consequences section should include at least one downside. Real decisions have costs;
   an ADR with none reads as advocacy and helps nobody later.
 
-### 5. Report back
+### 5. Update the index
 
-Tell the user the path of the new file and give a one-line summary of the decision. If
-you made any assumptions the user did not state (such as the status or the deciders),
-list them so they can correct them.
+Add the new ADR to `docs/adr/README.md`, following `references/adr-index.md`: one row per
+ADR in a `| # | Title | Status | Date |` table, sorted by number. If the index does not
+exist yet, create it with a row for every ADR in the folder, not only the new one. Change
+no other existing file.
+
+### 6. Report back
+
+Only report success after both the ADR and the index are written. Give the path of the
+new file and a one-line summary of the decision, and say whether the index was created or
+updated. If you made any assumptions the user did not state (such as the status or the
+deciders), list them so they can correct them.
 
 ## Scope
 
-This skill only creates new ADRs. Superseding, amending or deprecating an existing ADR,
-and generating an ADR index, are out of scope. If the user asks for those, say this skill
-does not cover them and offer to create a new ADR instead if that helps.
+This skill creates new ADRs and keeps the index current. When a new decision replaces an
+existing ADR, use the `supersede-adr` skill instead, so the two records are linked.
+Amending the wording of an existing ADR, or deprecating one without a replacement, is out
+of scope: say this skill does not cover it and offer to create a new ADR if that helps.
