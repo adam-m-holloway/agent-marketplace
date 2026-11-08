@@ -192,7 +192,7 @@ test.describe('detail page', () => {
     expect(secs.filter((s) => s.open)).toEqual([]);
     const sumOf = (id) => secs.find((s) => s.id === id)?.summary ?? '';
     expect(sumOf('sec-scores')).toMatch(/Scores.*security \d+ · quality \d+ · evals/i);
-    expect(sumOf('sec-used')).toMatch(/Installed by.*2 teams.*team-a latest.*team-b stable/);
+    expect(sumOf('sec-used')).toMatch(/Installed by.*2 team repos.*team-a latest.*team-b stable/);
     for (const x of secs) expect(x.summary).not.toMatch(/undefined|NaN|null/);
     expect(sumOf('sec-releases')).toMatch(/Release history.*\d+ releases, latest \d/);
     expect(sumOf('sec-changelog')).toMatch(/Changelog.+/);
@@ -222,10 +222,22 @@ test.describe('detail page, sections expanded', () => {
     expect(open).toBe(true);
   });
 
-  test('Installed by: team-a and team-b + "Committed intent per repo"', async ({ page }) => {
+  test('Installed by: team-a and team-b, each compared with its channel\'s current version', async ({ page }) => {
     await expect(detail(page)).toContainText('team-a');
     await expect(detail(page)).toContainText('team-b');
-    await expect(detail(page)).toContainText(/Committed intent per repo/i);
+    await expect(detail(page)).toContainText(/Based on each team repo's committed settings/i);
+    const rows = await page.locator('#sec-used tbody tr').evaluateAll((trs) => trs.map((tr) => [...tr.cells].map((c) => c.innerText.trim())));
+    const latest = (await page.locator('#detail .facts').innerText()).match(/Latest\s*v(\d+\.\d+\.\d+)/i)[1];
+    for (const r of rows) {
+      if (r[1] === 'latest' && r[2] !== 'v' + latest) expect(r[3], r.join(' | ')).toMatch(/behind/);
+      if (r[3] === 'up to date' && r[1] === 'latest') expect(r[2]).toBe('v' + latest);
+    }
+  });
+
+  test('plugin page: no repeated SkillSpector sentence; README without its own Install section', async ({ page }) => {
+    const t = await page.locator('#sec-scores').innerText();
+    expect((t.match(/SkillSpector/g) || []).length).toBeLessThanOrEqual(1);
+    expect(await page.locator('#sec-readme .prose h3, #sec-readme .prose h4').evaluateAll((hs) => hs.map((x) => x.textContent.trim()))).not.toContain('Install');
   });
 
   test('Scores section: breakdown + history table', async ({ page }) => {
@@ -310,7 +322,7 @@ test.describe('pages and nav', () => {
     const link = navLink(page, 'Lifecycle');
     await link.click();
     await expect(page).toHaveURL(/#\/lifecycle$/);
-    await expect(page).toHaveTitle(/Plugin lifecycle/);
+    await expect(page).toHaveTitle(/Lifecycle/);
     await expect(link).toHaveAttribute('aria-current', 'page');
     await expect(page.locator('#detail-title')).toBeFocused();
     await expect(page.locator('#detail ol.flow li')).toHaveCount(5);
@@ -337,7 +349,7 @@ test.describe('pages and nav', () => {
     const link = navLink(page, 'Create & use');
     await link.click();
     await expect(page).toHaveURL(/#\/guide$/);
-    await expect(page).toHaveTitle(/Create & use plugins/);
+    await expect(page).toHaveTitle(/Create & use/);
     await expect(link).toHaveAttribute('aria-current', 'page');
     await expect(catalogue(page)).toBeHidden();
     await expect(page.locator('#detail-title')).toBeFocused();
@@ -354,6 +366,8 @@ test.describe('pages and nav', () => {
     expect(t).toContain('claude -p --settings .claude/settings.json');
     expect(t).toContain('--scope project');
     expect(t).toContain('insights/consumers.json');
+    expect(t).toContain('claude plugin uninstall <plugin>@agent-marketplace');
+    expect(t).toMatch(/Use stable in team repos/);
   });
 
   test('guide: "Create a plugin" part with npm run new-plugin, stage, bump, eval and promote', async ({ page }) => {
@@ -461,13 +475,13 @@ test.describe('360px', () => {
 
   test('no horizontal page scroll at 360px (guide, lifecycle, scoring, about)', async ({ page }) => {
     await home(page);
-    for (const [hash, title] of [['#/lifecycle', /Plugin lifecycle/], ['#/scores', /Scoring/]]) {
+    for (const [hash, title] of [['#/lifecycle', /Lifecycle/], ['#/scores', /Scoring/]]) {
       await nav(page, hash);
       await expect(page).toHaveTitle(title);
       expect(await scrollWidth(page), hash).toBeLessThanOrEqual(360);
     }
     await nav(page, '#/guide');
-    await expect(page).toHaveTitle(/Create & use plugins/);
+    await expect(page).toHaveTitle(/Create & use/);
     expect(await scrollWidth(page)).toBeLessThanOrEqual(360);
     await nav(page, '#/about');
     await expect(page).toHaveTitle(/About/);
@@ -485,7 +499,7 @@ async function walk(page) {
   await page.locator('#install-panel input[value=stable]').check();
   await page.locator('#install-panel input[value=latest]').check();
   await expandAll(page);
-  for (const [hash, title] of [['#/scores', /Scoring/], ['#/lifecycle', /Plugin lifecycle/], ['#/guide', /Create & use plugins/], ['#/about', /About/]]) {
+  for (const [hash, title] of [['#/scores', /Scoring/], ['#/lifecycle', /Lifecycle/], ['#/guide', /Create & use/], ['#/about', /About/]]) {
     await nav(page, hash);
     await expect(page).toHaveTitle(title);
   }

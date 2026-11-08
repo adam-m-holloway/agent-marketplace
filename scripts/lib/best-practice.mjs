@@ -117,6 +117,6 @@ export function bestPracticeScore(skills) {
   }
   const score = total ? Math.round((100 * passed) / total) : null;
   const detail = !total ? 'no skills'
-    : `${passed}/${total} checks passed` + (failures.length ? `; ${failures.map((f) => `${f.skill}: ${f.id} (${f.detail})`).join('; ')}` : '');
+    : `${passed}/${total} checks passed` + (failures.length ? `; ${failures.map((f) => `${f.skill}: ${f.detail}`).join('; ')}` : '');
   return { score, passed, total, detail, failures };
 }
