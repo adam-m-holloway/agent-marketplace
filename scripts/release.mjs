@@ -43,9 +43,17 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const dryRun = process.argv.includes('--dry-run');
   const existing = execFileSync('git', ['tag', '--list', '*--v*'], { encoding: 'utf8' })
     .split('\n').map((s) => s.trim()).filter(Boolean);
-  const plan = planReleases(loadRepo(process.cwd()), existing);
+  const repo = loadRepo(process.cwd());
+  // Plan against "tags that also have a Release", so a run that tagged but failed to create
+  // the Release is completed on the next run (idempotent).
+  const hasRelease = (tag) => {
+    if (dryRun) return true;
+    try { execFileSync('gh', ['release', 'view', tag], { stdio: 'ignore' }); return true; } catch { return false; }
+  };
+  const done = existing.filter(hasRelease);
+  const plan = planReleases(repo, done);
   if (plan.length === 0) {
-    console.log('release: every plugin version is already tagged — nothing to do');
+    console.log('release: every plugin version is already tagged and released — nothing to do');
     process.exit(0);
   }
   const tmp = mkdtempSync(join(tmpdir(), 'release-notes-'));
@@ -53,7 +61,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     console.log(`release: ${r.tag}`);
     if (dryRun) { console.log(r.notes); continue; }
     // Annotated tag; checks plugin.json and the catalogue entry agree; needs a clean tree.
-    run('claude', ['plugin', 'tag', `plugins/${r.dir}`, '--push']);
+    if (!existing.includes(r.tag)) run('claude', ['plugin', 'tag', `plugins/${r.dir}`, '--push']);
     const notesFile = join(tmp, `${r.tag}.md`);
     writeFileSync(notesFile, r.notes + '\n');
     run('gh', ['release', 'create', r.tag, '--title', `${r.plugin} v${r.version}`, '--notes-file', notesFile, '--verify-tag']);

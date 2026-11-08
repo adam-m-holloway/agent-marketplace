@@ -1,0 +1,4 @@
+# Base-owned actionlint config: pr-gate passes `-config-file base/.github/actionlint.yaml`,
+# so a PR's own config can't silence findings.
+self-hosted-runner:
+  labels: []

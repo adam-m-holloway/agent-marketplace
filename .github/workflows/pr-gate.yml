@@ -161,7 +161,7 @@ jobs:
           tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP/bin" gitleaks
       - name: gitleaks (PR files, not history)
         run: |
-          if [ -d pr/plugins ]; then "$RUNNER_TEMP/bin/gitleaks" dir pr/plugins --no-banner --redact; else echo "no plugins/ in PR"; fi
+          if [ -d pr/plugins ]; then "$RUNNER_TEMP/bin/gitleaks" dir pr/plugins --config base/.gitleaks.toml --no-banner --redact; else echo "no plugins/ in PR"; fi
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: ${{ env.UV_VERSION }}
@@ -186,7 +186,8 @@ jobs:
               echo "::warning file=plugins/$name/.skillspector-baseline.yaml,title=SkillSpector baseline changed::plugins/$name/.skillspector-baseline.yaml is added, changed or removed in this PR — review the suppressed findings"
             fi
             args=(scan "$dir" --no-llm)
-            if [ -f "${dir}.skillspector-baseline.yaml" ]; then args+=(--baseline "${dir}.skillspector-baseline.yaml"); fi
+            # Only the BASE branch's reviewed baseline is honoured: a PR can't suppress its own findings.
+            if [ -f "base/plugins/$name/.skillspector-baseline.yaml" ]; then args+=(--baseline "base/plugins/$name/.skillspector-baseline.yaml"); fi
             echo "::group::skillspector ${args[*]}"
             skillspector "${args[@]}" || status=1
             echo "::endgroup::"
@@ -231,7 +232,7 @@ jobs:
           shopt -s nullglob
           files=(pr/.github/workflows/*.yml pr/.github/workflows/*.yaml)
           if [ ${#files[@]} -eq 0 ]; then echo "no workflows in PR"; exit 0; fi
-          "$RUNNER_TEMP/bin/actionlint" -no-color "${files[@]}"
+          "$RUNNER_TEMP/bin/actionlint" -no-color -config-file base/.github/actionlint.yaml "${files[@]}"
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: ${{ env.UV_VERSION }}
@@ -239,8 +240,8 @@ jobs:
       - name: zizmor (offline audits)
         run: |
           if [ ! -d pr/.github/workflows ]; then echo "no workflows in PR"; exit 0; fi
-          uvx "zizmor@${ZIZMOR_VERSION}" --offline --no-progress pr/.github/workflows \
-            || { rc=$?; [ "$rc" -ge 10 ] && exit "$rc"; sleep 10; uvx "zizmor@${ZIZMOR_VERSION}" --offline --no-progress pr/.github/workflows; }
+          uvx "zizmor@${ZIZMOR_VERSION}" --offline --no-progress --no-config pr/.github/workflows \
+            || { rc=$?; [ "$rc" -ge 10 ] && exit "$rc"; sleep 10; uvx "zizmor@${ZIZMOR_VERSION}" --offline --no-progress --no-config pr/.github/workflows; }
 
   title:
     name: title

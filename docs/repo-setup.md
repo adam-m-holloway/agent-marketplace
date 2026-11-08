@@ -41,7 +41,9 @@ Applied straight after each branch's first merge. Bypass is off for everyone.
 ### `main` (marketplace)
 
 - PR required; required status checks `plugins`, `security`, `workflows`, `title`
-  (from `pr-gate`);
+  (from `pr-gate`), with **"require branches to be up to date"** — the gate compares the PR
+  head with the base *tip*, so an out-of-date branch could be judged against versions it never
+  saw;
 - squash merge only;
 - block force-push and deletion;
 - target: default branch only — `data` and `stable` are therefore excluded.
@@ -64,7 +66,7 @@ gh api -X POST repos/adam-m-holloway/agent-marketplace/rulesets --input - <<'JSO
         "required_review_thread_resolution": false,
         "allowed_merge_methods": ["squash"] } },
     { "type": "required_status_checks", "parameters": {
-        "strict_required_status_checks_policy": false,
+        "strict_required_status_checks_policy": true,
         "required_status_checks": [
           { "context": "plugins" }, { "context": "security" },
           { "context": "workflows" }, { "context": "title" } ] } }

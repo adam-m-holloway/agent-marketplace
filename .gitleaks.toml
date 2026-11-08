@@ -1,0 +1,6 @@
+# Base-owned gitleaks config: pr-gate passes `--config base/.gitleaks.toml`, so a PR can't add
+# its own allowlist to blind the scan. Extends the default ruleset.
+title = "agent-marketplace"
+
+[extend]
+useDefault = true

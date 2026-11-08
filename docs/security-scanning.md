@@ -22,9 +22,24 @@ zizmor reports `dangerous-triggers` for this, and it's acknowledged inline with 
 this section. The tamper demo PR (Slice 8) proves that editing `scripts/check.mjs` or
 `pr-gate.yml` in a PR changes nothing: the base definitions still run.
 
-Rule files (`rules/patterns.json`, `schema/`) are also loaded from the **base** checkout, so a
-PR can't weaken the patterns it is scanned with. (`taxonomy.json` is read from the PR, because
-adding a category is a legitimate PR.)
+Scanner configuration also comes from the **base** checkout, so a PR can't weaken the checks
+it is scanned with:
+
+- `rules/patterns.json` and `schema/` are loaded by the base scripts;
+- gitleaks runs with `--config base/.gitleaks.toml` (a PR-added `.gitleaks.toml` allowlist is
+  ignored);
+- SkillSpector honours only `base/plugins/<p>/.skillspector-baseline.yaml` — a PR that adds or
+  edits a baseline gets a warning, and the new baseline only takes effect after it is reviewed
+  and merged;
+- actionlint runs with `-config-file base/.github/actionlint.yaml` and zizmor with `--no-config`.
+
+(`taxonomy.json` is read from the PR, because adding a category is a legitimate PR. zizmor's
+*inline* `# zizmor: ignore[...]` comments in a PR's own workflow files are still honoured — a
+reviewer must look at any new ignore comment.)
+
+**Known limitation:** on a promotion PR into `stable`, the stale-catalogue check runs
+`stable`'s generator against `main`'s catalogues. A promotion that changes the generator's
+output format may fail that check; regenerate on `main` first, or promote in two steps.
 
 ## Threat → check
 
