@@ -6,6 +6,32 @@ Please **do not open a public issue**. Report privately through GitHub Security 
 **Security → Report a vulnerability** on this repository (private vulnerability reporting).
 Include the plugin name and version, what you found, and steps to reproduce.
 
+## What happens next (disclosure targets)
+
+| Step | Target |
+|---|---|
+| Acknowledge your report | within **3 business days** |
+| Triage (confirm, rate severity, tell you the plan) | within **7 days** |
+| Fix or mitigation released, **HIGH** or above | within **30 days** of triage |
+| Fix or mitigation, lower severity | best effort, normally the next release |
+
+A mitigation can be deprecating or retiring the plugin, or reverting `stable` to an earlier
+`main` commit, while the fix is made. We coordinate a disclosure date with you and credit you
+in the advisory unless you ask us not to. These are targets for a small team, not a contract.
+
+## Supported versions
+
+Plugins are versioned individually, but each channel serves one commit:
+
+| Channel | Supported |
+|---|---|
+| **latest** (`agent-marketplace`, `main`) — the newest version of each plugin | yes |
+| **stable** (`agent-marketplace-stable`, `stable`) — the version currently promoted | yes |
+| older plugin versions, and pinned `ref`/`sha` of past commits | no — update to latest or stable |
+
+Fixes land on `main` first and reach `stable` by a normal promotion (or an expedited one for
+HIGH issues).
+
 ## Scope
 
 In scope:
@@ -30,6 +56,20 @@ The required `pr-gate` workflow runs from the base branch and treats PR content 
   flagged on the PR.
 - **actionlint**, **zizmor** and a SHA-pinning check on workflow files.
 - `claude plugin validate --strict` on the catalogues and each plugin.
+
+### How this is enforced
+
+- `pr-gate`'s four jobs (`plugins`, `security`, `workflows`, `title`) are **required status
+  checks** in the `main` and `stable` rulesets, with no bypass actors (not even admins), so a PR
+  can't merge while any scanner fails. Changes go through PRs only (no force-push, no deletion).
+- The gate runs the **base branch's** scripts and config, so a PR can't weaken the checks that
+  judge it; tool versions are pinned, and every action is pinned to a full commit SHA.
+- Changes to the scanners, rules and workflows (`.github/`, `rules/`, `scripts/`, `schema/`,
+  `taxonomy.json`) and to plugin stages are owned by code owners in `.github/CODEOWNERS`.
+  Requiring their approval is prepared but not yet switched on (it needs a second reviewer; see
+  `docs/repo-setup.md`).
+- **Dependabot** proposes weekly, grouped updates to the pinned actions; **OpenSSF Scorecard**
+  (`scorecard.yml`) scores the repo's supply-chain practices weekly and on every push to `main`.
 
 ## Static scanning is not a guarantee
 

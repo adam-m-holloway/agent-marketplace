@@ -63,6 +63,8 @@ Headings follow the OWASP Agentic Skills Top 10 where they fit.
 | **Unreviewed bulk changes** | `one-plugin-per-pr` (needs `multi-plugin` label) | yes | — |
 | **Stable channel tampering** | `promotion`: head `promote/*`, title `chore(stable): promote main@<sha>`, tree **equals** that `main` commit; any plugin version going backwards needs the `rollback` label | yes | — |
 | **Workflow weaknesses** | actionlint, zizmor (offline), every `uses:` pinned to a 40-hex SHA | yes | — |
+| **Weak repo supply-chain practices** (unpinned deps, broad token permissions, missing branch protection or review, dangerous workflow patterns, no security policy) | OpenSSF Scorecard (`scorecard.yml`, weekly + every push to `main`; published to scorecard.dev, JSON kept as a run artifact) | no (a score, not a PR check) | doesn't look at plugin content; Branch-Protection needs an admin token and may score `?` with the default one; Code-Review and Contributors score low for a single-maintainer repo |
+| **Outdated actions / dependencies** | Dependabot, weekly grouped updates (`dependabot.yml`; team repos also `gomod` / `npm`) | no (its PRs go through the gate) | doesn't judge whether a new version is trustworthy — the 7-day cooldown and the gate's review do |
 
 ### Demo results (Slice 8, 2026-11-08)
 
@@ -111,6 +113,10 @@ annotation so reviewers look at what's being suppressed.
 - A clean scan means **"no findings"**, not **"safe"**.
 - There is no LLM review in CI (deliberately: $0, no API key). The human backstop is code-owner
   review on plugin and stage changes, designed in the plan's post-POC "staged approval" section.
+  It is prepared (`.github/CODEOWNERS`, `scripts/apply-code-owner-review.mjs`) but not switched
+  on until there is a second reviewer — see `docs/repo-setup.md`, "Turn on code-owner review".
+- Scorecard grades how the **repo** is run, not what the **plugins** do. A high score says the
+  pipeline is hard to tamper with; it says nothing about whether a skill is malicious.
 - Consumers should read a plugin's skills before enabling it, and prefer the `stable` channel.
 
 ## Local equivalent

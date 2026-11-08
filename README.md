@@ -8,6 +8,8 @@ who uses what.
   install commands, versions per channel, and who consumes each plugin.
 - **Usage report:** [`CATALOGUE.md` on the `data` branch](https://github.com/adam-m-holloway/agent-marketplace/blob/data/CATALOGUE.md)
   (written nightly by `insights.yml`).
+- **OpenSSF Scorecard:** [scorecard.dev viewer](https://scorecard.dev/viewer/?uri=github.com/adam-m-holloway/agent-marketplace)
+  (weekly supply-chain score from `scorecard.yml`).
 - **Usage issues:** the same nightly run keeps a pinned **"Plugin usage report"** issue
   (commented only on days something changed) and opens one **"Behind: …"** issue per plugin a
   consumer is behind on, closing it when they catch up. Both carry the `insights` label;
