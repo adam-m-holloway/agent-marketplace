@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "description": "Dangerous-pattern and prompt-injection rules for files under plugins/. Each pattern is a JavaScript RegExp source, matched per line. HIGH fails the security job; MEDIUM is reported only.",
+  "extensions": [".md", ".json", ".yml", ".yaml", ".sh", ".bash", ".js", ".mjs", ".cjs", ".ts", ".py", ".txt"],
+  "rules": [
+    {
+      "id": "pipe-to-shell",
+      "severity": "HIGH",
+      "category": "remote-code-execution",
+      "description": "Downloads a script and pipes it straight into a shell",
+      "pattern": "\\b(curl|wget)\\b[^\\n|]*\\|\\s*(sudo\\s+)?(ba|z|da|k)?sh\\b",
+      "flags": "i"
+    },
+    {
+      "id": "ignore-previous-instructions",
+      "severity": "HIGH",
+      "category": "prompt-injection",
+      "description": "Classic instruction-override phrase",
+      "pattern": "\\b(ignore|disregard|forget)\\b.{0,20}\\b(all\\s+)?(previous|prior|above|earlier)\\b.{0,20}\\b(instructions|rules|guidance|prompts?)\\b",
+      "flags": "i"
+    }
+  ]
+}
