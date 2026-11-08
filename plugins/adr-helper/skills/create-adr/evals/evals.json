@@ -1,0 +1,57 @@
+{
+  "skill_name": "create-adr",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We just agreed in standup to use GitHub Actions for CI instead of Jenkins or CircleCI. Jenkins means running our own server and CircleCI would be another vendor to pay; Actions is already included with our GitHub plan and lives next to the code. The deciders were me and Priya. Can you write this up as an ADR? This repo doesn't have any ADRs yet.",
+      "expected_output": "A new file docs/adr/0001-use-github-actions-for-ci.md (or a similar kebab-case slug starting with 0001-) in MADR format, with Status Accepted, today's date, Deciders naming the user and Priya, the three options, GitHub Actions as the chosen option with the reasons the user gave, and at least one downside in Consequences. Pros and cons for Jenkins and CircleCI are limited to what the user said (running our own server; another vendor to pay); nothing else is invented for them.",
+      "expectations": [
+        "The docs/adr/ directory is created because it did not exist",
+        "Exactly one new ADR file is created (besides the docs/adr/README.md index) and its path matches docs/adr/0001-[a-z0-9-]+.md",
+        "The file contains the headings Status, Context and Problem Statement, Considered Options, Decision Outcome and Consequences, in that order",
+        "The file has a Date line in YYYY-MM-DD form and a Deciders line that mentions Priya",
+        "Considered Options lists GitHub Actions, Jenkins and CircleCI",
+        "Decision Outcome names GitHub Actions as the chosen option and gives the user's reasons (included with the GitHub plan, no server to run)",
+        "Consequences includes at least one negative consequence",
+        "The file contains no unfilled bracketed placeholders such as [Option 1] or [YYYY-MM-DD]",
+        "No pro or con is invented for Jenkins or CircleCI: the only reasons attached to them are the ones the user gave (Jenkins needs our own server, CircleCI is another vendor to pay), and any option without stated pros/cons says 'No pros/cons recorded' or has no pros/cons list; claims such as Jenkins' plugin ecosystem or CircleCI's speed or caching count as invented"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Add an ADR: we're putting a Redis cache in front of the product catalogue reads because Postgres read latency spikes during sales. We looked at an in-process LRU cache too but it doesn't share state across pods. Status accepted, decided by the platform team.",
+      "expected_output": "A new file docs/adr/0003-use-redis-for-caching.md (or a similar kebab-case title), numbered after the existing 0001-use-go.md and 0002-use-postgresql.md, in MADR format, recording Redis over an in-process LRU cache. The existing ADRs are untouched, and the context may link to 0002-use-postgresql.md. A docs/adr/README.md index is created listing 0001, 0002 and 0003.",
+      "files": [
+        "evals/files/numbering/docs/adr/0001-use-go.md",
+        "evals/files/numbering/docs/adr/0002-use-postgresql.md"
+      ],
+      "expectations": [
+        "Exactly one new ADR file is created (besides the docs/adr/README.md index) and its path matches docs/adr/0003-[a-z0-9-]+.md",
+        "docs/adr/README.md is created with a table whose columns are # | Title | Status | Date, listing 0001, 0002 and the new 0003 in number order, each with its title, status and date",
+        "The slug is lowercase kebab-case and relates to Redis or caching",
+        "docs/adr/0001-use-go.md and docs/adr/0002-use-postgresql.md are unchanged",
+        "The file contains the headings Status, Context and Problem Statement, Considered Options, Decision Outcome and Consequences, in that order",
+        "Considered Options includes Redis and an in-process LRU cache",
+        "Decision Outcome chooses Redis and cites shared state across pods or Postgres read latency",
+        "The Deciders line says the platform team",
+        "Consequences includes at least one negative consequence, such as running another service or cache invalidation"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "write an ADR for our message queue decision",
+      "expected_output": "No ADR file is written. The repo has a docker-compose.yml with a rabbitmq service, but the user stated no problem, options or decision. The assistant asks what problem the queue solves, which options were considered, which one was chosen and why (and who decided). If it mentions RabbitMQ from docker-compose.yml, it does so as a question (for example 'Is RabbitMQ, which I see in docker-compose.yml, the one you chose?'), never as the decision.",
+      "files": [
+        "evals/files/missing-context/docker-compose.yml"
+      ],
+      "expectations": [
+        "No file is created under docs/adr/ and no other file is created or changed",
+        "The response asks about the problem or context the decision addresses (what the queue is for)",
+        "The response asks which options were considered",
+        "The response asks which option was chosen and why",
+        "If the response mentions RabbitMQ or docker-compose.yml, it frames it as a question to confirm (for example 'is RabbitMQ the one you chose?'), not as the stated decision",
+        "The response does not state that RabbitMQ (or any other queue) was chosen, and gives no rationale for choosing it"
+      ]
+    }
+  ]
+}

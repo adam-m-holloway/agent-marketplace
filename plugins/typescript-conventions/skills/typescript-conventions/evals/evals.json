@@ -1,0 +1,62 @@
+{
+  "skill_name": "typescript-conventions",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add a src/upload.ts module to this TypeScript project that tracks the state of a file upload: it can be idle, uploading with a progress percentage, done with the stored URL, or failed with an error message. I need a reducer-style function that takes the current state and an event and returns the next state, and a function that turns a state into a status label for the UI. Add tests too. The repo uses Vitest.",
+      "expected_output": "A src/upload.ts that models the upload state as a discriminated union on a literal field (for example kind: 'idle' | 'uploading' | 'done' | 'failed') rather than booleans and optional fields, exported functions with explicit return types, an exhaustive switch with a never check, no any, and a Vitest file using describe/it with it.each for the label or transition cases and explicit assertions (not snapshot-only). npx tsc --noEmit and the test command are run and their output reported.",
+      "expectations": [
+        "The upload state type is a union of object types sharing a literal discriminant field, with no boolean flags such as isUploading or isDone",
+        "Events are also modelled as a discriminated union, or the transition function otherwise avoids optional-field flags",
+        "Every exported function in src/upload.ts has an explicit return type annotation",
+        "The switch over the state or event is exhaustive and uses a never-typed check in the default branch",
+        "The code contains no use of the any type, explicit or as a cast",
+        "The test file imports from vitest and uses describe and it",
+        "At least one test uses it.each (or test.each) with a table of cases",
+        "No test relies only on toMatchSnapshot or toMatchInlineSnapshot as its assertion",
+        "The response reports the output of npx tsc --noEmit and of the test run (for example npx vitest run or npm test)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Get rid of the anys in src/notify.ts. The webhook body is JSON with a 'to' field and either 'phone' or 'deviceToken', transport.deliver(channel, payload) returns a Promise of the message id. Keep the exports working for callers.",
+      "expected_output": "src/notify.ts has no any left: parseWebhook returns a precise type after narrowing an unknown from JSON.parse (with a type guard or the repo's validation), the catch variable is treated as unknown and narrowed, transport gets a small typed interface, SendResult becomes a discriminated union instead of success plus optional fields, exported functions have explicit return types, and firstRecipient handles undefined instead of using the non-null assertion. tsc --noEmit and the tests are run (or the assistant explains that dependencies must be installed first) with output reported.",
+      "files": [
+        "evals/files/remove-any/package.json",
+        "evals/files/remove-any/tsconfig.json",
+        "evals/files/remove-any/src/notify.ts"
+      ],
+      "expectations": [
+        "src/notify.ts contains no occurrence of the any type, including 'as any' and 'err: any'",
+        "The result of JSON.parse is treated as unknown and narrowed with a type guard or validation before being returned as a specific type",
+        "The catch variable is narrowed (for example with instanceof Error) before reading message or status",
+        "transport has an explicit type or interface describing deliver",
+        "SendResult is changed to a discriminated union (for example on success or ok) instead of a boolean with optional fields",
+        "Every exported function has an explicit return type",
+        "firstRecipient no longer uses the non-null assertion ! and handles an empty list",
+        "No new runtime dependency is added to package.json",
+        "The response reports running npx tsc --noEmit (or npm run typecheck) and the test command, with their output or the exact error preventing them"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I've added applyDiscount and bestDiscount with tests, and npm test is green. Is it done? Can I open the PR?",
+      "expected_output": "The assistant does not take the green test run as proof. It runs npx tsc --noEmit as well as the repo's test command (npm test, which is vitest run; installing dependencies first if needed) and reports the actual output. The tests pass, but tsc fails because bestDiscount returns sorted[0], which is number | undefined under noUncheckedIndexedAccess (Vitest does not type-check, so only tsc catches it). It also points out that the bestDiscount test is snapshot-only and should assert the value, and that an empty array is not handled. It says the work is not done and does not claim it is ready for a PR.",
+      "files": [
+        "evals/files/is-it-done/package.json",
+        "evals/files/is-it-done/tsconfig.json",
+        "evals/files/is-it-done/src/discount.ts",
+        "evals/files/is-it-done/src/discount.test.ts"
+      ],
+      "expectations": [
+        "The assistant runs npx tsc --noEmit (or an equivalent typecheck script) itself rather than relying on the user's statement that npm test is green",
+        "The assistant runs the test command in run mode (npm test or npx vitest run), not watch mode",
+        "The response reports the tsc error in bestDiscount (number | undefined not assignable to number) with the actual compiler output",
+        "The response makes clear that the tests passing does not mean the code type-checks",
+        "The response flags the bestDiscount test as snapshot-only and recommends an explicit assertion, including the empty-array case",
+        "The response does not say the work is done or ready for a PR while tsc fails",
+        "Any fix to bestDiscount handles the empty-array case instead of using the non-null assertion or as number"
+      ]
+    }
+  ]
+}
