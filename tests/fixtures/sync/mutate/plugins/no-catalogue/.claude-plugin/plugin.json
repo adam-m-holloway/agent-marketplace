@@ -1,0 +1,12 @@
+{
+  "name": "no-catalogue",
+  "version": "1.0.0",
+  "description": "The no-catalogue plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "documentation"
+  ],
+  "license": "MIT"
+}

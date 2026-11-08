@@ -1,0 +1,13 @@
+{
+  "name": "many-problems",
+  "version": "1.0.0",
+  "description": "The many-problems plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "blockchain",
+    "nft"
+  ],
+  "license": "MIT"
+}

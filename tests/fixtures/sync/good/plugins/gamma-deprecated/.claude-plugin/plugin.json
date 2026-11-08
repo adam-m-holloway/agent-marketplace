@@ -1,0 +1,12 @@
+{
+  "name": "gamma-deprecated",
+  "version": "1.0.0",
+  "description": "The gamma-deprecated plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "documentation"
+  ],
+  "license": "MIT"
+}

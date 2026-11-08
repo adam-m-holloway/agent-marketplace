@@ -1,0 +1,13 @@
+{
+  "name": "beta-incubating",
+  "version": "1.0.0",
+  "description": "The beta-incubating plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "testing",
+    "vitest"
+  ],
+  "license": "MIT"
+}
