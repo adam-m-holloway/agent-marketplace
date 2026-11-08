@@ -5,3 +5,4 @@ _site/
 .eval-build/
 *.log
 .claude/settings.local.json
+.claude/worktrees/
