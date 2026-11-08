@@ -20,7 +20,12 @@ test('one catalogue per channel with name, owner, description, $schema', () => {
     assert.equal(c.json.description, CHANNELS[i].description);
     assert.deepEqual(c.json.owner, { name: 'Adam Holloway' });
   }
-  assert.deepEqual(catalogues[0].json.plugins, catalogues[1].json.plugins);
+});
+
+test('stable lists only published + deprecated; incubating appears in latest only', () => {
+  const [latest, stable] = build('good').catalogues;
+  assert.deepEqual(stable.json.plugins, latest.json.plugins.filter((e) => e.name !== 'beta-incubating'));
+  assert.deepEqual(stable.json.plugins.map((e) => e.name), ['delta-deprecated', 'gamma-deprecated', 'zeta-published']);
 });
 
 test('entry keys are exactly name/source/description/category/tags (no version)', () => {

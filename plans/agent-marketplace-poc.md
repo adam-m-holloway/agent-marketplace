@@ -1098,7 +1098,7 @@ S1 eval converter: cut (post-POC)
 
 All 14 criteria are covered.
 
-## Post-POC: staged approval process (Q28 — designed, built after the POC)
+## Post-POC: staged approval process (Q28 — designed; mostly built, see status below)
 
 The only POC preparation is that stage lives in its own `status.json`.
 
@@ -1129,6 +1129,31 @@ The only POC preparation is that stage lives in its own `status.json`.
 
 **Rejected:** labels as the stage, GitHub Environments, a Projects board, Backstage.
 **Effort:** about 1–2 slices.
+
+### Q28 status (2026-11-08)
+
+**Built (`feat/staged-approval`):**
+- [x] Item 1, partly: `.github/CODEOWNERS` with `* @adam-m-holloway` and the specific paths.
+- [x] Item 2: `scripts/lib/rules/stage-gate.mjs` (group `plugins`, needs `--base`). It covers new
+  plugin → `sandbox`, one step at a time, the stage-change PR scope, evals + trigger set +
+  owner + no HIGH (patterns, hidden-content), ≥14 days or ≥2 active consumers + a CHANGELOG
+  entry, `replacedBy`/`reason`, and the retire check with `retire-anyway`. Insights data comes in
+  through `check.mjs --consumers <file>`. A `status.json`-only change needs no version bump. Each
+  gate has a seeded-defect test.
+- [x] Item 3, partly: `npm run stage <plugin> <stage>` (writes `status.json`, runs sync, prints
+  the checklist) and the "Promote plugin stage" issue form.
+- [x] Item 5: sync's stable catalogue lists only `published` + `deprecated`.
+- [x] Docs: CONTRIBUTING ("Move a plugin between stages"), `docs/repo-setup.md` ("Code owners").
+
+**Deferred:**
+- [ ] The admins team, then the `main` ruleset change (code-owner review, dismiss stale,
+  last-push approval) — `docs/repo-setup.md` has the exact settings.
+- [ ] `pr-gate.yml` passes `--consumers` (from the `data` branch) to the `plugins` job. Until it
+  does, CI requires the 14 days for publishing and the `retire-anyway` label to retire.
+- [ ] Gates not checked yet: SkillSpector clean/baselined at incubating (the `security` job
+  runs it anyway); a committed eval result for this version; no open `bug` issues.
+- [ ] A bot that posts the readiness checklist on the issue/PR.
+- [ ] Item 4: "Ready for promotion" / "blocked" sections in the insights report.
 
 ## Post-POC: discovery & reporting (Q29 — wanted, built after the POC)
 

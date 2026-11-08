@@ -32,7 +32,8 @@ Every change goes through a **feature branch and a pull request**. Nobody commit
    npm run check    # same plugin verdict as CI
    npm run check -- --full   # + tests, claude plugin validate, and any installed scanners
    ```
-5. Set `status.json` → `incubating` or `published` when it's ready to list, and open the PR.
+5. Open the PR with the plugin at `sandbox` (a new plugin must start there). Listing it is a
+   separate, reviewed stage move — see [Move a plugin between stages](#move-a-plugin-between-stages).
 
 For plugin-level structure (hooks, agents, commands — not used yet), use
 `/plugin-dev:create-plugin`.
@@ -72,12 +73,39 @@ Versions are never reused. When the PR merges to `main`, `release.yml` runs the 
   --body "<summary>"`). Otherwise GitHub appends `Co-authored-by:` trailers for every other
   author email in the PR. Commit as your own GitHub identity (its noreply address is fine).
 - **One plugin per PR.** Use the `multi-plugin` label only with a reason in the PR body.
-- **Stages** (`status.json`): `sandbox` (not listed) → `incubating` → `published` →
-  `deprecated` (needs `replacedBy`) → `retired` (not listed).
+- **Stages** (`status.json`): `sandbox` (not listed) → `incubating` (latest channel only) →
+  `published` → `deprecated` → `retired` (not listed). Moves are gated; see below.
 - **Taxonomy:** `catalogue.json` `category` and `plugin.json` `keywords` must come from
   `taxonomy.json`. Add new terms in their own PR.
 - **Toolchain neutrality:** a skill with `languages` other than `any` must state its
   `compatibility` (the tools it needs) in its frontmatter.
+
+## Move a plugin between stages
+
+A stage move is its own PR that changes **only** `plugins/<name>/status.json` and the generated
+catalogues (no version bump needed). A code owner approves it (`.github/CODEOWNERS`).
+
+```sh
+git switch -c chore/stage-my-plugin
+npm run stage my-plugin incubating      # stage + since = today, runs sync, prints the checklist
+npm run stage my-plugin deprecated -- --reason "use other-plugin"
+npm run stage my-plugin published -- --consumers consumers.json   # insights data, optional
+```
+
+`npm run stage` prints `PASS`/`FAIL` per gate, computed by the same functions as the
+`stage-gate` PR check, and exits 1 while any gate fails. An illegal move writes nothing. You can
+also ask for a move with the "Promote plugin stage" issue form.
+
+| Move | Gate (`stage-gate`, each failure is an ERROR) |
+|---|---|
+| new plugin | starts at `sandbox` |
+| any move | one step at a time (`sandbox → incubating → published → deprecated → retired`, plus `incubating → deprecated`); only `status.json` + generated catalogues change |
+| sandbox → incubating | every skill has `evals.json` + `trigger-evals.json`; `catalogue.json` `owner` set; no HIGH findings (patterns, hidden-content) |
+| incubating → published | ≥14 days at `incubating` **or** ≥2 active consumers (insights data via `--consumers`; without it, the 14 days); a CHANGELOG entry for the current version |
+| → deprecated | `replacedBy` in `catalogue.json` (set in an earlier PR) or a `reason` in `status.json` |
+| → retired | no active consumers in `latest/consumers.json`, or the `retire-anyway` label |
+
+The stable channel lists only `published` and `deprecated` plugins; `incubating` is on latest only.
 
 ## Promotion to stable
 

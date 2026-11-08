@@ -96,6 +96,18 @@ Click path: **Settings → Rules → Rulesets → New branch ruleset**.
 
 Check: `gh api repos/adam-m-holloway/<repo>/rulesets`.
 
+## Code owners
+
+`.github/CODEOWNERS` makes `@adam-m-holloway` the owner of everything, with explicit lines for
+stage moves (`plugins/*/status.json`) and the rules PRs are judged by (`CODEOWNERS`,
+`.github/workflows/`, `taxonomy.json`, `rules/`, `scripts/`). Today it only requests reviews.
+
+**Next step (not applied yet):** once a second owner exists (the admins team, TBC), add the team
+to every line in `CODEOWNERS`, then change the `main` ruleset's `pull_request` rule to
+`"required_approving_review_count": 1`, `"require_code_owner_review": true`,
+`"dismiss_stale_reviews_on_push": true` and `"require_last_push_approval": true`. Not before:
+authors can't approve their own PRs, so with one owner that owner could never merge.
+
 ## Insights token
 
 Slice 0 proved that the default `GITHUB_TOKEN` can read the consumer repos' Contents and
