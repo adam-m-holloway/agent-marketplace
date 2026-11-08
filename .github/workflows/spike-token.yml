@@ -1,0 +1,21 @@
+name: spike-token
+on:
+  push:
+    branches: ["spike/latest"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read another public repo with GITHUB_TOKEN
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          for path in "repos/adam-m-holloway/team-a/contents/LICENSE" "repos/adam-m-holloway/team-a/commits?per_page=1" "repos/adam-m-holloway/team-a/contents/.claude/settings.json"; do
+            code=$(curl -s -o /tmp/out -w '%{http_code}' -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/$path")
+            echo "$path -> HTTP $code"
+          done
+          curl -s -I -H "Authorization: Bearer $GH_TOKEN" https://api.github.com/repos/adam-m-holloway/team-a | grep -i '^x-ratelimit-limit'

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace-manifest.json",
+  "name": "am-spike-stable",
+  "description": "Throwaway spike catalogue (stable channel)",
+  "owner": { "name": "Adam Holloway" },
+  "plugins": [
+    { "name": "hello-skill", "source": "./plugins/hello-skill", "description": "Spike plugin", "category": "engineering-practices", "tags": ["spike"] }
+  ]
+}

@@ -1,0 +1,1 @@
+{ "name": "hello-skill", "version": "1.0.0", "description": "Spike plugin that says a version-stamped hello", "author": { "name": "Adam Holloway" }, "keywords": ["spike"], "license": "MIT" }
