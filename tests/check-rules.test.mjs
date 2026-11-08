@@ -58,6 +58,27 @@ defect('structure', 'missing README fails', async () => {
   assert.match(fs[0].file, /README\.md$/);
 });
 
+test('structure: placeholders in SKILL.md/README.md and missing referenced files fail with file:line', async () => {
+  const fs = await run('structure', tree((d) => {
+    edit(d, `${S}/SKILL.md`, (s) => s.replace(/^description:.*$/m, 'description: "TODO"')
+      + '\nRead `references/missing.md`, then run [the script](scripts/nope.sh).\nGeneric code uses `<T>`.\n');
+    writeFileSync(join(d, P, 'README.md'), '# demo-plugin\n\nTBD\n');
+  }));
+  assert.deepEqual(fs.map((x) => `${x.severity} ${x.file}:${x.line} ${x.message}`).sort(), [
+    `ERROR ${P}/README.md:3 placeholder "TBD"`,
+    `ERROR ${S}/SKILL.md:11 references "references/missing.md", which does not exist in the skill folder`,
+    `ERROR ${S}/SKILL.md:11 references "scripts/nope.sh", which does not exist in the skill folder`,
+    `ERROR ${S}/SKILL.md:3 placeholder "TODO"`,
+  ]);
+  // A reference that exists passes; placeholders inside code (`<T>`, fenced blocks) are ignored.
+  const ok = await run('structure', tree((d) => {
+    mkdirSync(join(d, S, 'references'));
+    writeFileSync(join(d, S, 'references/examples.md'), 'x\n');
+    edit(d, `${S}/SKILL.md`, (s) => s + '\nSee `references/examples.md` and [it](./references/examples.md).\n\n```\n// TODO: <name>\n```\n');
+  }));
+  assert.deepEqual(ok, []);
+});
+
 defect('stale-catalogues', 'hand-edited catalogue fails', async (t) => {
   if (!HAS_CATALOGUE) return t.skip('scripts/lib/catalogue.mjs not available yet');
   assert.deepEqual(errors(await run('stale-catalogues', GOOD)), []);

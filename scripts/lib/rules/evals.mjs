@@ -1,10 +1,9 @@
 // evals.json (skill-creator format) and trigger-evals.json are present, valid and not placeholders.
 import { existsSync } from 'node:fs';
 import { join, normalize } from 'node:path';
-import { f, loadValidator, loadOwnJson, skipped } from './_util.mjs';
+import { f, loadValidator, loadOwnJson, skipped, PLACEHOLDER } from './_util.mjs';
 
 const ID = 'evals';
-const PLACEHOLDER = /\b(TODO|TBD|FIXME)\b|<[a-z][\w -]{0,60}>/i;
 export const MIN_CASES = 3;
 export const MIN_TRIGGER_EACH = 8;
 
