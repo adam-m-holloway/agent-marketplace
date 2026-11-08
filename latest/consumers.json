@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-08T11:37:34.798Z",
+  "generated_at": "2026-11-08T11:38:38.275Z",
   "scan_date": "2026-11-08",
   "rows": [
     {
@@ -42,7 +42,8 @@
       "version": "1.0.0",
       "versions_behind": 1,
       "first_seen": "2026-11-08",
-      "status": "active"
+      "status": "removed",
+      "note": "removed on 2026-11-08"
     },
     {
       "date": "2026-11-08",
