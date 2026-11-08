@@ -23,6 +23,7 @@
 
   <main class="wrap">
     <p id="stale" class="stale" role="status" hidden></p>
+    <div id="catalogue">
     <section aria-label="Search and filters" class="controls">
       <div class="field field-search">
         <label for="q">Search plugins</label>
@@ -51,6 +52,9 @@
     <div id="request" class="request" hidden></div>
 
     <section id="results" class="cards" aria-label="Plugins" tabindex="-1"></section>
+    </div>
+
+    <article id="detail" class="detail" aria-labelledby="detail-title" hidden></article>
 
     <section id="how-scores" class="explain" aria-labelledby="how-scores-h" tabindex="-1">
       <h2 id="how-scores-h">How scores are calculated</h2>
