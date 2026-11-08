@@ -105,3 +105,8 @@ test('run: a plugin added and removed on the same day shows as removed, and a sa
   const after = snapshotTree(data);
   for (const k of Object.keys(before)) assert.ok(before[k].equals(after[k]), `${k} changed on re-run`);
 });
+
+test('report cells escape backslashes before pipes, so a value cannot break the table', () => {
+  const md = renderCatalogueMd([{ consumer: 'org/a\\|b', team: 't', plugin: 'p', channel: 'latest', version: '1.0.0', status: 'active' }], { generatedAt: '2026-11-09' });
+  assert.ok(md.includes('org/a\\\\\\|b'), md);
+});

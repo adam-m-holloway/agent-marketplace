@@ -64,7 +64,7 @@ export function consumersByPlugin(doc) {
 /** Date of the CHANGELOG heading for `version` ("## [1.1.1] - 2026-11-08"), or null. */
 export function changelogDate(text, version) {
   if (typeof text !== 'string' || !version) return null;
-  const esc = version.replace(/\./g, '\\.');
+  const esc = String(version).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const m = text.match(new RegExp(`^##\\s*\\[${esc}\\]\\s*-\\s*(\\d{4}-\\d{2}-\\d{2})`, 'm'));
   return m ? m[1] : null;
 }

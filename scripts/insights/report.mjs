@@ -4,7 +4,7 @@
 export const HONESTY = 'Committed intent per repo (from .claude/settings.json), not what each laptop has installed.';
 
 const byStr = (f) => (a, b) => (f(a) < f(b) ? -1 : f(a) > f(b) ? 1 : 0);
-const cell = (v) => (v === null || v === undefined || v === '' ? '—' : String(v).replace(/\|/g, '\\|'));
+const cell = (v) => (v === null || v === undefined || v === '' ? '—' : String(v).replace(/\\/g, '\\\\').replace(/\|/g, '\\|'));
 const short = (sha) => (sha ? sha.slice(0, 7) : null);
 
 export function consumersByPlugin(rows) {
