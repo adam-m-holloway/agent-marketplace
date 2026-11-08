@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-08T11:42:36.393Z",
+  "generated_at": "2026-11-08T12:48:29.887Z",
   "scan_date": "2026-11-08",
   "rows": [
     {
@@ -10,8 +10,8 @@
       "marketplace": "agent-marketplace",
       "plugin": "adr-helper",
       "ref": "main",
-      "sha": "8c05f3cf89098e5432337e291e66d231b6856c10",
-      "version": "1.1.0",
+      "sha": "a13fae9765d69162ac89d28df18ac9ae142e2a07",
+      "version": "1.1.1",
       "versions_behind": 0,
       "first_seen": "2026-11-08",
       "status": "active"
@@ -24,7 +24,7 @@
       "marketplace": "agent-marketplace",
       "plugin": "go-conventions",
       "ref": "main",
-      "sha": "8c05f3cf89098e5432337e291e66d231b6856c10",
+      "sha": "a13fae9765d69162ac89d28df18ac9ae142e2a07",
       "version": "1.0.0",
       "versions_behind": 0,
       "first_seen": "2026-11-08",
@@ -38,8 +38,8 @@
       "marketplace": "agent-marketplace-stable",
       "plugin": "adr-helper",
       "ref": "stable",
-      "sha": "1cd75111dd988de44755a43edc102a87ccd89415",
-      "version": "1.1.0",
+      "sha": "78db43c3b830d716e4f3021c79feb2c79874177e",
+      "version": "1.1.1",
       "versions_behind": 0,
       "first_seen": "2026-11-08",
       "status": "active"
@@ -52,8 +52,8 @@
       "marketplace": "agent-marketplace-stable",
       "plugin": "typescript-conventions",
       "ref": "stable",
-      "sha": "1cd75111dd988de44755a43edc102a87ccd89415",
-      "version": "1.0.0",
+      "sha": "78db43c3b830d716e4f3021c79feb2c79874177e",
+      "version": "1.0.1",
       "versions_behind": 0,
       "first_seen": "2026-11-08",
       "status": "active"
