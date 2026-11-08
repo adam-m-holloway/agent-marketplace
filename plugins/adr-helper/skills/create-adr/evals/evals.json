@@ -21,8 +21,8 @@
       "prompt": "Add an ADR: we're putting a Redis cache in front of the product catalogue reads because Postgres read latency spikes during sales. We looked at an in-process LRU cache too but it doesn't share state across pods. Status accepted, decided by the platform team.",
       "expected_output": "A new file docs/adr/0003-<slug>.md, numbered after the existing 0001-use-go.md and 0002-use-postgresql.md, in MADR format, recording Redis over an in-process LRU cache. The existing ADRs are untouched, and the context may link to 0002-use-postgresql.md.",
       "files": [
-        "files/numbering/docs/adr/0001-use-go.md",
-        "files/numbering/docs/adr/0002-use-postgresql.md"
+        "evals/files/numbering/docs/adr/0001-use-go.md",
+        "evals/files/numbering/docs/adr/0002-use-postgresql.md"
       ],
       "expectations": [
         "Exactly one new file is created and its path matches docs/adr/0003-[a-z0-9-]+.md",
