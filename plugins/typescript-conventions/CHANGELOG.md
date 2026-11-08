@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.1] - 2026-11-08
+
+### Fixed
+
+- "Keep the exports working" no longer stops Claude tightening types: the skill now says callers must still compile and behave the same, and that a boolean plus optional fields should become a discriminated union (call sites updated in the same change) and `!` on indexed access should become an explicit check.
+- The "is it done?" eval now tells the two configurations apart: `npm test` passes and only `npx tsc --noEmit` finds the error.
+- README: the one-step `--marketplace` install uses the latest channel only; stable is covered in docs/consuming-plugins.md.
+
 ## [1.0.0] - 2026-11-08
 
 ### Added

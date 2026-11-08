@@ -40,8 +40,8 @@
     },
     {
       "id": 3,
-      "prompt": "I've added applyDiscount and bestDiscount with tests. Is it done? Can I open the PR?",
-      "expected_output": "The assistant runs npx tsc --noEmit and the repo's test command (npm test, which is vitest run; installing dependencies first if needed) and reports the actual output. tsc fails because bestDiscount returns sorted[0], which is number | undefined under noUncheckedIndexedAccess. The 'rounds half pence up' test fails (Math.round(499.5) is 500, not 499). It also points out that the bestDiscount test is snapshot-only and should assert the value. It says the work is not done and does not claim it is ready for a PR.",
+      "prompt": "I've added applyDiscount and bestDiscount with tests, and npm test is green. Is it done? Can I open the PR?",
+      "expected_output": "The assistant does not take the green test run as proof. It runs npx tsc --noEmit as well as the repo's test command (npm test, which is vitest run; installing dependencies first if needed) and reports the actual output. The tests pass, but tsc fails because bestDiscount returns sorted[0], which is number | undefined under noUncheckedIndexedAccess (Vitest does not type-check, so only tsc catches it). It also points out that the bestDiscount test is snapshot-only and should assert the value, and that an empty array is not handled. It says the work is not done and does not claim it is ready for a PR.",
       "files": [
         "evals/files/is-it-done/package.json",
         "evals/files/is-it-done/tsconfig.json",
@@ -49,12 +49,12 @@
         "evals/files/is-it-done/src/discount.test.ts"
       ],
       "expectations": [
-        "The assistant runs npx tsc --noEmit and reports the error in bestDiscount about number | undefined",
+        "The assistant runs npx tsc --noEmit (or an equivalent typecheck script) itself rather than relying on the user's statement that npm test is green",
         "The assistant runs the test command in run mode (npm test or npx vitest run), not watch mode",
-        "The assistant reports the failing 'rounds half pence up' test",
-        "The response flags the bestDiscount test as snapshot-only and recommends an explicit assertion",
-        "The response shows or quotes the actual command output rather than only summarising it",
-        "The response does not say the work is done or ready for a PR while a check fails",
+        "The response reports the tsc error in bestDiscount (number | undefined not assignable to number) with the actual compiler output",
+        "The response makes clear that the tests passing does not mean the code type-checks",
+        "The response flags the bestDiscount test as snapshot-only and recommends an explicit assertion, including the empty-array case",
+        "The response does not say the work is done or ready for a PR while tsc fails",
         "Any fix to bestDiscount handles the empty-array case instead of using the non-null assertion or as number"
       ]
     }

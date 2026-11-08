@@ -7,7 +7,7 @@ describe("applyDiscount", () => {
   });
 
   it("rounds half pence up", () => {
-    expect(applyDiscount(999, 50)).toBe(499);
+    expect(applyDiscount(999, 50)).toBe(500);
   });
 });
 

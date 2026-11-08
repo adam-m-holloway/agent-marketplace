@@ -65,6 +65,9 @@ Add this to the repo's `.claude/settings.json`:
 claude plugin install typescript-conventions --marketplace adam-m-holloway/agent-marketplace
 ```
 
+This one-step `--marketplace` command installs from the latest channel only. For stable,
+see [docs/consuming-plugins.md](../../docs/consuming-plugins.md).
+
 ## Changes
 
 See [CHANGELOG.md](CHANGELOG.md).
