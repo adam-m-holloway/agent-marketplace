@@ -90,6 +90,14 @@ npm run eval my-plugin -- --case 'my-skill-2'           # one case (glob)
   `evals/results.json`. It never edits old runs, and it skips partial runs (for example when the
   cost ceiling is hit). The **Evals** score uses the latest run at or before the plugin's version.
 
+**Known limitation (measured 2026-11-08, CLI 2.1.319):** the `claude plugin eval` sandbox has no
+network access, so a case can't `npm install`, and expectations that need `tsc` or `vitest` output
+can't pass. typescript-conventions 1.0.1 scored 17/25 with the skill vs 13/25 without under this
+method, against 23/25 vs 20/25 under the earlier hand-run skill-creator method (which had
+dependencies installed). The two methods' numbers are not comparable; each record in
+`evals/results.json` names its `method`. Give dependency-heavy cases pre-installed fixtures
+(commit a minimal `node_modules`-free setup that doesn't need the network) before relying on them.
+
 ## Rules
 
 - **Conventional Commits** for commits and PR titles: `feat(my-plugin): add X`,
