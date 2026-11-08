@@ -1,0 +1,51 @@
+{
+  "skill_name": "create-adr",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We just agreed in standup to use GitHub Actions for CI instead of Jenkins or CircleCI. Jenkins means running our own server and CircleCI would be another vendor to pay; Actions is already included with our GitHub plan and lives next to the code. The deciders were me and Priya. Can you write this up as an ADR? This repo doesn't have any ADRs yet.",
+      "expected_output": "A new file docs/adr/0001-use-github-actions-for-ci.md (or a similar kebab-case slug starting with 0001-) in MADR format, with Status Accepted, today's date, Deciders naming the user and Priya, the three options, GitHub Actions as the chosen option with the reasons the user gave, and at least one downside in Consequences.",
+      "expectations": [
+        "The docs/adr/ directory is created because it did not exist",
+        "Exactly one new file is created and its path matches docs/adr/0001-[a-z0-9-]+.md",
+        "The file contains the headings Status, Context and Problem Statement, Considered Options, Decision Outcome and Consequences, in that order",
+        "The file has a Date line in YYYY-MM-DD form and a Deciders line that mentions Priya",
+        "Considered Options lists GitHub Actions, Jenkins and CircleCI",
+        "Decision Outcome names GitHub Actions as the chosen option and gives the user's reasons (included with the GitHub plan, no server to run)",
+        "Consequences includes at least one negative consequence",
+        "The file contains no unfilled bracketed placeholders such as [Option 1] or [YYYY-MM-DD]"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Add an ADR: we're putting a Redis cache in front of the product catalogue reads because Postgres read latency spikes during sales. We looked at an in-process LRU cache too but it doesn't share state across pods. Status accepted, decided by the platform team.",
+      "expected_output": "A new file docs/adr/0003-<slug>.md, numbered after the existing 0001-use-go.md and 0002-use-postgresql.md, in MADR format, recording Redis over an in-process LRU cache. The existing ADRs are untouched, and the context may link to 0002-use-postgresql.md.",
+      "files": [
+        "evals/files/numbering/docs/adr/0001-use-go.md",
+        "evals/files/numbering/docs/adr/0002-use-postgresql.md"
+      ],
+      "expectations": [
+        "Exactly one new file is created and its path matches docs/adr/0003-[a-z0-9-]+.md",
+        "The slug is lowercase kebab-case and relates to Redis or caching",
+        "docs/adr/0001-use-go.md and docs/adr/0002-use-postgresql.md are unchanged",
+        "The file contains the headings Status, Context and Problem Statement, Considered Options, Decision Outcome and Consequences, in that order",
+        "Considered Options includes Redis and an in-process LRU cache",
+        "Decision Outcome chooses Redis and cites shared state across pods or Postgres read latency",
+        "The Deciders line says the platform team",
+        "Consequences includes at least one negative consequence, such as running another service or cache invalidation"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "write an ADR for our message queue decision",
+      "expected_output": "No ADR file is written. The assistant asks the user for the missing context: what problem the queue solves, which options were considered, which one was chosen and why (and who decided). It may mention queue-related things it found in the repo, but only as questions.",
+      "expectations": [
+        "No file is created under docs/adr/",
+        "The response asks which options were considered",
+        "The response asks which option was chosen and why",
+        "The response asks about the problem or context the decision addresses",
+        "The response does not present a specific queue technology as the decision unless the user or repo stated it"
+      ]
+    }
+  ]
+}
