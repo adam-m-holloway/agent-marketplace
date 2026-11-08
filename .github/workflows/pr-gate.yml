@@ -151,26 +151,37 @@ jobs:
       - name: Repo checks (security)
         run: node base/scripts/check.mjs --root pr --pr pr.json --only security
       - name: Install gitleaks (pinned release)
+        if: ${{ !cancelled() }} # report every scanner, even after an earlier one fails
         run: |
           set -euo pipefail
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          curl -fsSL --retry 1 -o "$RUNNER_TEMP/gitleaks.tgz" "$url" \
-            || { sleep 10; curl -fsSL -o "$RUNNER_TEMP/gitleaks.tgz" "$url"; }
-          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tgz" | sha256sum -c -
           mkdir -p "$RUNNER_TEMP/bin"
-          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP/bin" gitleaks
+          if curl -fsSL --retry 1 -o "$RUNNER_TEMP/gitleaks.tgz" "$url" \
+             || { sleep 10; curl -fsSL -o "$RUNNER_TEMP/gitleaks.tgz" "$url"; }; then
+            echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tgz" | sha256sum -c -
+            tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP/bin" gitleaks
+          else
+            # Fallback when GitHub release downloads fail: the same pinned version from the Go
+            # module proxy (verified against the Go checksum database).
+            echo "::warning title=gitleaks::release download failed; building v${GITLEAKS_VERSION} with go install"
+            GOBIN="$RUNNER_TEMP/bin" go install "github.com/zricethezav/gitleaks/v8@v${GITLEAKS_VERSION}"
+          fi
       - name: gitleaks (PR files, not history)
+        if: ${{ !cancelled() }} # report every scanner, even after an earlier one fails
         run: |
           if [ -d pr/plugins ]; then "$RUNNER_TEMP/bin/gitleaks" dir pr/plugins --config base/.gitleaks.toml --no-banner --redact; else echo "no plugins/ in PR"; fi
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - if: ${{ !cancelled() }}
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: false
       - name: Install SkillSpector (pinned tag)
+        if: ${{ !cancelled() }} # report every scanner, even after an earlier one fails
         run: |
           uv tool install "git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_REF}" \
             || { sleep 10; uv tool install "git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_REF}"; }
       - name: SkillSpector --no-llm (risk >50 fails; baselines honoured)
+        if: ${{ !cancelled() }} # report every scanner, even after an earlier one fails
         run: |
           set -uo pipefail
           status=0
@@ -222,11 +233,16 @@ jobs:
         run: |
           set -euo pipefail
           url="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
-          curl -fsSL -o "$RUNNER_TEMP/actionlint.tgz" "$url" \
-            || { sleep 10; curl -fsSL -o "$RUNNER_TEMP/actionlint.tgz" "$url"; }
-          echo "${ACTIONLINT_SHA256}  $RUNNER_TEMP/actionlint.tgz" | sha256sum -c -
           mkdir -p "$RUNNER_TEMP/bin"
-          tar -xzf "$RUNNER_TEMP/actionlint.tgz" -C "$RUNNER_TEMP/bin" actionlint
+          if curl -fsSL -o "$RUNNER_TEMP/actionlint.tgz" "$url" \
+             || { sleep 10; curl -fsSL -o "$RUNNER_TEMP/actionlint.tgz" "$url"; }; then
+            echo "${ACTIONLINT_SHA256}  $RUNNER_TEMP/actionlint.tgz" | sha256sum -c -
+            tar -xzf "$RUNNER_TEMP/actionlint.tgz" -C "$RUNNER_TEMP/bin" actionlint
+          else
+            # Fallback when GitHub release downloads fail (see the gitleaks step).
+            echo "::warning title=actionlint::release download failed; building v${ACTIONLINT_VERSION} with go install"
+            GOBIN="$RUNNER_TEMP/bin" go install "github.com/rhysd/actionlint/cmd/actionlint@v${ACTIONLINT_VERSION}"
+          fi
       - name: actionlint
         run: |
           shopt -s nullglob
