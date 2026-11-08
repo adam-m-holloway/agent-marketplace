@@ -13,6 +13,7 @@
     "bump": "node scripts/bump.mjs",
     "promote": "node scripts/promote.mjs",
     "stage": "node scripts/stage.mjs",
-    "build-site": "node scripts/build-site.mjs"
+    "build-site": "node scripts/build-site.mjs",
+    "eval": "node scripts/eval.mjs"
   }
 }
