@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { CHANNELS, REPO, loadRepo, stableJson } from './lib/plugins.mjs';
 import { buildCatalogues } from './lib/catalogue.mjs';
-import { related } from './similar.mjs';
+import { related, RELATED_MIN_SCORE } from './similar.mjs';
 
 export const PAGES_URL = 'https://adam-m-holloway.github.io/agent-marketplace/';
 export const CONSUMERS_NOTE = 'Committed intent per repo, not what each laptop has installed';
@@ -84,7 +84,8 @@ export function buildData(repo, { stableVersions = null, consumersDoc = null, no
       };
     });
 
-  const rel = related(plugins, { top: 3 });
+  // Only show genuinely similar plugins: unrelated pairs score ~0.01, related ones ~0.1+.
+  const rel = related(plugins, { top: 3, minScore: RELATED_MIN_SCORE });
   for (const p of plugins) {
     p.related = rel[p.name] ?? [];
     p.consumers = consumers[p.name] ?? [];
