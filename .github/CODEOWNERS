@@ -1,7 +1,12 @@
 # Code owners (Q28 staged approval). Later matches win, so the specific paths come last.
-# The admins team is TBC: when it exists, add it after @adam-m-holloway on every line below and
-# turn on "require review from code owners" in the main ruleset (see docs/repo-setup.md).
-# Authors can't approve their own PRs, which is why a second owner is needed before that switch.
+#
+# >>> SECOND REVIEWER PLACEHOLDER <<<
+# Code-owner review is prepared, not enabled. GitHub never lets an author approve their own PR,
+# so requiring code-owner review with a single owner would block every merge. When a second
+# reviewer (user or team, with write access) exists, run:
+#   node scripts/apply-code-owner-review.mjs --reviewer <@user-or-@org/team> --dry-run
+# then without --dry-run. It adds the reviewer to every line below and turns on code-owner
+# review in the main and stable rulesets (see docs/repo-setup.md, "Turn on code-owner review").
 
 * @adam-m-holloway
 
@@ -9,8 +14,8 @@
 /plugins/*/status.json @adam-m-holloway
 
 # The rules every PR is judged by.
-/.github/CODEOWNERS @adam-m-holloway
-/.github/workflows/ @adam-m-holloway
+/.github/ @adam-m-holloway
 /taxonomy.json @adam-m-holloway
+/schema/ @adam-m-holloway
 /rules/ @adam-m-holloway
 /scripts/ @adam-m-holloway

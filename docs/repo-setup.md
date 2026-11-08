@@ -99,14 +99,80 @@ Check: `gh api repos/adam-m-holloway/<repo>/rulesets`.
 ## Code owners
 
 `.github/CODEOWNERS` makes `@adam-m-holloway` the owner of everything, with explicit lines for
-stage moves (`plugins/*/status.json`) and the rules PRs are judged by (`CODEOWNERS`,
-`.github/workflows/`, `taxonomy.json`, `rules/`, `scripts/`). Today it only requests reviews.
+stage moves (`plugins/*/status.json`) and the rules PRs are judged by (`.github/` — workflows,
+CODEOWNERS, dependabot — `taxonomy.json`, `schema/`, `rules/`, `scripts/`). Today it only
+**requests** reviews: the rulesets have `require_code_owner_review: false`, because GitHub never
+lets an author approve their own PR, so with a single owner every merge would be blocked.
 
-**Next step (not applied yet):** once a second owner exists (the admins team, TBC), add the team
-to every line in `CODEOWNERS`, then change the `main` ruleset's `pull_request` rule to
-`"required_approving_review_count": 1`, `"require_code_owner_review": true`,
-`"dismiss_stale_reviews_on_push": true` and `"require_last_push_approval": true`. Not before:
-authors can't approve their own PRs, so with one owner that owner could never merge.
+### Turn on code-owner review
+
+Prerequisite: a second reviewer — a user, or (once the repo is in an org) a team — with **write
+access** to the repo. A code owner without write access is ignored, and every PR is then blocked.
+
+```sh
+# 1. Preview: the new CODEOWNERS and the PUT body for the main + stable rulesets. Changes nothing.
+node scripts/apply-code-owner-review.mjs --reviewer @<user-or-org/team> --dry-run
+
+# 2. Step 1 of 2: adds the reviewer to every CODEOWNERS line (rulesets untouched).
+node scripts/apply-code-owner-review.mjs --reviewer @<user-or-org/team>
+#    Open a PR with the CODEOWNERS change and merge it.
+
+# 3. Step 2 of 2, on an up-to-date main: CODEOWNERS already names the reviewer, so it PUTs both
+#    rulesets (gh api -X PUT repos/adam-m-holloway/agent-marketplace/rulesets/<id> --input -).
+git switch main && git pull
+node scripts/apply-code-owner-review.mjs --reviewer @<user-or-org/team>
+```
+
+The steps run in that order on purpose: the reviewer only counts as a code owner once
+CODEOWNERS on the base branch names them. The PUT keeps every other rule and sets the
+`pull_request` rule to:
+
+```json
+{ "required_approving_review_count": 1, "require_code_owner_review": true,
+  "dismiss_stale_reviews_on_push": true, "require_last_push_approval": true }
+```
+
+Options: `--repo <owner/name>` (default this repo), `--rulesets main,stable`,
+`--codeowners <path>`. The script refuses to run without `--reviewer`. Check afterwards with
+`gh api repos/adam-m-holloway/agent-marketplace/rulesets/<id>`.
+
+Click path: **Settings → Rules → Rulesets → main (then stable) → Require a pull request before
+merging → Required approvals 1, Dismiss stale approvals, Require review from Code Owners, Require
+approval of the most recent reviewable push**.
+
+## Dependabot
+
+`.github/dependabot.yml` checks the pinned actions weekly (with a 7-day cooldown so brand-new
+releases settle first) and groups every bump into **one PR** (`groups: actions: patterns: ["*"]`),
+titled `chore(deps): …` so it passes the `title` check. Dependabot keeps the full SHA pin and
+updates the `# vX.Y.Z` comment. team-a (`gomod` + actions) and team-b (`npm` + actions) do the
+same, one grouped PR per ecosystem.
+
+Enable alerts and security updates once per repo:
+
+```sh
+for r in agent-marketplace team-a team-b; do
+  gh api -X PUT repos/adam-m-holloway/$r/vulnerability-alerts
+  gh api -X PUT repos/adam-m-holloway/$r/automated-security-fixes
+done
+```
+
+Click path: **Settings → Code security → Dependabot alerts / Dependabot security updates →
+Enable**. Version updates need no setting: the config file is enough.
+
+## OpenSSF Scorecard
+
+`.github/workflows/scorecard.yml` runs `ossf/scorecard-action` weekly, on every push to `main`
+and on demand, and publishes the result to the public Scorecard API (`publish_results: true`,
+which needs `id-token: write`). Nothing to configure. Results:
+
+- viewer: <https://scorecard.dev/viewer/?uri=github.com/adam-m-holloway/agent-marketplace>;
+- the raw JSON as the `scorecard` artifact on each run (30 days).
+
+There is deliberately **no SARIF upload** (no code scanning / GHAS in scope), so findings don't
+appear in the Security tab. `publish_results` restricts that workflow: no top-level `env` or
+`defaults`, no workflow-level write permissions, and only allow-listed actions in the job — keep
+it that way when editing it.
 
 ## Insights token
 
