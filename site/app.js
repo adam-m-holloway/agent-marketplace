@@ -27,8 +27,9 @@
     for (var i = 2; i < arguments.length; i++) {
       var c = arguments[i];
       if (c === null || c === undefined || c === false) continue;
-      if (Array.isArray(c)) c.forEach(function (x) { if (x) el.appendChild(typeof x === 'string' ? document.createTextNode(x) : x); });
-      else el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+      // Only DOM nodes are appended as-is; anything else becomes inert text (never parsed as HTML).
+      if (Array.isArray(c)) c.forEach(function (x) { if (x) el.appendChild(x instanceof Node ? x : document.createTextNode(String(x))); });
+      else el.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));
     }
     return el;
   }

@@ -152,6 +152,8 @@ test('lastUpdated: tag date wins; falls back to the CHANGELOG date for the curre
   assert.deepEqual(lastUpdated('2.0.0', null, CHANGELOG), { date: null, version: '2.0.0', source: null });
   assert.equal(changelogDate(CHANGELOG, '1.1.1'), '2026-11-08');
   assert.equal(changelogDate(CHANGELOG, '1.1'), null);
+  assert.equal(changelogDate('## [1x1x1] - 2026-01-01', '1.1.1'), null, 'dots are literal');
+  assert.equal(changelogDate('## [1.0.0+a(b] - 2026-01-02', '1.0.0+a(b'), '2026-01-02', 'regex characters are escaped');
   assert.equal(changelogDate(null, '1.0.0'), null);
 });
 
