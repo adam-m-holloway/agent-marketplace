@@ -432,3 +432,15 @@ tbody tr:last-child > * { border-bottom: 0; }
   .line { stroke: CanvasText; }
   .mark { fill: CanvasText; stroke: Canvas; }
 }
+
+/* Install sits in the main block of a plugin page, under the key facts and above the scores. */
+.install-block { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.install-heading { margin: 0 0 8px; font-size: 1rem; font-weight: 600; }
+/* "How scores are calculated" page */
+.explain-page { margin-top: 16px; }
+
+/* Site title links home from anywhere (plugin pages, the scores page, filtered views). */
+.home-link { color: inherit; text-decoration: none; cursor: pointer; border-radius: 4px; }
+.home-link:hover { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+.eyebrow .home-link { color: var(--accent); }
+.install-block .install { margin-top: 0; padding-top: 0; border-top: 0; }

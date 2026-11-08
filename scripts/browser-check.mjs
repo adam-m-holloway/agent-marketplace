@@ -61,7 +61,7 @@ check('home card: h3 link to #/plugin/<name> is the only interactive element and
 check('home card: version, stage and one score line; no install / used-by',
   /v\d+\.\d+\.\d+/.test(adrCard?.text ?? '') && /published/i.test(adrCard?.text ?? '') && /Security\s+\d+/.test(adrCard?.text ?? '') && /Evals/.test(adrCard?.text ?? '') &&
   !/claude plugin install|Used by|team-a/.test(adrCard?.text ?? ''), adrCard?.text);
-check('home: "How scores are calculated" is collapsed at the bottom', await evalJs(`(() => { const d = document.getElementById('how-scores'); return !!d && d.tagName === 'DETAILS' && !d.open && /How scores are calculated/.test(d.querySelector('summary').textContent); })()`), null);
+check('home: no install content; "How scores are calculated" is a footer link to its own page', await evalJs(`(() => { const main = document.getElementById('catalogue'); const a = [...document.querySelectorAll('footer a')].find(x => /How scores are calculated/.test(x.textContent)); return !document.getElementById('how-scores') && !/claude plugin install|Just me|My team's repo|How consuming works/.test(document.body.innerText.split('Catalogue built')[0]) && !!a && a.getAttribute('href') === '#/scores'; })()`), null);
 await shot('home-1280.png');
 
 await type('adr helpr'); await sleep(500);
@@ -89,29 +89,36 @@ await nav('');
 await nav('#/plugin/adr-helper'); await sleep(300);
 await shot('detail-1280-collapsed.png');
 const det =await evalJs(`(() => { const d = document.getElementById('detail'); const head = d.querySelector('.detail-head');
-  const btn = [...head.querySelectorAll('button')].find(b => /install/i.test(b.textContent));
   const panel = document.getElementById('install-panel');
-  if (panel.hidden) btn.click();
+  const scoresEl = d.querySelector('.scores');
+  const installBeforeScores = !!panel && !!scoresEl && !!(panel.compareDocumentPosition(scoresEl) & Node.DOCUMENT_POSITION_FOLLOWING);
   return { visible: d.offsetParent !== null, catalogueHidden: document.getElementById('catalogue').hidden, title: document.title,
-    head: head.innerText, btn: !!btn, expanded: btn?.getAttribute('aria-expanded'), panelInHead: head.contains(panel), panelText: panel.innerText,
+    head: head.innerText, visiblePanel: !!panel && panel.offsetParent !== null, installBeforeScores, panelInHead: head.contains(panel), panelText: panel?.innerText ?? '',
     scores: d.querySelector('.scores')?.innerText ?? '',
     secs: [...d.querySelectorAll('details.sec')].map(s => ({ id: s.id, open: s.open, summary: s.querySelector('summary').innerText.replace(/\\s+/g, ' ') })) }; })()`);
 check('detail: shown, catalogue hidden, title set', det?.visible && det.catalogueHidden && /adr-helper/.test(det.title), { title: det?.title });
 check('detail head: name, description, latest + stable, stage, category, updated, owner',
   /adr-helper/.test(det?.head ?? '') && /Latest\s*v1\.\d+\.\d+/i.test(det?.head ?? '') && /Stable\s*v1\.\d+\.\d+/i.test(det?.head ?? '') && /published/i.test(det?.head ?? '') &&
   /documentation/.test(det?.head ?? '') && /Updated\s+\d{4}-\d\d-\d\d · v\d/i.test(det?.head ?? '') && /Adam Holloway/.test(det?.head ?? ''), det?.head?.slice(0, 400));
-check('detail head: Install button opens the install panel with the --marketplace command',
-  det?.btn && det.expanded === 'true' && det.panelInHead && /claude plugin install adr-helper --marketplace adam-m-holloway\/agent-marketplace/.test(det.panelText) && /Just me/.test(det.panelText) && /My team's repo/i.test(det.panelText), det && { btn: det.btn, expanded: det.expanded });
+check('detail head: install panel is visible in the main block, above the scores, with the --marketplace command',
+  det?.visiblePanel && det.installBeforeScores && det.panelInHead && /claude plugin install adr-helper --marketplace adam-m-holloway\/agent-marketplace/.test(det.panelText) && /Just me/.test(det.panelText) && /My team's repo/i.test(det.panelText), det && { visible: det.visiblePanel, before: det.installBeforeScores });
 check('detail: score summary row (Security / Quality / Evals / Adoption)', ['Security', 'Quality', 'Evals', 'Adoption'].every((k) => new RegExp(k, 'i').test(det?.scores ?? '')) && /\d/.test(det?.scores ?? ''), det?.scores);
 const sumOf = (id) => det?.secs?.find((s) => s.id === id)?.summary ?? '';
 check('detail sections: collapsed with one-line previews',
   det?.secs?.length >= 8 && det.secs.every((s) => !s.open) &&
   /Scores.*security \d+ · quality \d+ · evals/i.test(sumOf('sec-scores')) && /Used by.*2 teams.*team-a latest.*team-b stable/.test(sumOf('sec-used')) &&
-  /Release history.*\d+ releases, latest \d/.test(sumOf('sec-releases')) && /Trends.*score history over/.test(sumOf('sec-trends')) &&
-  /README.+/.test(sumOf('sec-readme')) && /Skills.*create-adr/.test(sumOf('sec-skills')) && /Related/.test(sumOf('sec-related')) && /How scores are calculated/.test(sumOf('how-scores-detail')),
+  /Release history.*\d+ releases, latest \d/.test(sumOf('sec-releases')) && /Changelog.+/.test(sumOf('sec-changelog')) && /Trends.*score history over/.test(sumOf('sec-trends')) &&
+  /README.+/.test(sumOf('sec-readme')) && /Skills.*create-adr/.test(sumOf('sec-skills')) && /Related/.test(sumOf('sec-related')),
   det?.secs);
 await shot('detail-1280-install.png');
 
+const homeBack = await evalJs(`(() => new Promise(r => { location.hash = '#/plugin/go-conventions'; setTimeout(() => { document.querySelector('h1 .home-link').click(); setTimeout(() => r({ catalogue: !document.getElementById('catalogue').hidden, detailHidden: document.getElementById('detail').hidden, cards: document.querySelectorAll('#results .card').length, q: document.getElementById('q').value }), 400); }, 400); }))()`);
+check('header: clicking the site title from a plugin page returns to the clean home page', homeBack?.catalogue && homeBack.detailHidden && homeBack.cards >= 3 && homeBack.q === '', homeBack);
+await nav('#/scores'); await sleep(300);
+const sp = await evalJs(`(() => ({ title: document.title, text: document.getElementById('detail').innerText, catHidden: document.getElementById('catalogue').hidden }))()`);
+check('scores page: #/scores shows the explainer on its own page', /How scores are calculated/.test(sp?.title ?? '') && sp.catHidden && /Security/.test(sp.text) && /Quality/.test(sp.text) && /major and minor/i.test(sp.text), sp?.title);
+await shot('scores-page.png');
+await nav('#/plugin/adr-helper'); await sleep(300);
 const stable = await evalJs(`(() => { const t = document.querySelector('#install-panel input[value=stable]'); if (!t) return null; t.click(); return new Promise(r => setTimeout(() => r(document.getElementById('install-panel').innerText), 300)); })()`);
 check('stable toggle shows ref + path + @agent-marketplace-stable', /"ref": "stable"/.test(stable ?? '') && /\.claude-plugin\/marketplace-stable\.json/.test(stable ?? '') && /@agent-marketplace-stable/.test(stable ?? ''), stable ? 'toggled' : 'no stable toggle found');
 await evalJs(`(document.querySelector('#install-panel input[value=latest]').click(), true)`);
