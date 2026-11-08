@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-08T11:17:25.999Z",
+  "generated_at": "2026-11-08T11:25:23.870Z",
   "scan_date": "2026-11-08",
   "rows": [
     {
@@ -10,8 +10,8 @@
       "marketplace": "agent-marketplace",
       "plugin": "adr-helper",
       "ref": "main",
-      "sha": "f3bf257ef577bbd1fb71cb8a2d19254fbb9bf376",
-      "version": "1.0.0",
+      "sha": "406d12cb339535926f795bc9052fa9ec3638a47d",
+      "version": "1.1.0",
       "versions_behind": 0,
       "first_seen": "2026-11-08",
       "status": "active"
@@ -24,7 +24,7 @@
       "marketplace": "agent-marketplace",
       "plugin": "go-conventions",
       "ref": "main",
-      "sha": "f3bf257ef577bbd1fb71cb8a2d19254fbb9bf376",
+      "sha": "406d12cb339535926f795bc9052fa9ec3638a47d",
       "version": "1.0.0",
       "versions_behind": 0,
       "first_seen": "2026-11-08",
@@ -40,7 +40,7 @@
       "ref": "stable",
       "sha": "e35f764715bd96a887ca3570915182f88813049a",
       "version": "1.0.0",
-      "versions_behind": 0,
+      "versions_behind": 1,
       "first_seen": "2026-11-08",
       "status": "active"
     },
