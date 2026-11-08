@@ -1,0 +1,12 @@
+{
+  "name": "no-status",
+  "version": "1.0.0",
+  "description": "The no-status plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "documentation"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "extra-field",
+  "version": "1.0.0",
+  "description": "The extra-field plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "documentation"
+  ],
+  "license": "MIT"
+}

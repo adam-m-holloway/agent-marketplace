@@ -1,0 +1,12 @@
+{
+  "name": "omega-retired",
+  "version": "1.0.0",
+  "description": "The omega-retired plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "documentation"
+  ],
+  "license": "MIT"
+}

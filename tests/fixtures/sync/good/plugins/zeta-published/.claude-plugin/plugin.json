@@ -1,0 +1,13 @@
+{
+  "name": "zeta-published",
+  "version": "1.0.0",
+  "description": "The zeta-published plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "adr",
+    "madr"
+  ],
+  "license": "MIT"
+}

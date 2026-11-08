@@ -1,0 +1,12 @@
+{
+  "name": "listed-sandbox",
+  "version": "1.0.0",
+  "description": "The listed-sandbox plugin",
+  "author": {
+    "name": "Adam Holloway"
+  },
+  "keywords": [
+    "documentation"
+  ],
+  "license": "MIT"
+}
