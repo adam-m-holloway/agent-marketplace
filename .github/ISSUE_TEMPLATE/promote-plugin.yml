@@ -1,0 +1,42 @@
+name: Promote plugin stage
+description: Ask for a plugin to move one stage (sandbox → incubating → published → deprecated → retired).
+title: "Stage: <plugin> <from> → <to>"
+labels: ["stage-change"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Run `npm run stage <plugin> <stage>` locally first — it prints the readiness checklist the
+        `stage-gate` PR check applies. Then open a PR with only `status.json` + the regenerated
+        catalogues and link it here. A code owner approves the move.
+  - type: input
+    id: plugin
+    attributes:
+      label: Plugin
+      placeholder: adr-helper
+    validations:
+      required: true
+  - type: dropdown
+    id: from
+    attributes:
+      label: From stage
+      options: [sandbox, incubating, published, deprecated]
+    validations:
+      required: true
+  - type: dropdown
+    id: to
+    attributes:
+      label: To stage
+      options: [incubating, published, deprecated, retired]
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: >
+        Paste the `npm run stage` checklist. incubating: evals + trigger set, owner, no HIGH findings.
+        published: ≥14 days incubating or ≥2 active consumers, CHANGELOG entry, eval result.
+        deprecated: replacedBy or a reason. retired: no active consumers (or why `retire-anyway`).
+    validations:
+      required: true
