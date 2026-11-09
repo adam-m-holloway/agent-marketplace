@@ -1,37 +1,37 @@
 {
-  "generated_at": "2026-11-08T12:48:29.887Z",
-  "scan_date": "2026-11-08",
+  "generated_at": "2026-11-09T11:40:04.222Z",
+  "scan_date": "2026-11-09",
   "rows": [
     {
-      "date": "2026-11-08",
+      "date": "2026-11-09",
       "consumer": "adam-m-holloway/team-a",
       "team": "team-a",
       "channel": "latest",
       "marketplace": "agent-marketplace",
       "plugin": "adr-helper",
       "ref": "main",
-      "sha": "a13fae9765d69162ac89d28df18ac9ae142e2a07",
-      "version": "1.1.1",
+      "sha": "23a09605c3545655c39effa34a0bc6b6bb1f4a67",
+      "version": "1.1.3",
       "versions_behind": 0,
       "first_seen": "2026-11-08",
       "status": "active"
     },
     {
-      "date": "2026-11-08",
+      "date": "2026-11-09",
       "consumer": "adam-m-holloway/team-a",
       "team": "team-a",
       "channel": "latest",
       "marketplace": "agent-marketplace",
       "plugin": "go-conventions",
       "ref": "main",
-      "sha": "a13fae9765d69162ac89d28df18ac9ae142e2a07",
-      "version": "1.0.0",
+      "sha": "23a09605c3545655c39effa34a0bc6b6bb1f4a67",
+      "version": "1.0.2",
       "versions_behind": 0,
       "first_seen": "2026-11-08",
       "status": "active"
     },
     {
-      "date": "2026-11-08",
+      "date": "2026-11-09",
       "consumer": "adam-m-holloway/team-b",
       "team": "team-b",
       "channel": "stable",
@@ -40,12 +40,12 @@
       "ref": "stable",
       "sha": "78db43c3b830d716e4f3021c79feb2c79874177e",
       "version": "1.1.1",
-      "versions_behind": 0,
+      "versions_behind": 2,
       "first_seen": "2026-11-08",
       "status": "active"
     },
     {
-      "date": "2026-11-08",
+      "date": "2026-11-09",
       "consumer": "adam-m-holloway/team-b",
       "team": "team-b",
       "channel": "stable",
@@ -54,7 +54,7 @@
       "ref": "stable",
       "sha": "78db43c3b830d716e4f3021c79feb2c79874177e",
       "version": "1.0.1",
-      "versions_behind": 0,
+      "versions_behind": 2,
       "first_seen": "2026-11-08",
       "status": "active"
     }
