@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-13T11:05:37.533Z",
-  "scan_date": "2026-11-13",
+  "generated_at": "2026-11-14T10:32:19.520Z",
+  "scan_date": "2026-11-14",
   "rows": [
     {
-      "date": "2026-11-13",
+      "date": "2026-11-14",
       "consumer": "adam-m-holloway/team-a",
       "team": "team-a",
       "channel": "latest",
@@ -17,7 +17,7 @@
       "status": "active"
     },
     {
-      "date": "2026-11-13",
+      "date": "2026-11-14",
       "consumer": "adam-m-holloway/team-a",
       "team": "team-a",
       "channel": "latest",
@@ -31,7 +31,7 @@
       "status": "active"
     },
     {
-      "date": "2026-11-13",
+      "date": "2026-11-14",
       "consumer": "adam-m-holloway/team-b",
       "team": "team-b",
       "channel": "stable",
@@ -45,7 +45,7 @@
       "status": "active"
     },
     {
-      "date": "2026-11-13",
+      "date": "2026-11-14",
       "consumer": "adam-m-holloway/team-b",
       "team": "team-b",
       "channel": "stable",
